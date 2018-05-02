@@ -8,15 +8,19 @@ test_that("Creating a valid `agent` object is possible", {
   # Expect that names in an agent object match a
   # prescribed set of names
   expect_true(
-    all(names(agent) ==
-          c("validation_name", "validation_time",
-            "focal_tbl_name", "focal_file_name",
-            "focal_db_type", "focal_col_names",
-            "focal_col_types", "focal_db_cred_file_path",
-            "focal_init_sql", "email_creds_file_path",
-            "notification_recipients", "notification_emails_active",
-            "logical_plan", "validation_set",
-            "sets", "preconditions")))
+    all(
+      names(agent) ==
+        c("validation_name", "validation_time",
+          "focal_tbl_name", "focal_file_name",
+          "focal_db_type", "focal_col_names",
+          "focal_col_types", "focal_db_cred_file_path",
+          "focal_db_env_vars", "focal_init_sql", "email_creds_file_path",
+          "email_notification_recipients", "email_notifications_active",
+          "slack_webhook_url", "slack_channel", "slack_username", 
+          "slack_author_name", "slack_title", "slack_report_url", 
+          "slack_footer_thumb_url", "slack_footer_text", 
+          "slack_notifications_active", "logical_plan",
+          "validation_set", "sets", "preconditions")))
   
   # Expect an agent object of class `dgr_graph`
   expect_is(agent, "ptblank_agent")
@@ -47,8 +51,17 @@ test_that("Creating a valid `agent` object is possible", {
   expect_is(agent$focal_db_cred_file_path, "character")
   expect_is(agent$focal_init_sql, "character")
   expect_is(agent$email_creds_file_path, "character")
-  expect_is(agent$notification_recipients, "character")
-  expect_is(agent$notification_emails_active, "logical")
+  expect_is(agent$email_notification_recipients, "character")
+  expect_is(agent$email_notifications_active, "logical")
+  expect_is(agent$slack_webhook_url, "character")
+  expect_is(agent$slack_channel, "character")
+  expect_is(agent$slack_username, "character")
+  expect_is(agent$slack_author_name, "character")
+  expect_is(agent$slack_title, "character")
+  expect_is(agent$slack_report_url, "character")
+  expect_is(agent$slack_footer_thumb_url, "character")
+  expect_is(agent$slack_footer_text, "character")
+  expect_is(agent$slack_notifications_active, "logical")
   expect_is(agent$validation_set$tbl_name, "character")
   expect_is(agent$validation_set$db_type, "character")
   expect_is(agent$validation_set$assertion_type, "character")
@@ -74,7 +87,7 @@ test_that("Creating a valid `agent` object is possible", {
   expect_is(agent$validation_set$proc_duration_s, "numeric")
   
   # Create an agent with a name
-  agent_name <- create_agent(name = "test")
+  agent_name <- create_agent(validation_name = "test")
   
   # Expect that the agent name has been set
   expect_equivalent(agent_name$validation_name, "test")

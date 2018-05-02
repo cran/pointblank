@@ -4,11 +4,10 @@
 \alias{col_is_date}
 \title{Verify that a column contains R Date objects}
 \usage{
-col_is_date(agent, column, warn_count = 1, notify_count = NULL,
-  warn_fraction = NULL, notify_fraction = NULL, tbl_name = NULL,
-  db_type = NULL, creds_file = NULL, initial_sql = NULL,
-  file_path = NULL, col_types = NULL, preconditions = NULL,
-  description = NULL)
+col_is_date(agent, column, brief = NULL, warn_count = 1,
+  notify_count = NULL, warn_fraction = NULL, notify_fraction = NULL,
+  tbl_name = NULL, db_type = NULL, creds_file = NULL,
+  initial_sql = NULL, file_path = NULL, col_types = NULL)
 }
 \arguments{
 \item{agent}{an agent object of class
@@ -17,6 +16,9 @@ col_is_date(agent, column, warn_count = 1, notify_count = NULL,
 \item{column}{the name of a single table column,
 multiple columns in the same table, or, a helper
 function such as \code{all_cols()}.}
+
+\item{brief}{an optional, text-based description
+for the validation step.}
 
 \item{warn_count}{the threshold number for 
 individual validations returning a \code{FALSE}
@@ -79,27 +81,6 @@ integer, \code{n} -> number, \code{d} -> double,
 \code{l} -> logical, \code{D} -> date, \code{T} ->
 date time, \code{t} -> time, \code{?} -> guess, 
 or \code{_/-}, which skips the column.}
-
-\item{preconditions}{an optional statement of
-filtering conditions that may reduce the number
-of rows for validation for the current
-validation step. The statements are executed
-for every row of the table in focus and are
-often referred as predicate statements (they
-either return \code{TRUE} or \code{FALSE} for
-every row evaluated, where rows evaluated as
-\code{TRUE} are the rows that are retained for
-the validation step). For example, if a table
-has columns \code{a}, \code{b}, and \code{c},
-and, column \code{a} has numerical data, we
-can write a statement \code{a < 5} that filters
-all rows in the table where values in column a
-are less than five.}
-
-\item{description}{an optional, text-based
-description for the validation step. Used primarily
-in the Logical Plan section of the report generated
-by the \code{html_summary} function.}
 }
 \value{
 an agent object.
@@ -110,18 +91,21 @@ a table column is expected to consist entirely
 of R \code{Date} objects.
 }
 \examples{
-# Validate that the `date` column in the
-# `small_table` CSV file is classed as
-# `Date`
+# Create a simple data frame
+# with a column containing data
+# classed as `Date`
+df <-
+  data.frame(
+    a = as.Date("2017-08-15"))
+
+# Validate that column `a`
+# in the data frame is classed
+# as `Date`
 agent <-
   create_agent() \%>\%
-  focus_on(
-    file_name = 
-      system.file(
-        "extdata", "small_table.csv",
-        package = "pointblank"),
-    col_types = "TDicidlc") \%>\%
-  col_is_date(column = date) \%>\%
+  focus_on(tbl_name = "df") \%>\%
+  col_is_date(
+    column = a) \%>\%
   interrogate()
 
 # Determine if these column

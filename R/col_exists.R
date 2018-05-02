@@ -6,6 +6,8 @@
 #' \code{ptblank_agent}.
 #' @param column the name of a single table column
 #' or multiple columns in the same table.
+#' @param brief an optional, text-based description
+#' for the validation step.
 #' @param warn_count the threshold number for 
 #' individual validations returning a \code{FALSE}
 #' result before applying the \code{warn} flag.
@@ -58,10 +60,6 @@
 #' \code{l} -> logical, \code{D} -> date, \code{T} ->
 #' date time, \code{t} -> time, \code{?} -> guess, 
 #' or \code{_/-}, which skips the column.
-#' @param description an optional, text-based
-#' description for the validation step. Used primarily
-#' in the Logical Plan section of the report generated
-#' by the \code{html_summary} function.
 #' @return an agent object.
 #' @examples
 #' # Validate that column `a` exists in
@@ -86,11 +84,13 @@
 #' #> [1] TRUE
 #' @importFrom tibble tibble
 #' @importFrom dplyr bind_rows
-#' @importFrom rlang enquo UQ
+#' @importFrom rlang enquo get_expr
+#' @importFrom stringr str_replace_all
 #' @export col_exists
 
 col_exists <- function(agent,
                        column,
+                       brief = NULL,
                        warn_count = 1,
                        notify_count = NULL,
                        warn_fraction = NULL,
@@ -100,13 +100,25 @@ col_exists <- function(agent,
                        creds_file = NULL,
                        initial_sql = NULL,
                        file_path = NULL,
-                       col_types = NULL,
-                       description = NULL) {
+                       col_types = NULL) {
 
-  column <- rlang::enquo(column)
-  column <- (rlang::UQ(column) %>% paste())[2]
+  # Get the column name
+  column <- 
+    rlang::enquo(column) %>%
+    rlang::expr_text() %>%
+    stringr::str_replace_all("~", "") %>%
+    stringr::str_replace_all("\"", "'")
   
   preconditions <- NULL
+  
+  if (is.null(brief)) {
+    
+    brief <-
+      create_autobrief(
+        agent = agent,
+        assertion_type = "col_exists",
+        column = column)
+  }
   
   # Add one or more validation steps
   agent <-
@@ -114,11 +126,12 @@ col_exists <- function(agent,
       agent = agent,
       assertion_type = "col_exists",
       column = column,
+      preconditions = preconditions,
+      brief = brief,
       warn_count = warn_count,
       notify_count = notify_count,
       warn_fraction = warn_fraction,
       notify_fraction = notify_fraction,
-      preconditions = preconditions,
       tbl_name = ifelse(is.null(tbl_name), as.character(NA), tbl_name),
       db_type = ifelse(is.null(db_type), as.character(NA), db_type),
       creds_file = ifelse(is.null(creds_file), as.character(NA), creds_file),
@@ -126,9 +139,9 @@ col_exists <- function(agent,
       file_path = ifelse(is.null(file_path), as.character(NA), file_path),
       col_types = ifelse(is.null(col_types), as.character(NA), col_types))
   
-  # If no `description` provided, set as `NA`
-  if (is.null(description)) {
-    description <- as.character(NA)
+  # If no `brief` provided, set as NA
+  if (is.null(brief)) {
+    brief <- as.character(NA)
   }
   
   # Place the validation step in the logical plan
@@ -138,7 +151,7 @@ col_exists <- function(agent,
       tibble::tibble(
         component_name = "col_exists",
         parameters = as.character(NA),
-        description = description))
+        brief = brief))
   
-  return(agent)
+  agent
 }

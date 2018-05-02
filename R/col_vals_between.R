@@ -30,6 +30,8 @@
 #' can write a statement \code{a < 5} that filters
 #' all rows in the table where values in column a
 #' are less than five.
+#' @param brief an optional, text-based description
+#' for the validation step.
 #' @param warn_count the threshold number for 
 #' individual validations returning a \code{FALSE}
 #' result before applying the \code{warn} flag.
@@ -82,10 +84,6 @@
 #' \code{l} -> logical, \code{D} -> date, \code{T} ->
 #' date time, \code{t} -> time, \code{?} -> guess, 
 #' or \code{_/-}, which skips the column.
-#' @param description an optional, text-based
-#' description for the validation step. Used primarily
-#' in the Logical Plan section of the report generated
-#' by the \code{html_summary} function.
 #' @return an agent object.
 #' @examples
 #' # Create a simple data frame
@@ -114,7 +112,8 @@
 #' #> [1] TRUE
 #' @importFrom tibble tibble
 #' @importFrom dplyr bind_rows
-#' @importFrom rlang enquo UQ
+#' @importFrom rlang enquo expr_text
+#' @importFrom stringr str_replace_all
 #' @export col_vals_between
 
 col_vals_between <- function(agent,
@@ -122,6 +121,7 @@ col_vals_between <- function(agent,
                              left,
                              right,
                              preconditions = NULL,
+                             brief = NULL,
                              warn_count = 1,
                              notify_count = NULL,
                              warn_fraction = NULL,
@@ -131,17 +131,35 @@ col_vals_between <- function(agent,
                              creds_file = NULL,
                              initial_sql = NULL,
                              file_path = NULL,
-                             col_types = NULL,
-                             description = NULL) {
+                             col_types = NULL) {
 
-  column <- rlang::enquo(column)
-  column <- (rlang::UQ(column) %>% paste())[2]
+  # Get the column name
+  column <- 
+    rlang::enquo(column) %>%
+    rlang::expr_text() %>%
+    stringr::str_replace_all("~", "") %>%
+    stringr::str_replace_all("\"", "'")
   
-  preconditions <- rlang::enquo(preconditions)
-  preconditions <- (rlang::UQ(preconditions) %>% paste())[2]
+  # Get the preconditions
+  preconditions <- 
+    rlang::enquo(preconditions) %>%
+    rlang::expr_text() %>%
+    stringr::str_replace_all("~", "") %>%
+    stringr::str_replace_all("\"", "'")
   
-  if (preconditions == "NULL") {
+  if (length(preconditions) == 0) {
     preconditions <- NULL
+  }
+  
+  if (is.null(brief)) {
+    
+    brief <-
+      create_autobrief(
+        agent = agent,
+        assertion_type = "col_vals_between",
+        column = column,
+        left = left,
+        right = right)
   }
   
   # If "*" is provided for `column`, select all
@@ -157,11 +175,12 @@ col_vals_between <- function(agent,
       assertion_type = "col_vals_between",
       column = column,
       set = c(left, right),
+      preconditions = preconditions,
+      brief = brief,
       warn_count = warn_count,
       notify_count = notify_count,
       warn_fraction = warn_fraction,
       notify_fraction = notify_fraction,
-      preconditions = preconditions,
       tbl_name = ifelse(is.null(tbl_name), as.character(NA), tbl_name),
       db_type = ifelse(is.null(db_type), as.character(NA), db_type),
       creds_file = ifelse(is.null(creds_file), as.character(NA), creds_file),
@@ -169,9 +188,9 @@ col_vals_between <- function(agent,
       file_path = ifelse(is.null(file_path), as.character(NA), file_path),
       col_types = ifelse(is.null(col_types), as.character(NA), col_types))
   
-  # If no `description` provided, set as `NA`
-  if (is.null(description)) {
-    description <- as.character(NA)
+  # If no `brief` provided, set as NA
+  if (is.null(brief)) {
+    brief <- as.character(NA)
   }
   
   # Place the validation step in the logical plan
@@ -181,7 +200,7 @@ col_vals_between <- function(agent,
       tibble::tibble(
         component_name = "col_vals_between",
         parameters = as.character(NA),
-        description = description))
+        brief = brief))
   
-  return(agent)
+  agent
 }

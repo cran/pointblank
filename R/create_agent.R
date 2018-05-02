@@ -1,75 +1,65 @@
-#' Create an agent object
+#' Create a pointblank agent object
 #' @description Creates an agent object.
-#' @param name optional name for the agent that
-#' will eventually carry out the interrogation
-#' process.
-#' @param email_creds_file_path an optional path
-#' to an email credentials file.
-#' @param notification_recipient_emails an optional
-#' vector of email addresses to which notification
-#' emails should be sent.
-#' @param notification_emails_active an option to
-#' enable notification emails when tests trigger a
-#' \code{notify} status.
+#' @param validation_name an optional name
+#' for the validation pipeline that the
+#' agent will eventually carry out during
+#' the interrogation process. If no
+#' value is provided, a name will be
+#' generated based on the current system
+#' time.
 #' @examples 
-#' # Create an `agent` object in order to begin
-#' # defining validation steps
+#' # Create a simple data frame
+#' # with a column of numerical values
+#' df <-
+#'   data.frame(
+#'     a = c(5, 7, 6, 5, 8, 7))
+#' 
+#' # Create a pointblank `agent` object
 #' agent <- create_agent()
-#' 
-#' \dontrun{
-#' # Should notifications be required through
-#' # email, we first create an email credentials
-#' # file, with `create_email_creds_file()`, and
-#' # then reference that file with `create_agent()`
-#' create_email_creds_file(
-#'   file = "~/.pb_notify",
-#'   sender = "point@blank.org",
-#'   host = "smtp.blank.org",
-#'   port = 465,
-#'   user = "point@blank.org",
-#'   password = "************") 
-#' 
-#' agent_notify <-
-#'   create_agent(
-#'   email_creds_file_path = "~/.pb_notify",
-#'   notification_recipient_emails = 
-#'     c("a@b.net", "c@d.com", "e@f.org"),
-#'   notification_emails_active = TRUE)
-#' }
-#' 
-#' # Then, as with any `ptblank_agent` object,
-#' # we can focus on different table, add
-#' # validation steps, and then eventually use
-#' # `interrogate()` to perform the validations
+#'
+#' # Then, as with any `ptblank_agent`
+#' # object, we can focus on a table,
+#' # add validation steps, and then
+#' # eventually use `interrogate()`
+#' # to perform the validations;
+#' # here, in a single validation
+#' # step, we expect that values in
+#' # column `a` are always greater
+#' # than 4
 #' agent <-
 #'   agent %>%
-#'   focus_on(
-#'     file_name = 
-#'       system.file(
-#'         "extdata", "small_table.csv",
-#'         package = "pointblank"),
-#'     col_types = "TDicidlc") %>%
-#'   col_exists(column = c("a", "b")) %>%
+#'   focus_on(tbl_name = "df") %>%
+#'   col_vals_gt(
+#'     column = a,
+#'     value = 4) %>%
 #'   interrogate()
 #'  
-#' # A basic summary can be produced using
-#' # the `get_summary()` function
-#' get_summary(agent)[, 1:7]
-#' #> # A tibble: 2 x 7
-#' #>      tbl_name    db_type assertion_type column value regex all_passed
-#' #>         <chr>      <chr>          <chr>  <chr> <dbl> <chr>      <lgl>
-#' #> 1 small_table local_file     col_exists      a    NA  <NA>       TRUE
-#' #> 2 small_table local_file     col_exists      b    NA  <NA>       TRUE
+#' # A summary can be produced using
+#' # `get_interrogation_summary()`; we
+#' # we will just obtain the first
+#' # 7 columns of its output
+#' (agent %>%
+#'   get_interrogation_summary())[, 1:7]
+#' #> # A tibble: 1 x 7
+#' #>   tbl_name  db_type assertion_type column value regex all_passed
+#' #>      <chr>    <chr>          <chr>  <chr> <dbl> <chr>      <lgl>
+#' #> 1       df local_df    col_vals_gt      a     4  <NA>       TRUE
 #' @return an agent object.
 #' @importFrom dplyr filter
 #' @importFrom tibble tibble as_tibble
 #' @export create_agent
 
-create_agent <- function(name = NULL,
-                         email_creds_file_path = NULL,
-                         notification_recipient_emails = NULL,
-                         notification_emails_active = FALSE) {
+create_agent <- function(validation_name = NULL) {
   
+  # Generate an agent name if none provided
+  if (is.null(validation_name)) {
+    validation_name <- paste0("agent_", gsub(" ", "_", Sys.time() %>% as.character()))
+    brief <- "Create agent with auto-assigned validation name"
+  } else {
+    brief <- "Create agent with an assigned validation name"
+  }
+  
+  # Create the agent list object
   agent <-
     list(
       validation_name = as.character(NA)[-1],
@@ -80,15 +70,25 @@ create_agent <- function(name = NULL,
       focal_col_names = as.character(NA)[-1],
       focal_col_types = as.character(NA)[-1],
       focal_db_cred_file_path = as.character(NA)[-1],
+      focal_db_env_vars = list(),
       focal_init_sql = as.character(NA)[-1],
       email_creds_file_path = as.character(NA)[-1],
-      notification_recipients = as.character(NA)[-1],
-      notification_emails_active = FALSE,
+      email_notification_recipients = as.character(NA)[-1],
+      email_notifications_active = FALSE,
+      slack_webhook_url = as.character(NA)[-1],
+      slack_channel = as.character(NA)[-1],
+      slack_username = as.character(NA)[-1],
+      slack_author_name = as.character(NA)[-1],
+      slack_title = as.character(NA)[-1],
+      slack_report_url = as.character(NA)[-1],
+      slack_footer_thumb_url = as.character(NA)[-1],
+      slack_footer_text = as.character(NA)[-1],
+      slack_notifications_active = FALSE,
       logical_plan =
         tibble::tibble(
           component_name = as.character("create_agent"),
           parameters = as.character(NA),
-          description = as.character(NA)),
+          brief = brief),
       validation_set =
         tibble::tibble(
           tbl_name = as.character(NA),
@@ -119,21 +119,8 @@ create_agent <- function(name = NULL,
       sets = list(),
       preconditions = list())
   
-  if (!is.null(name)) {
-    agent$validation_name <- name
-  }
-  
-  if (!is.null(email_creds_file_path)) {
-    agent$email_creds_file_path <- email_creds_file_path
-  }
-  
-  if (!is.null(notification_recipient_emails)) {
-    agent$notification_recipients <- notification_recipient_emails
-  }
-  
-  if (notification_emails_active %in% c(TRUE, FALSE)) {
-    agent$notification_emails_active <- notification_emails_active
-  }
+  # Add the agent name to the object
+  agent$validation_name <- validation_name
   
   agent$validation_set <-
     agent$validation_set %>%
@@ -143,5 +130,5 @@ create_agent <- function(name = NULL,
   # the `agent object`
   attr(agent, "class") <- "ptblank_agent"
   
-  return(agent)
+  agent
 }

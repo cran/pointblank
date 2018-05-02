@@ -22,6 +22,17 @@
 #' database, the type of database is required here.
 #' Currently, this can be either \code{PostgreSQL}
 #' or \code{MySQL}.
+#' @param initial_sql when accessing a table in a
+#' database (MySQL and PostgreSQL), this provides
+#' an option to provide an initial SQL query
+#' that is applied to the table before conducting
+#' validations. An entire SQL statement can be
+#' provided here, or, as a shortcut, the initial
+#' \code{SELECT...} statement can be omitted for
+#' simple queries that filter the table in focus
+#' (e.g., \code{WHERE a > 1 AND b = 'one'}).
+#' @param brief an optional, text-based description
+#' for the new focus.
 #' @param creds_file if a connection to a database
 #' is required for reaching the table specified in
 #' \code{tbl_name}, then a path to a credentials file
@@ -33,17 +44,19 @@
 #' (4) the username (\code{user}), and (5) the
 #' \code{password}. This file can be easily created
 #' using the \code{create_creds_file()} function.
-#' @param initial_sql when accessing a remote table,
-#' this provides an option to provide an initial
-#' query component before conducting validations. 
-#' An entire SQL statement can be provided here, or,
-#' as a shortcut, the initial \code{SELECT...}
-#' statement can be omitted for simple queries (e.g.,
-#' \code{WHERE a > 1 AND b = 'one'}).
-#' @param description an optional, text-based
-#' description for the validation step. Used primarily
-#' in the Logical Plan section of the report generated
-#' by the \code{html_summary} function.
+#' @param db_creds_env_vars if a connection to a
+#' database is required for reaching the table
+#' specified in \code{tbl_name}, then a set of
+#' environment variables can be used to establish
+#' that connection. Separate environment variables
+#' with the following items should be available:
+#' (1) database name (\code{dbname}),
+#' (2) the \code{host} name, (3) the \code{port},
+#' (4) the username (\code{user}), and (5) the
+#' \code{password}. To pass the names of the
+#' environment variables to the \code{agent}
+#' object, one can use the \code{db_creds_env_vars()}
+#' function directly.
 #' @return an agent object.
 #' @examples
 #' # Create a simple data frame with a column
@@ -62,7 +75,7 @@
 #'   create_agent() %>%
 #'   focus_on(tbl_name = "df") %>%
 #'   col_vals_lt(
-#'     column = "a",
+#'     column = a,
 #'     value = 6) %>%
 #'   interrogate()
 #' 
@@ -70,10 +83,11 @@
 #' # passed by using `all_passed()`
 #' all_passed(agent)
 #' #> [1] TRUE
-#' @importFrom dplyr filter bind_rows
+#' @importFrom dplyr filter bind_rows group_by filter ungroup collect row_number
 #' @importFrom readr read_csv read_tsv
 #' @importFrom stringr str_split
-#' @importFrom tibble as_tibble
+#' @importFrom tibble as_tibble glimpse
+#' @importFrom utils capture.output
 #' @export focus_on
 
 focus_on <- function(agent,
@@ -81,9 +95,10 @@ focus_on <- function(agent,
                      file_name = NULL,
                      col_types = NULL,
                      db_type = NULL,
-                     creds_file = NULL,
                      initial_sql = NULL,
-                     description = NULL) {
+                     brief = NULL,
+                     creds_file = NULL,
+                     db_creds_env_vars = NULL) {
   
   if (is.null(tbl_name) & is.null(file_name)) {
     stop("A table name or a file name must be provided.")
@@ -128,6 +143,13 @@ focus_on <- function(agent,
     agent$focal_db_cred_file_path <- creds_file
   }
   
+  if (!is.null(db_creds_env_vars)) {
+    if (inherits(db_creds_env_vars, "list")) {
+      
+      agent$focal_db_env_vars <- db_creds_env_vars
+    }
+  }
+  
   if (is.null(initial_sql)) {
     agent$focal_init_sql <- as.character(NA)
   } else if (!is.null(initial_sql)) {
@@ -141,6 +163,8 @@ focus_on <- function(agent,
     # Create `table` object as the direct reference to a
     # local `data.frame` or `tbl_df` object
     table <- get(tbl_name)
+    
+    agent$focal_col_names <- colnames(table)
     
   } else if (agent$focal_db_type == "local_file") {
     
@@ -172,37 +196,84 @@ focus_on <- function(agent,
       agent$focal_tbl_name <- file_name_no_ext
     }
     
+    agent$focal_col_names <- colnames(table)
+    
   } else if (agent$focal_db_type == "PostgreSQL") {
     
     # Create `table` object as an SQL entry point
     # for a remote PostgreSQL table
-    table <- 
-      set_entry_point(
-        table = tbl_name,
-        db_type = db_type,
-        creds_file = creds_file)
+    
+    if (!is.null(creds_file)) {
+      
+      table <- 
+        set_entry_point(
+          table = tbl_name,
+          db_type = db_type,
+          creds_file = creds_file)
+      
+    } else if (!is.null(db_creds_env_vars)) {
+      
+      table <-
+        set_entry_point(
+          table = tbl_name,
+          db_type = db_type,
+          db_creds_env_vars = db_creds_env_vars)
+    }
+    
+    # Get the column names from the table
+    # captured <- utils::capture.output({
+    #   table_colnames <- tibble::glimpse(table) %>% names() })
+    agent$focal_col_names <-  
+      table %>%
+      dplyr::group_by() %>%
+      dplyr::filter(row_number() == 1) %>%
+      dplyr::ungroup() %>%
+      dplyr::collect() %>%
+      sapply(class) %>%
+      lapply(`[[`, 1) %>%
+      names()
     
   } else if (agent$focal_db_type == "MySQL") {
     
     # Create `table` object as an SQL entry point
     # for a remote MySQL table
-    table <- 
-      set_entry_point(
-        table = tbl_name,
-        db_type = db_type,
-        creds_file = creds_file) 
+    if (!is.null(creds_file)) {
+      
+      table <- 
+        set_entry_point(
+          table = tbl_name,
+          db_type = db_type,
+          creds_file = creds_file)
+      
+    } else if (!is.null(db_creds_env_vars)) {
+      
+      table <-
+        set_entry_point(
+          table = tbl_name,
+          db_type = db_type,
+          db_creds_env_vars = db_creds_env_vars)
+    }
+    
+    agent$focal_col_names <-  
+      table %>%
+      dplyr::group_by() %>%
+      dplyr::filter(row_number() == 1) %>%
+      dplyr::ungroup() %>%
+      dplyr::collect() %>%
+      sapply(class) %>%
+      lapply(`[[`, 1) %>%
+      names()
   }
   
-  # Get the column names from the table
-  agent$focal_col_names <-
-    table %>%
-    dplyr::filter(row_number() == 1) %>%
-    tibble::as_tibble() %>%
-    names()
   
-  # If no `description` provided, set as `NA`
-  if (is.null(description)) {
-    description <- as.character(NA)
+  # If no `brief` provided, autogenerate one
+  if (is.null(brief)) {
+    
+    brief <-
+      paste0(
+        "Focus on table `",
+        tbl_name, "` (",
+        agent$focal_db_type, ")")
   }
   
   # Place the validation step in the logical plan
@@ -212,7 +283,7 @@ focus_on <- function(agent,
       tibble::tibble(
         component_name = "focus_on",
         parameters = as.character(NA),
-        description = description))
+        brief = brief))
   
-  return(agent)
+  agent
 }

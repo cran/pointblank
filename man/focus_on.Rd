@@ -5,8 +5,8 @@
 \title{Place certain access details more to the fore}
 \usage{
 focus_on(agent, tbl_name = NULL, file_name = NULL, col_types = NULL,
-  db_type = NULL, creds_file = NULL, initial_sql = NULL,
-  description = NULL)
+  db_type = NULL, initial_sql = NULL, brief = NULL, creds_file = NULL,
+  db_creds_env_vars = NULL)
 }
 \arguments{
 \item{agent}{an agent object of class
@@ -34,6 +34,19 @@ database, the type of database is required here.
 Currently, this can be either \code{PostgreSQL}
 or \code{MySQL}.}
 
+\item{initial_sql}{when accessing a table in a
+database (MySQL and PostgreSQL), this provides
+an option to provide an initial SQL query
+that is applied to the table before conducting
+validations. An entire SQL statement can be
+provided here, or, as a shortcut, the initial
+\code{SELECT...} statement can be omitted for
+simple queries that filter the table in focus
+(e.g., \code{WHERE a > 1 AND b = 'one'}).}
+
+\item{brief}{an optional, text-based description
+for the new focus.}
+
 \item{creds_file}{if a connection to a database
 is required for reaching the table specified in
 \code{tbl_name}, then a path to a credentials file
@@ -46,18 +59,19 @@ specified order: (1) database name (\code{dbname}),
 \code{password}. This file can be easily created
 using the \code{create_creds_file()} function.}
 
-\item{initial_sql}{when accessing a remote table,
-this provides an option to provide an initial
-query component before conducting validations. 
-An entire SQL statement can be provided here, or,
-as a shortcut, the initial \code{SELECT...}
-statement can be omitted for simple queries (e.g.,
-\code{WHERE a > 1 AND b = 'one'}).}
-
-\item{description}{an optional, text-based
-description for the validation step. Used primarily
-in the Logical Plan section of the report generated
-by the \code{html_summary} function.}
+\item{db_creds_env_vars}{if a connection to a
+database is required for reaching the table
+specified in \code{tbl_name}, then a set of
+environment variables can be used to establish
+that connection. Separate environment variables
+with the following items should be available:
+(1) database name (\code{dbname}),
+(2) the \code{host} name, (3) the \code{port},
+(4) the username (\code{user}), and (5) the
+\code{password}. To pass the names of the
+environment variables to the \code{agent}
+object, one can use the \code{db_creds_env_vars()}
+function directly.}
 }
 \value{
 an agent object.
@@ -84,7 +98,7 @@ agent <-
   create_agent() \%>\%
   focus_on(tbl_name = "df") \%>\%
   col_vals_lt(
-    column = "a",
+    column = a,
     value = 6) \%>\%
   interrogate()
 

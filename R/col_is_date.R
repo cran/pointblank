@@ -7,21 +7,8 @@
 #' @param column the name of a single table column,
 #' multiple columns in the same table, or, a helper
 #' function such as \code{all_cols()}.
-#' @param preconditions an optional statement of
-#' filtering conditions that may reduce the number
-#' of rows for validation for the current
-#' validation step. The statements are executed
-#' for every row of the table in focus and are
-#' often referred as predicate statements (they
-#' either return \code{TRUE} or \code{FALSE} for
-#' every row evaluated, where rows evaluated as
-#' \code{TRUE} are the rows that are retained for
-#' the validation step). For example, if a table
-#' has columns \code{a}, \code{b}, and \code{c},
-#' and, column \code{a} has numerical data, we
-#' can write a statement \code{a < 5} that filters
-#' all rows in the table where values in column a
-#' are less than five.
+#' @param brief an optional, text-based description
+#' for the validation step.
 #' @param warn_count the threshold number for 
 #' individual validations returning a \code{FALSE}
 #' result before applying the \code{warn} flag.
@@ -74,24 +61,23 @@
 #' \code{l} -> logical, \code{D} -> date, \code{T} ->
 #' date time, \code{t} -> time, \code{?} -> guess, 
 #' or \code{_/-}, which skips the column.
-#' @param description an optional, text-based
-#' description for the validation step. Used primarily
-#' in the Logical Plan section of the report generated
-#' by the \code{html_summary} function.
 #' @return an agent object.
 #' @examples
-#' # Validate that the `date` column in the
-#' # `small_table` CSV file is classed as
-#' # `Date`
+#' # Create a simple data frame
+#' # with a column containing data
+#' # classed as `Date`
+#' df <-
+#'   data.frame(
+#'     a = as.Date("2017-08-15"))
+#' 
+#' # Validate that column `a`
+#' # in the data frame is classed
+#' # as `Date`
 #' agent <-
 #'   create_agent() %>%
-#'   focus_on(
-#'     file_name = 
-#'       system.file(
-#'         "extdata", "small_table.csv",
-#'         package = "pointblank"),
-#'     col_types = "TDicidlc") %>%
-#'   col_is_date(column = date) %>%
+#'   focus_on(tbl_name = "df") %>%
+#'   col_is_date(
+#'     column = a) %>%
 #'   interrogate()
 #' 
 #' # Determine if these column
@@ -101,11 +87,13 @@
 #' #> [1] TRUE
 #' @importFrom tibble tibble
 #' @importFrom dplyr bind_rows
-#' @importFrom rlang enquo UQ
+#' @importFrom rlang enquo expr_text
+#' @importFrom stringr str_replace_all
 #' @export col_is_date
 
 col_is_date <- function(agent,
                         column,
+                        brief = NULL,
                         warn_count = 1,
                         notify_count = NULL,
                         warn_fraction = NULL,
@@ -115,18 +103,24 @@ col_is_date <- function(agent,
                         creds_file = NULL,
                         initial_sql = NULL,
                         file_path = NULL,
-                        col_types = NULL,
-                        preconditions = NULL,
-                        description = NULL) {
+                        col_types = NULL) {
   
-  column <- rlang::enquo(column)
-  column <- (rlang::UQ(column) %>% paste())[2]
+  # Get the column name
+  column <- 
+    rlang::enquo(column) %>%
+    rlang::expr_text() %>%
+    stringr::str_replace_all("~", "") %>%
+    stringr::str_replace_all("\"", "'")
   
-  preconditions <- rlang::enquo(preconditions)
-  preconditions <- (rlang::UQ(preconditions) %>% paste())[2]
+  preconditions <- NULL
   
-  if (preconditions == "NULL") {
-    preconditions <- NULL
+  if (is.null(brief)) {
+    
+    brief <-
+      create_autobrief(
+        agent = agent,
+        assertion_type = "col_is_date",
+        column = column)
   }
   
   # If "*" is provided for `column`, select all
@@ -141,11 +135,12 @@ col_is_date <- function(agent,
       agent = agent,
       assertion_type = "col_is_date",
       column = column,
+      preconditions = preconditions,
+      brief = brief,
       warn_count = warn_count,
       notify_count = notify_count,
       warn_fraction = warn_fraction,
       notify_fraction = notify_fraction,
-      preconditions = preconditions,
       tbl_name = ifelse(is.null(tbl_name), as.character(NA), tbl_name),
       db_type = ifelse(is.null(db_type), as.character(NA), db_type),
       creds_file = ifelse(is.null(creds_file), as.character(NA), creds_file),
@@ -153,9 +148,9 @@ col_is_date <- function(agent,
       file_path = ifelse(is.null(file_path), as.character(NA), file_path),
       col_types = ifelse(is.null(col_types), as.character(NA), col_types))
   
-  # If no `description` provided, set as `NA`
-  if (is.null(description)) {
-    description <- as.character(NA)
+  # If no `brief` provided, set as NA
+  if (is.null(brief)) {
+    brief <- as.character(NA)
   }
   
   # Place the validation step in the logical plan
@@ -165,7 +160,7 @@ col_is_date <- function(agent,
       tibble::tibble(
         component_name = "col_is_date",
         parameters = as.character(NA),
-        description = description))
+        brief = brief))
   
-  return(agent)
+  agent
 }
