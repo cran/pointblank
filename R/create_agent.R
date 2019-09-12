@@ -1,12 +1,12 @@
 #' Create a pointblank agent object
-#' @description Creates an agent object.
-#' @param validation_name an optional name
-#' for the validation pipeline that the
-#' agent will eventually carry out during
-#' the interrogation process. If no
-#' value is provided, a name will be
-#' generated based on the current system
-#' time.
+#'
+#' Creates an agent object.
+#'
+#' @param validation_name An optional name for the validation pipeline that the
+#'   agent will eventually carry out during the interrogation process. If no
+#'   value is provided, a name will be generated based on the current system
+#'   time.
+#'   
 #' @examples 
 #' # Create a simple data frame
 #' # with a column of numerical values
@@ -40,15 +40,9 @@
 #' # 7 columns of its output
 #' (agent %>%
 #'   get_interrogation_summary())[, 1:7]
-#' #> # A tibble: 1 x 7
-#' #>   tbl_name  db_type assertion_type column value regex all_passed
-#' #>      <chr>    <chr>          <chr>  <chr> <dbl> <chr>      <lgl>
-#' #> 1       df local_df    col_vals_gt      a     4  <NA>       TRUE
-#' @return an agent object.
-#' @importFrom dplyr filter
-#' @importFrom tibble tibble as_tibble
-#' @export create_agent
-
+#'   
+#' @return A \pkg{pointblank} agent object.
+#' @export
 create_agent <- function(validation_name = NULL) {
   
   # Generate an agent name if none provided
@@ -85,12 +79,13 @@ create_agent <- function(validation_name = NULL) {
       slack_footer_text = as.character(NA)[-1],
       slack_notifications_active = FALSE,
       logical_plan =
-        tibble::tibble(
+        dplyr::tibble(
           component_name = as.character("create_agent"),
           parameters = as.character(NA),
-          brief = brief),
+          brief = brief
+        ),
       validation_set =
-        tibble::tibble(
+        dplyr::tibble(
           tbl_name = as.character(NA),
           db_type = as.character(NA),
           assertion_type = as.character(NA),
@@ -115,9 +110,11 @@ create_agent <- function(validation_name = NULL) {
           file_path = as.character(NA),
           col_types = as.character(NA),
           time_processed = as.POSIXct(NA),
-          proc_duration_s = as.numeric(NA)),
+          proc_duration_s = as.numeric(NA)
+        ),
       sets = list(),
-      preconditions = list())
+      preconditions = list()
+    )
   
   # Add the agent name to the object
   agent$validation_name <- validation_name

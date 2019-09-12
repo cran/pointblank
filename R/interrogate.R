@@ -1,50 +1,29 @@
-#' Given an agent that is fully loaded with
-#' tasks, perform an interrogation
-#' @description The agent has all the
-#' information on what to do, so now all
-#' interrogations can proceed efficiently,
-#' and, according to plan.
-#' @param agent an agent object of class
-#' \code{ptblank_agent}.
-#' @param get_problem_rows an option to 
-#' collect rows that didn't pass a
-#' particular validation step. The default
-#' is \code{TRUE} and further options
-#' allow for fine control of how these
-#' rows are collected.
-#' @param get_first_n if the option to
-#' collect non-passing rows is chosen,
-#' there is the option here to collect
-#' the first \code{n} rows here. Supply
-#' the number of rows to extract from
-#' the top of the non-passing rows table
-#' (the ordering of data from the
-#' original table is retained).
-#' @param sample_n if the option to
-#' collect non-passing rows is chosen,
-#' this option allows for the sampling
-#' of \code{n} rows. Supply the number
-#' of rows to sample from the non-passing
-#' rows table. If \code{n} is greater
-#' than the number of non-passing rows,
-#' then all the rows will be returned.
-#' @param sample_frac if the option to
-#' collect non-passing rows is chosen,
-#' this option allows for the sampling
-#' of a fraction of those rows. Provide a
-#' number in the range of \code{0} and
-#' \code{1}. The number of rows to return
-#' may be extremely large (and this is
-#' especially when querying remote
-#' databases), however, the
-#' \code{sample_limit} option will apply
-#' a hard limit to the returned rows.
-#' @param sample_limit a value that
-#' limits the possible number of rows
-#' returned when sampling non-passing
-#' rows using the \code{sample_frac}
-#' option.
-#' @return an agent object.
+#' Given an agent that is fully loaded with tasks, perform an interrogation
+#'
+#' The agent has all the information on what to do, so now all interrogations
+#' can proceed efficiently, and, according to plan.
+#'
+#' @param agent An agent object of class `ptblank_agent`.
+#' @param get_problem_rows An option to collect rows that didn't pass a
+#'   particular validation step. The default is `TRUE` and further options allow
+#'   for fine control of how these rows are collected.
+#' @param get_first_n If the option to collect non-passing rows is chosen, there
+#'   is the option here to collect the first `n` rows here. Supply the number of
+#'   rows to extract from the top of the non-passing rows table (the ordering of
+#'   data from the original table is retained).
+#' @param sample_n If the option to collect non-passing rows is chosen, this
+#'   option allows for the sampling of `n` rows. Supply the number of rows to
+#'   sample from the non-passing rows table. If `n` is greater than the number
+#'   of non-passing rows, then all the rows will be returned.
+#' @param sample_frac If the option to collect non-passing rows is chosen, this
+#'   option allows for the sampling of a fraction of those rows. Provide a
+#'   number in the range of `0` and `1`. The number of rows to return may be
+#'   extremely large (and this is especially when querying remote databases),
+#'   however, the `sample_limit` option will apply a hard limit to the returned
+#'   rows.
+#' @param sample_limit A value that limits the possible number of rows returned
+#'   when sampling non-passing rows using the `sample_frac` option.
+#'   
 #' @examples 
 #' # Create 2 simple data frames
 #' # with 2 columns of numerical
@@ -80,23 +59,10 @@
 #' # Get a basic summary with
 #' # `get_interrogation_summary()`
 #' get_interrogation_summary(agent)[, 1:7]
-#' #> # A tibble: 2 x 7
-#' #>   tbl_name  db_type assertion_type column value regex all_passed
-#' #>      <chr>    <chr>          <chr>  <chr> <dbl> <chr>      <lgl>
-#' #> 1     df_1 local_df   col_vals_gte      a     5  <NA>       TRUE
-#' #> 2     df_2 local_df col_vals_equal      c     8  <NA>       TRUE
-#' @importFrom tibble tibble as_tibble
-#' @importFrom dplyr group_by group_by_ mutate mutate_ filter filter_ select select_ collect ungroup summarize row_number n sample_n sample_frac everything
-#' @importFrom tidyr nest_
-#' @importFrom stringr str_split str_trim
-#' @importFrom purrr flatten_chr flatten_dbl
-#' @importFrom readr read_csv read_tsv
-#' @importFrom httr POST add_headers
-#' @importFrom glue glue
-#' @importFrom stats setNames
-#' @importFrom utils head URLencode
-#' @export interrogate
-
+#' 
+#' @return A \pkg{pointblank} agent object.
+#' @import rlang
+#' @export
 interrogate <- function(agent,
                         get_problem_rows = TRUE,
                         get_first_n = NULL,
@@ -104,17 +70,13 @@ interrogate <- function(agent,
                         sample_frac = NULL,
                         sample_limit = 5000) {
   
-  # Create bindings for global variables
-  notify <- warn <- NULL
+
   
   # Get the starting time for the interrogation
   interrogation_start_time <- Sys.time()
   
   # Add the starting time to the `agent` object
   agent$validation_time <- interrogation_start_time
-  
-  # Create bindings for variables
-  pb_is_good_ <- set <- pb_step_ <- NULL
   
   # Get number of rows in `validation_set`
   n_validations <- nrow(agent$validation_set)
@@ -146,8 +108,8 @@ interrogate <- function(agent,
       if (is.na(col_types)) {
         
         if (file_extension == "csv") {
-        
-            table <- 
+          
+          table <- 
             suppressMessages(
               readr::read_csv(
                 file = file_path))
@@ -217,7 +179,8 @@ interrogate <- function(agent,
     }
     
     # Use preconditions to modify the table
-    if (!is.na(agent$preconditions[[i, 1]]) && agent$preconditions[[i, 1]] != "NULL") {
+    if (!is.na(agent$preconditions[[i, 1]]) &&
+        agent$preconditions[[i, 1]] != "NULL") {
       
       # Get the preconditions as a character vector
       preconditions <-
@@ -246,52 +209,67 @@ interrogate <- function(agent,
         c("col_vals_between", "col_vals_not_between")) {
       
       # Get the `left` and `right` bounding values
-      left <- 
+      bounding_vals <- 
         (agent[["sets"]] %>%
            dplyr::select(set) %>%
            purrr::flatten_chr())[[i]]
       
-      left <- 
-        (left %>%
+      left <-
+        (bounding_vals %>%
            strsplit(",") %>%
            unlist() %>%
            as.numeric())[[1]]
       
-      right <- 
-        (agent[["sets"]] %>%
-           dplyr::select(set) %>%
-           purrr::flatten_chr())[[i]]
-      
-      right <- 
-        (right %>%
+      right <-
+        (bounding_vals %>%
            strsplit(",") %>%
            unlist() %>%
            as.numeric())[[2]]
       
+      incl_na <- 
+        (agent[["sets"]] %>%
+           dplyr::select(incl_na) %>%
+           purrr::flatten_lgl())[[i]]
+      
+      incl_nan <- 
+        (agent[["sets"]] %>%
+           dplyr::select(incl_nan) %>%
+           purrr::flatten_lgl())[[i]]
+      
+      # Use the column name as an `rlang` symbol
+      column <- rlang::sym(agent$validation_set$column[i])
+      
       if (agent$validation_set$assertion_type[i] == "col_vals_between") {
+        
         # Get the final judgment on the table and the query
-        judgment <- 
+        judgment <-
           table %>%
-          dplyr::mutate_(.dots = setNames(
-            paste0(
-              agent$validation_set$column[i],
-              " >= ", left, " & ",
-              agent$validation_set$column[i],
-              " <= ", right),
-            "pb_is_good_"))
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            !!column >= left & !!column <= right ~ TRUE,
+            !!column < left | !!column > right ~ FALSE,
+            is.na(!!column) & incl_na ~ TRUE,
+            is.na(!!column) & incl_na == FALSE ~ FALSE,
+            is.nan(!!column) & incl_nan ~ TRUE,
+            is.nan(!!column) & incl_nan == FALSE ~ FALSE
+          ))
       }
       
       if (agent$validation_set$assertion_type[i] == "col_vals_not_between") {
+        
+        excl_na <- incl_na
+        excl_nan <- incl_nan
+        
         # Get the final judgment on the table and the query
-        judgment <- 
+        judgment <-
           table %>%
-          dplyr::mutate_(.dots = setNames(
-            paste0("!(",
-                   agent$validation_set$column[i],
-                   " >= ", left, " & ",
-                   agent$validation_set$column[i],
-                   " <= ", right, ")"),
-            "pb_is_good_"))
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            !!column < left | !!column > right ~ TRUE,
+            !!column >= left & !!column <= right ~ FALSE,
+            is.na(!!column) & excl_na ~ TRUE,
+            is.na(!!column) & excl_na == FALSE ~ FALSE,
+            is.nan(!!column) & excl_nan ~ TRUE,
+            is.nan(!!column) & excl_nan == FALSE ~ FALSE
+          ))
       }
     }
     
@@ -326,31 +304,30 @@ interrogate <- function(agent,
       
       if (agent$validation_set$assertion_type[i] == "col_vals_in_set") {
         
+        # Use the column name as an `rlang` symbol
+        column <- rlang::sym(agent$validation_set$column[i])
+        
         # Get the final judgment on the table and the query
-        judgment <- 
+        judgment <-
           table %>%
-          dplyr::mutate_(.dots = setNames(
-            paste0(
-              agent$validation_set$column[i],
-              " %in% c(",
-              paste(paste0("'", set) %>% paste0("'"),
-                    collapse = ", "), ")"),
-            "pb_is_good_")) %>%
-          dplyr::mutate(pb_is_good_ = ifelse(is.na(pb_is_good_), FALSE, TRUE))
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            !!column %in% set ~ TRUE,
+            !(!!column %in% set) ~ FALSE
+          ))
       }
       
       if (agent$validation_set$assertion_type[i] == "col_vals_not_in_set") {
+        
+        # Use the column name as an `rlang` symbol
+        column <- rlang::sym(agent$validation_set$column[i])
+        
         # Get the final judgment on the table and the query
-        judgment <- 
+        judgment <-
           table %>%
-          dplyr::mutate_(.dots = setNames(
-            paste0("!(",
-                   agent$validation_set$column[i],
-                   " %in% c(",
-                   paste(paste0("'", set) %>% paste0("'"),
-                         collapse = ", "), "))"),
-            "pb_is_good_")) %>%
-          dplyr::mutate(pb_is_good_ = ifelse(is.na(pb_is_good_), FALSE, TRUE))
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            !(!!column %in% set) ~ TRUE,
+            !!column %in% set ~ FALSE
+          ))
       }
     }
     
@@ -365,7 +342,7 @@ interrogate <- function(agent,
       # Get the final judgment on the table and the query
       judgment <- 
         table %>%
-        dplyr::mutate_(.dots = setNames(
+        dplyr::mutate_(.dots = stats::setNames(
           paste0("grepl(\"",
                  agent$validation_set$regex[i],
                  "\", ", agent$validation_set$column[i],
@@ -382,7 +359,7 @@ interrogate <- function(agent,
       # Get the final judgment on the table and the query
       judgment <- 
         table %>%
-        dplyr::mutate_(.dots = setNames(
+        dplyr::mutate_(.dots = stats::setNames(
           paste0("is.na(",
                  agent$validation_set$column[i],
                  ")"),
@@ -398,7 +375,7 @@ interrogate <- function(agent,
       # Get the final judgment on the table and the query
       judgment <- 
         table %>%
-        dplyr::mutate_(.dots = setNames(
+        dplyr::mutate_(.dots = stats::setNames(
           paste0("!is.na(",
                  agent$validation_set$column[i],
                  ")"),
@@ -409,13 +386,13 @@ interrogate <- function(agent,
     # Judge tables based on assertion types that
     # check the table structure
     
-    if (agent$validation_set$assertion_type[i] == "col_exists") {
+    if (agent$validation_set$assertion_type[i] == "cols_exist") {
       
       # Get the column names for the table
       column_names <-
         table %>%
-        dplyr::filter(row_number() == 1) %>%
-        tibble::as_tibble() %>%
+        dplyr::filter(dplyr::row_number() == 1) %>%
+        dplyr::as_tibble() %>%
         colnames()
       
       judgment <-
@@ -471,7 +448,7 @@ interrogate <- function(agent,
       # Get the final judgment on the table and the query
       judgment <- 
         table %>%
-        dplyr::mutate_(.dots = setNames(
+        dplyr::mutate_(.dots = stats::setNames(
           paste0(
             agent$validation_set$column[i],
             operator,
@@ -489,8 +466,8 @@ interrogate <- function(agent,
       row_count <-
         judgment %>%
         dplyr::group_by() %>%
-        dplyr::summarize(row_count = n()) %>%
-        tibble::as_tibble() %>%
+        dplyr::summarize(row_count = dplyr::n()) %>%
+        dplyr::as_tibble() %>%
         purrr::flatten_dbl()
       
       # Get total count of TRUE rows
@@ -498,8 +475,8 @@ interrogate <- function(agent,
         judgment %>%
         dplyr::filter(pb_is_good_ == TRUE) %>%
         dplyr::group_by() %>%
-        dplyr::summarize(row_count = n()) %>%
-        tibble::as_tibble() %>%
+        dplyr::summarize(row_count = dplyr::n()) %>%
+        dplyr::as_tibble() %>%
         purrr::flatten_dbl()
       
       # Get total count of FALSE rows
@@ -507,8 +484,8 @@ interrogate <- function(agent,
         judgment %>%
         dplyr::filter(pb_is_good_ == FALSE) %>%
         dplyr::group_by() %>%
-        dplyr::summarize(row_count = n()) %>%
-        tibble::as_tibble() %>%
+        dplyr::summarize(row_count = dplyr::n()) %>%
+        dplyr::as_tibble() %>%
         purrr::flatten_dbl()
       
       agent$validation_set$n[i] <- row_count
@@ -522,8 +499,8 @@ interrogate <- function(agent,
         judgment %>%
         dplyr::filter(pb_is_good_ == FALSE) %>%
         dplyr::group_by() %>%
-        dplyr::summarize(pb_is_not_good_ = n()) %>%
-        tibble::as_tibble() %>%
+        dplyr::summarize(pb_is_not_good_ = dplyr::n()) %>%
+        dplyr::as_tibble() %>%
         purrr::flatten_dbl()
       
       if (false_count > 0) {
@@ -533,7 +510,7 @@ interrogate <- function(agent,
         
         # Collect problem rows if requested
         
-        if (get_problem_rows) {
+        if (isTRUE(get_problem_rows)) {
           
           problem_rows <- 
             judgment %>%
@@ -545,7 +522,7 @@ interrogate <- function(agent,
             problem_rows <-
               problem_rows %>%
               utils::head(get_first_n) %>%
-              tibble::as_tibble()
+              dplyr::as_tibble()
             
           } else if (!is.null(sample_n) &
                      !(agent$validation_set$db_type[i] %in% c("PostgreSQL", "MySQL"))) {
@@ -555,7 +532,7 @@ interrogate <- function(agent,
                 tbl = problem_rows,
                 size = sample_n,
                 replace = FALSE) %>%
-              tibble::as_tibble()
+              dplyr::as_tibble()
             
           } else if (!is.null(sample_frac) &
                      !(agent$validation_set$db_type[i] %in% c("PostgreSQL", "MySQL"))) {
@@ -565,7 +542,7 @@ interrogate <- function(agent,
                 tbl = problem_rows,
                 size = sample_frac,
                 replace = FALSE) %>%
-              tibble::as_tibble() %>%
+              dplyr::as_tibble() %>%
               utils::head(sample_limit)
             
           } else {
@@ -573,7 +550,7 @@ interrogate <- function(agent,
             problem_rows <-
               problem_rows %>%
               utils::head(5000) %>%
-              tibble::as_tibble()
+              dplyr::as_tibble()
           }
           
           problem_rows <-
@@ -581,17 +558,9 @@ interrogate <- function(agent,
             dplyr::mutate(pb_step_ = i) %>%
             dplyr::select(pb_step_, dplyr::everything())
         }
-        
-        # Place the sample of problem rows in
-        # the `agent$validation_set` tbl_df
-        # as a nested tbl_df
-        names_problem_rows <- names(problem_rows)
-        
-        agent$validation_set$row_sample[i] <- 
-          tidyr::nest_(
-            data = problem_rows,
-            key_col = "data",
-            nest_cols = names_problem_rows)
+
+        # Place the sample of problem rows in `agent$row_samples`
+        agent$row_samples <- problem_rows
         
       } else if (false_count == 0) {
         agent$validation_set$all_passed[i] <- TRUE
@@ -608,7 +577,7 @@ interrogate <- function(agent,
         column_type <-
           (table %>%
              dplyr::select_(agent$validation_set$column[i]) %>%
-             dplyr::filter(row_number() == 1) %>%
+             dplyr::filter(dplyr::row_number() == 1) %>%
              dplyr::collect() %>%
              as.data.frame(stringsAsFactors = FALSE))[1, 1] %>% 
           class()
@@ -677,8 +646,8 @@ interrogate <- function(agent,
       } else if (is.na(agent$validation_set$column[i])) {
         columns <-
           table %>%
-          dplyr::filter(row_number() == 1) %>%
-          tibble::as_tibble() %>%
+          dplyr::filter(dplyr::row_number() == 1) %>%
+          dplyr::as_tibble() %>%
           names()
       }
       
@@ -686,16 +655,16 @@ interrogate <- function(agent,
       row_count <-
         table %>%
         dplyr::group_by() %>%
-        dplyr::summarize(row_count = n()) %>%
-        tibble::as_tibble() %>%
+        dplyr::summarize(row_count = dplyr::n()) %>%
+        dplyr::as_tibble() %>%
         purrr::flatten_dbl()
-      
+
       # Get the rows that are duplicate rows, if any
       duplicate_rows <- 
         table %>%
-        dplyr::select_(paste0("c(", paste(columns, collapse = ", ")) %>% paste0(")")) %>%
+        dplyr::select(dplyr::one_of(columns)) %>%
         dplyr::group_by_(.dots = columns) %>%
-        dplyr::filter(n() > 1) %>%
+        dplyr::filter(dplyr::n() > 1) %>%
         dplyr::ungroup()
       
       # Determine whether the test for duplicated passed
@@ -704,8 +673,8 @@ interrogate <- function(agent,
         ifelse(
           duplicate_rows %>%
             dplyr::group_by() %>%
-            dplyr::summarize(row_count = n()) %>%
-            tibble::as_tibble() %>%
+            dplyr::summarize(row_count = dplyr::n()) %>%
+            dplyr::as_tibble() %>%
             purrr::flatten_dbl() == 0, TRUE, FALSE)
       
       if (passed == TRUE) {
@@ -715,8 +684,8 @@ interrogate <- function(agent,
         n_failed <- false_count <-
           duplicate_rows %>%
           dplyr::group_by() %>%
-          dplyr::summarize(row_count = n()) %>%
-          tibble::as_tibble() %>%
+          dplyr::summarize(row_count = dplyr::n()) %>%
+          dplyr::as_tibble() %>%
           purrr::flatten_dbl()
         
         n_passed <- row_count - n_failed

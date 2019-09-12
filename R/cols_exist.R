@@ -1,67 +1,67 @@
-#' Do the columns contain R `Date` objects?
+#' Do one or more columns actually exist?
 #'
-#' Verification step where a table column is expected to consist entirely of R
-#' `Date` objects.
+#' Verification step that checks whether one or several specified columns exist
+#' in the target table.
 #'
 #' @inheritParams col_vals_gt
-#' @param column The name of a single table column, multiple columns in the same
-#'   table, or, a helper function such as [all_cols()].
+#' @param cols One or more columns from the table in focus. This can be provided
+#'   as a vector of column names using `c()` or bare column names enclosed in
+#'   [vars()].
 #'   
 #' @examples
-#' # Create a simple data frame
-#' # with a column containing data
-#' # classed as `Date`
-#' df <-
-#'   data.frame(
-#'     a = as.Date("2017-08-15"))
-#' 
-#' # Validate that column `a`
-#' # in the data frame is classed
-#' # as `Date`
+#' # Validate that columns `a`, `c`, and
+#' # `f` exist in the `small_table` CSV file;
+#' # do this by creating an agent, focussing
+#' # on that table, creating a `cols_exist()`
+#' # step, and then interrogating the table
 #' agent <-
 #'   create_agent() %>%
-#'   focus_on(tbl_name = "df") %>%
-#'   col_is_date(
-#'     column = a) %>%
+#'   focus_on(
+#'     file_name = 
+#'       system.file(
+#'         "extdata", "small_table.csv",
+#'         package = "pointblank"),
+#'     col_types = "TDicidlc") %>%
+#'   cols_exist(cols = vars(a, c, f)) %>%
 #'   interrogate()
 #' 
-#' # Determine if these column
-#' # validations have all passed
-#' # by using `all_passed()`
+#' # Determine if these three validation
+#' # steps passed by using `all_passed()`
 #' all_passed(agent)
 #' 
 #' @return Either a \pkg{pointblank} agent object or a table object, depending
 #'   on what was passed to `x`.
 #' @import rlang
 #' @export
-col_is_date <- function(x,
-                        column,
-                        brief = NULL,
-                        warn_count = NULL,
-                        notify_count = NULL,
-                        warn_fraction = NULL,
-                        notify_fraction = NULL,
-                        tbl_name = NULL,
-                        db_type = NULL,
-                        creds_file = NULL,
-                        initial_sql = NULL,
-                        file_path = NULL,
-                        col_types = NULL) {
+cols_exist <- function(x,
+                       cols,
+                       brief = NULL,
+                       warn_count = NULL,
+                       notify_count = NULL,
+                       warn_fraction = NULL,
+                       notify_fraction = NULL,
+                       tbl_name = NULL,
+                       db_type = NULL,
+                       creds_file = NULL,
+                       initial_sql = NULL,
+                       file_path = NULL,
+                       col_types = NULL) {
   
-  # Get the column name
-  column <- 
-    rlang::enquo(column) %>%
-    rlang::expr_text() %>%
-    stringr::str_replace_all("~", "") %>%
-    stringr::str_replace_all("\"", "'")
+  # Get the column names
+  if (inherits(cols, "quosures")) {
+    
+    cols <- 
+      cols %>% as.character() %>%
+      gsub("~", "", .)
+  }
   
   if (inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))) {
     
     return(
       x %>%
         evaluate_single(
-          type = "col_is_date",
-          column = column,
+          type = "cols_exist",
+          column = cols,
           value = value,
           warn_count = warn_count,
           notify_count = notify_count,
@@ -80,23 +80,17 @@ col_is_date <- function(x,
     brief <-
       create_autobrief(
         agent = agent,
-        assertion_type = "col_is_date",
-        column = column
+        assertion_type = "cols_exist",
+        column = cols
       )
-  }
-  
-  # If "*" is provided for `column`, select all
-  # table columns for this verification
-  if (column[1] == "all_cols()") {
-    column <- get_all_cols(agent = agent)
   }
   
   # Add one or more validation steps
   agent <-
     create_validation_step(
       agent = agent,
-      assertion_type = "col_is_date",
-      column = column,
+      assertion_type = "cols_exist",
+      column = cols,
       preconditions = preconditions,
       brief = brief,
       warn_count = warn_count,
@@ -121,7 +115,7 @@ col_is_date <- function(x,
     dplyr::bind_rows(
       agent$logical_plan,
       dplyr::tibble(
-        component_name = "col_is_date",
+        component_name = "cols_exist",
         parameters = as.character(NA),
         brief = brief
       )

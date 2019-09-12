@@ -1,14 +1,14 @@
-
-# Add properly formatted validation steps
-#' @importFrom tibble tibble as_tibble
-#' @importFrom purrr map_df
-#' @importFrom dplyr select bind_rows
+#' Add properly formatted validation steps
+#' 
+#' @noRd
 create_validation_step <- function(agent,
                                    assertion_type,
                                    column,
                                    value = NULL,
                                    set = NULL,
                                    regex = NULL,
+                                   incl_na = NULL,
+                                   incl_nan = NULL,
                                    preconditions = NULL,
                                    brief = NULL,
                                    warn_count = NULL,
@@ -22,13 +22,10 @@ create_validation_step <- function(agent,
                                    file_path = as.character(NA),
                                    col_types = as.character(NA)) {
   
-  # Bind variable
-  x <- NULL
-  
   # Create a validation step as a single-row
   # `tbl_df` object
   validation_step_df <-
-    tibble::tibble(
+    dplyr::tibble(
       tbl_name = as.character(agent$focal_tbl_name),
       db_type = as.character(agent$focal_db_type),
       assertion_type = assertion_type,
@@ -44,7 +41,8 @@ create_validation_step <- function(agent,
       init_sql = as.character(agent$focal_init_sql),
       db_cred_file_path = as.character(agent$focal_db_cred_file_path),
       file_path = as.character(agent$focal_file_name),
-      col_types = as.character(agent$focal_col_types))
+      col_types = as.character(agent$focal_col_types)
+    )
   
   # If just `tbl_name` provided, assume it is
   # a local data frame
@@ -75,46 +73,63 @@ create_validation_step <- function(agent,
   # If a set has been provided as a vector, include
   # these values as a `df_tbl` object
   if (!is.null(set)) {
+    
     set_df <-
       1:nrow(validation_step_df) %>%
       purrr::map_df(
         function(x) {
-          tibble::tibble(
+          dplyr::tibble(
             x = x,
             set = paste(set, collapse = ","),
-            class = class(set))}) %>%
+            class = class(set),
+            incl_na = ifelse(is.null(incl_na), FALSE, incl_na),
+            incl_nan = ifelse(is.null(incl_nan), FALSE, incl_nan))
+        }) %>%
       dplyr::select(-x)
+    
   } else {
+    
     set_df <-
       1:nrow(validation_step_df) %>%
       purrr::map_df(
         function(x) {
-          tibble::tibble(
+          dplyr::tibble(
             x = x,
             set = as.character(NA),
-            class = as.character(NA))}) %>%
+            class = as.character(NA),
+            incl_na = FALSE,
+            incl_nan = FALSE)
+        }) %>%
       dplyr::select(-x)
   }
   
   # If preconditions have been provided as a vector, include
   # these values as a `df_tbl` object
   if (!is.null(preconditions)) {
+    
     preconditions_df <-
       1:nrow(validation_step_df) %>%
       purrr::map_df(
         function(x) {
-          tibble::tibble(
+          dplyr::tibble(
             x = x,
-            precondition = paste(preconditions, collapse = ";"))}) %>%
+            precondition = paste(preconditions, collapse = ";"))
+        }
+      ) %>%
       dplyr::select(-x)
+    
   } else {
+    
     preconditions_df <-
       1:nrow(validation_step_df) %>%
       purrr::map_df(
         function(x) {
-          tibble::tibble(
+          dplyr::tibble(
             x = x,
-            precondition = as.character(NA))}) %>%
+            precondition = as.character(NA)
+          )
+        }
+      ) %>%
       dplyr::select(-x)
   }
   
@@ -122,32 +137,28 @@ create_validation_step <- function(agent,
   agent$validation_set <-
     dplyr::bind_rows(
       agent$validation_set,
-      validation_step_df)
+      validation_step_df
+    )
   
   # Append `sets`
-  agent$sets <-
-    dplyr::bind_rows(
-      agent$sets,
-      set_df)
+  agent$sets <- dplyr::bind_rows(agent$sets, set_df)
   
   # Append `preconditions`
   agent$preconditions <-
     dplyr::bind_rows(
       agent$preconditions,
-      preconditions_df)
+      preconditions_df
+    )
   
   agent
 }
 
-# Acquire information on the coordinates
-# of a remote table; if a table is remote
-# (i.e., in a database), this function
-# will be invoked to set an entry point
-# for the interrogation query.
-#' @importFrom dplyr tbl sql
-#' @importFrom DBI dbConnect
-#' @importFrom RPostgreSQL PostgreSQL
-#' @importFrom RMySQL dbConnect MySQL
+#' Acquire information on the coordinates of a remote table
+#' 
+#' If a table is remote (i.e., in a database), this function will be invoked to
+#' set an entry point for the interrogation query.
+#' 
+#' @noRd
 set_entry_point <- function(table,
                             db_type = NULL,
                             creds_file = NULL,
@@ -178,7 +189,8 @@ set_entry_point <- function(table,
             host = credentials[2],
             port = credentials[3],
             user = credentials[4],
-            password = credentials[5])
+            password = credentials[5]
+          )
         
       } else if (!is.null(db_creds_env_vars)) {
         
@@ -190,7 +202,8 @@ set_entry_point <- function(table,
             host = Sys.getenv(db_creds_env_vars[[2]]),
             port = Sys.getenv(db_creds_env_vars[[3]]),
             user = Sys.getenv(db_creds_env_vars[[4]]),
-            password = Sys.getenv(db_creds_env_vars[[5]]))
+            password = Sys.getenv(db_creds_env_vars[[5]])
+          )
         
       } else if (is.null(creds_file)) {
         
@@ -207,17 +220,15 @@ set_entry_point <- function(table,
         
         # Remove extra spaces within the SQL string
         initial_sql <-
-          gsub("(?<=[\\s])\\s*|^\\s+|\\s+$", "",
-               initial_sql, perl = TRUE)
-          
+          gsub("(?<=[\\s])\\s*|^\\s+|\\s+$", "", initial_sql, perl = TRUE)
+        
         if (grepl("^(SELECT|select)", initial_sql)) {
           
           # If there is a `SELECT` or `select` keyword
           # in the `initial_sql` statement, provide
           # the entire SQL statement to dplyr::tbl
           # without changing the content
-          tbl_entry <- 
-            dplyr::tbl(src = connection, sql(initial_sql))
+          tbl_entry <- dplyr::tbl(src = connection, dplyr::sql(initial_sql))
           
         } else {
           
@@ -228,8 +239,8 @@ set_entry_point <- function(table,
           tbl_entry <- 
             dplyr::tbl(
               src = connection,
-              sql(paste0(
-                "SELECT * FROM ", table, " ", initial_sql)))
+              dplyr::sql(paste0("SELECT * FROM ", table, " ", initial_sql))
+            )
         }
       }
     } else if (db_type == "MySQL") {
@@ -248,8 +259,9 @@ set_entry_point <- function(table,
             host = credentials[2],
             port = as.integer(credentials[3]),
             user = credentials[4],
-            password = credentials[5])
-      
+            password = credentials[5]
+          )
+        
       } else if (!is.null(db_creds_env_vars)) {
         
         # Establish the connection with the environment variables
@@ -260,7 +272,8 @@ set_entry_point <- function(table,
             host = Sys.getenv(db_creds_env_vars[[2]]),
             port = as.integer(Sys.getenv(db_creds_env_vars[[3]])),
             user = Sys.getenv(db_creds_env_vars[[4]]),
-            password = Sys.getenv(db_creds_env_vars[[5]]))
+            password = Sys.getenv(db_creds_env_vars[[5]])
+          )
         
       } else if (is.null(creds_file)) {
         
@@ -280,8 +293,8 @@ set_entry_point <- function(table,
         tbl_entry <- 
           dplyr::tbl(
             src = connection,
-            sql(paste0(
-              "SELECT * FROM ", table, " ", initial_sql)))
+            dplyr::sql(paste0("SELECT * FROM ", table, " ", initial_sql))
+          )
       }
     }
   }
@@ -289,8 +302,9 @@ set_entry_point <- function(table,
   tbl_entry
 }
 
-# Get all column names from the table
-# currently in focus
+#' Get all column names from the table currently in focus
+#' 
+#' @noRd
 get_all_cols <- function(agent) {
   
   # Get vector of all columns
@@ -298,10 +312,9 @@ get_all_cols <- function(agent) {
   agent$focal_col_names
 }
 
-# Determine the course of action for a
-# given verification step. Based on a recent
-# judgment, what actions are taken now?
-#' @importFrom tibble tibble
+#' Determine the course of action for a given verification step
+#' 
+#' @noRd
 determine_action <- function(n,
                              false_count,
                              warn_count,
@@ -352,14 +365,12 @@ determine_action <- function(n,
   }
   
   # Generate a tbl with action information
-  tibble::tibble(
-    warn = warn,
-    notify = notify)
+  dplyr::tibble(warn = warn, notify = notify)
 }
 
-# Generate summary SVG files for the results of a
-# validation pipeline
-#' @importFrom stringr str_replace str_replace_all
+#' Generate summary SVG files for the results of a validation pipeline
+#' 
+#' @noRd
 generate_img_files_results <- function(agent) {
   
   if (!inherits(agent, "ptblank_agent")) {
@@ -389,19 +400,20 @@ generate_img_files_results <- function(agent) {
     pass <- 
       formatC(
         x = summary$n_passed[i] %>% as.integer(),
-        flag = " ", width = 12) %>%
+        flag = " ", width = 12
+      ) %>%
       stringr::str_replace_all(" ", "&#160;")
     
     fail <- 
       formatC(
         x = (summary$n[i] - summary$n_passed[i]) %>% as.integer(),
-        flag = " ", width = 12) %>% 
+        flag = " ", width = 12
+      ) %>% 
       stringr::str_replace_all(" ", "&#160;")
     
     if (summary$notify[i] == TRUE) {
       outline_color <- "#B20000"
-    } else if (summary$notify[i] == FALSE &
-               summary$warn[i] == TRUE) {
+    } else if (summary$notify[i] == FALSE & summary$warn[i] == TRUE) {
       outline_color <- "#B7B700"
     }
     
@@ -415,17 +427,23 @@ generate_img_files_results <- function(agent) {
     # Copy the text-inclusive SVG file to a temporary directory
     file.copy(
       from = system.file("icons", icon, package = "pointblank"),
-      to = paste0("./temporary_images/",
-                  stringr::str_replace_all(index, " ", "0"), ".svg"),
-      overwrite = TRUE)
+      to = paste0(
+        "./temporary_images/",
+        stringr::str_replace_all(index, " ", "0"), ".svg"
+      ),
+      overwrite = TRUE
+    )
     
     # Modify the summary numbers
     modified_svg <-
       readLines(
-        paste0("./temporary_images/",
-               stringr::str_replace_all(index, " ", "0"),
-               ".svg"),
-        warn = FALSE) %>%
+        paste0(
+          "./temporary_images/",
+          stringr::str_replace_all(index, " ", "0"),
+          ".svg"
+        ),
+        warn = FALSE
+      ) %>%
       stringr::str_replace(">XXXX<", paste0(">", index, "<")) %>%
       stringr::str_replace(">PPPPPPPPPPPP<", paste0(">", pass, "<")) %>%
       stringr::str_replace(">FFFFFFFFFFFF<", paste0(">", fail, "<"))
@@ -435,20 +453,24 @@ generate_img_files_results <- function(agent) {
       modified_svg %>%
       stringr::str_replace(
         "(\"function.*? stroke=\")#979797",
-        paste0("\\1", outline_color))
+        paste0("\\1", outline_color)
+      )
     
     # Write the modified SVG file to disk
     modified_svg %>%
       cat(
         file = paste0(
           "./temporary_images/",
-          str_replace_all(index, " ", "0"),
-          "_.svg"))
+          stringr::str_replace_all(index, " ", "0"),
+          "_.svg"
+        )
+      )
   }
 }
 
-# Generate SVG files for the plan of a validation pipeline
-#' @importFrom stringr str_replace_all
+#' Generate SVG files for the plan of a validation pipeline
+#'
+#' @noRd
 generate_img_files_plan <- function(agent) {
   
   if (!inherits(agent, "ptblank_agent")) {
@@ -481,14 +503,18 @@ generate_img_files_plan <- function(agent) {
     # Copy the text-inclusive SVG file to a temporary directory
     file.copy(
       from = system.file("icons", icon, package = "pointblank"),
-      to = paste0("./temporary_images_plan/",
-                  stringr::str_replace_all(index, " ", "0"), ".svg"),
-      overwrite = TRUE)
+      to = paste0(
+        "./temporary_images_plan/",
+        stringr::str_replace_all(index, " ", "0"), ".svg"
+      ),
+      overwrite = TRUE
+    )
   }
 }
 
-# Does the agent have no validation steps
-# available in the object?
+#' Does the agent have no validation steps available in the object?
+#' 
+#' @noRd
 is_agent_empty <- function(agent) {
   
   if (is_ptblank_agent(agent)) {
@@ -509,7 +535,9 @@ is_agent_empty <- function(agent) {
   }
 }
 
-# Did the agent carry out an interrogation?
+#' Did the agent carry out an interrogation?
+#' 
+#' @noRd
 did_agent_interrogate <- function(agent) {
   
   if (is_ptblank_agent(agent)) {
@@ -519,7 +547,9 @@ did_agent_interrogate <- function(agent) {
   }
 }
 
-# When did the agent carry out an interrogation?
+#' When did the agent carry out an interrogation?
+#' 
+#' @noRd
 interrogation_time <- function(agent) {
   
   if (is_ptblank_agent(agent)) {
@@ -535,8 +565,9 @@ interrogation_time <- function(agent) {
   }
 }
 
-# How many validation steps are associated
-# with the agent?
+#' How many validation steps are associated with the agent?
+#' 
+#' @noRd
 number_of_validation_steps <- function(agent) {
   
   if (is_ptblank_agent(agent)) {
@@ -546,8 +577,9 @@ number_of_validation_steps <- function(agent) {
   }
 }
 
-# How many validation steps are associated
-# with the agent?
+#' How many validation steps are associated with the agent?
+#' 
+#' @noRd
 create_autobrief <- function(agent,
                              assertion_type,
                              preconditions = NULL,
@@ -559,12 +591,11 @@ create_autobrief <- function(agent,
                              right = NULL) {
   
   if (assertion_type %in%
-    c("col_vals_gt", "col_vals_gte",
-      "col_vals_lt", "col_vals_lte",
-      "col_vals_equal", "col_vals_not_equal")) {
+      c("col_vals_gt", "col_vals_gte",
+        "col_vals_lt", "col_vals_lte",
+        "col_vals_equal", "col_vals_not_equal")) {
     
-    is_column_computed <-
-      ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
+    is_column_computed <- ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
     
     if (assertion_type == "col_vals_gt") {
       operator <- ">"
@@ -585,20 +616,19 @@ create_autobrief <- function(agent,
         "Expect that ",
         ifelse(
           !is.null(preconditions),
-           paste0("when ", "`", preconditions, "`, "),
-           paste0("")),
+          paste0("when ", "`", preconditions, "`, "),
+          paste0("")),
         "values in `",
         column, "`",
         ifelse(is_column_computed, " (computed column) ", " "),
-        "should be ", operator, " ", value)
+        "should be ", operator, " ", value
+      )
   }
   
   
-  if (assertion_type == "col_exists") {
+  if (assertion_type == "cols_exist") {
     
-    autobrief <-
-      paste0(
-        "Expect that column `", column, "` exists")
+    autobrief <- paste0("Expect that column `", column, "` exists")
   }
   
   if (assertion_type %in% c("col_vals_in_set", "col_vals_not_in_set")) {
@@ -618,13 +648,13 @@ create_autobrief <- function(agent,
         ifelse(is_column_computed, " (computed column) ", " "),
         "should ",
         ifelse(assertion_type == "col_vals_not_in_set", "not ", ""),
-        "be part of set `", paste(set, collapse = ", "), "`")
+        "be part of set `", paste(set, collapse = ", "), "`"
+      )
   }
   
   if (assertion_type %in% c("col_vals_in_set", "col_vals_not_in_set")) {
     
-    is_column_computed <-
-      ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
+    is_column_computed <- ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
     
     autobrief <-
       paste0(
@@ -638,14 +668,14 @@ create_autobrief <- function(agent,
         ifelse(is_column_computed, " (computed column) ", " "),
         "should ",
         ifelse(assertion_type == "col_vals_not_in_set", "not ", ""),
-        "be part of set `", paste(set, collapse = ", "), "`")
+        "be part of set `", paste(set, collapse = ", "), "`"
+      )
   }
   
   if (assertion_type %in%
       c("col_vals_between", "col_vals_not_between")) {
     
-    is_column_computed <-
-      ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
+    is_column_computed <- ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
     
     autobrief <-
       paste0(
@@ -659,13 +689,13 @@ create_autobrief <- function(agent,
         ifelse(is_column_computed, " (computed column) ", " "),
         "should ",
         ifelse(assertion_type == "col_vals_not_between", "not ", ""),
-        "be between `", left, "` and `", right, "`")
+        "be between `", left, "` and `", right, "`"
+      )
   }
   
   if (assertion_type == "col_vals_regex") {
     
-    is_column_computed <-
-      ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
+    is_column_computed <- ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
     
     autobrief <-
       paste0(
@@ -678,13 +708,13 @@ create_autobrief <- function(agent,
         column, "`",
         ifelse(is_column_computed, " (computed column) ", " "),
         "should match the regex expression `",
-        regex, "`")
+        regex, "`"
+      )
   }
   
   if (assertion_type %in% c("col_vals_null", "col_vals_not_null")) {
     
-    is_column_computed <-
-      ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
+    is_column_computed <- ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
     
     autobrief <-
       paste0(
@@ -698,16 +728,17 @@ create_autobrief <- function(agent,
         ifelse(is_column_computed, " (computed column) ", " "),
         "should ",
         ifelse(assertion_type == "col_vals_not_null", "not ", ""),
-        "be NULL")
+        "be NULL"
+      )
   }
   
   if (grepl("col_is_.*", assertion_type)) {
-    
     
     if (assertion_type %in% 
         c("col_is_numeric", "col_is_integer",
           "col_is_character", "col_is_logical",
           "col_is_factor")) {
+      
       col_type <- gsub("col_is_", "", assertion_type)
     } else if (assertion_type == "col_is_posix") {
       col_type <- "POSIXct"
@@ -715,18 +746,13 @@ create_autobrief <- function(agent,
       col_type <- "Date"
     }
     
-    autobrief <-
-      paste0(
-        "Expect that column `", column,
-        "` is `",
-        col_type,
-        "`-based")
+    autobrief <- 
+      paste0("Expect that column `", column, "` is `", col_type, "`-based")
   }
   
   if (assertion_type == "rows_not_duplicated") {
     
-    is_column_computed <-
-      ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
+    is_column_computed <- ifelse(column %in% agent$focal_col_names, FALSE, TRUE)
     
     autobrief <-
       paste0(
@@ -734,11 +760,263 @@ create_autobrief <- function(agent,
         ifelse(
           !is.null(preconditions),
           paste0("when ", "`", preconditions, "`, "),
-          paste0("")),
-        "rows from `",
-        column, "` ",
-        "have no duplicates")
+          paste0("")
+        ),
+        "rows from `", column, "` ", "have no duplicates"
+      )
   }
   
   autobrief
+}
+
+#' Perform a single column validation that can issue warnings
+#' 
+#' @noRd
+evaluate_single <- function(object,
+                            type,
+                            column,
+                            value = NULL,
+                            set = NULL,
+                            regex = NULL,
+                            left = NULL,
+                            right = NULL,
+                            incl_na = NULL,
+                            incl_nan = NULL,
+                            warn_count,
+                            notify_count,
+                            warn_fraction,
+                            notify_fraction) {
+  
+  # Get the `column` number
+  col_number <- ((object %>% colnames()) %in% column) %>% which()
+  
+  if (type == "col_vals_equal") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) == value
+  }
+  
+  if (type == "col_vals_not_equal") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) != value
+  }
+  
+  if (type == "col_vals_gt") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) > value
+  }
+  
+  if (type == "col_vals_gte") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) >= value
+  }
+  
+  if (type == "col_vals_lt") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) < value
+  }
+  
+  if (type == "col_vals_lte") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) <= value
+  }
+  
+  if (type == "col_vals_between") {
+    
+    vals <- 
+      object %>%
+      dplyr::pull(col_number)
+    
+    logicals <- 
+      vals >= left &
+      vals <= right
+    
+    if (incl_na == TRUE) {
+      logicals[which(is.na(logicals))] <- TRUE
+    } else if (incl_na == FALSE) {
+      logicals[which(is.na(logicals))] <- FALSE
+    }
+    
+    if (incl_nan == TRUE) {
+      logicals[which(is.nan(logicals))] <- TRUE
+    } else if (incl_nan == FALSE) {
+      logicals[which(is.nan(logicals))] <- FALSE
+    }
+  }
+  
+  if (type == "col_vals_not_between") {
+    
+    vals <- 
+      object %>%
+      dplyr::pull(col_number)
+    
+    logicals <- 
+      vals < left |
+      vals > right
+    
+    if (incl_na == TRUE) {
+      logicals[which(is.na(logicals))] <- TRUE
+    } else if (incl_na == FALSE) {
+      logicals[which(is.na(logicals))] <- FALSE
+    }
+    
+    if (incl_nan == TRUE) {
+      logicals[which(is.nan(logicals))] <- TRUE
+    } else if (incl_nan == FALSE) {
+      logicals[which(is.nan(logicals))] <- FALSE
+    }
+  }
+  
+  if (type == "col_vals_in_set") {
+    
+    logicals <- 
+      object %>%
+      dplyr::pull(col_number) %in% set
+  }
+  
+  if (type == "col_vals_not_in_set") {
+    
+    logicals <- 
+      !(object %>%
+          dplyr::pull(col_number) %in% set)
+  }
+  
+  if (type == "col_vals_regex") {
+    
+    vals <- 
+      object %>%
+      dplyr::pull(col_number)
+    
+    logicals <- 
+      grepl(pattern = regex, x = vals)
+  }
+  
+  if (type == "col_vals_not_null") {
+    
+    logicals <- 
+      !is.na(object %>%
+               dplyr::pull(col_number))
+  }
+  
+  if (type == "col_vals_null") {
+    
+    logicals <- 
+      is.na(object %>%
+              dplyr::pull(col_number))
+  }
+  
+  if (grepl("col_is_.*", type)) {
+    
+    # Get the column type
+    column_type <-
+      (object %>%
+         dplyr::select(column) %>%
+         utils::head(1) %>%
+         dplyr::collect() %>%
+         as.data.frame(stringsAsFactors = FALSE)
+      )[1, 1] %>% 
+      class()
+    
+    if (type == "col_is_numeric") {
+      logicals <- ifelse(column_type[1] == "numeric", TRUE, FALSE)
+    } else if (type == "col_is_integer") {
+      logicals <- ifelse(column_type[1] == "integer", TRUE, FALSE)
+    } else if (type == "col_is_character") {
+      logicals <- ifelse(column_type[1] == "character", TRUE, FALSE)
+    } else if (type == "col_is_logical") {
+      logicals <- ifelse(column_type[1] == "logical", TRUE, FALSE)
+    } else if (type == "col_is_factor") {
+      logicals <- ifelse(column_type[1] == "factor", TRUE, FALSE)
+    } else if (type == "col_is_posix") {
+      logicals <- ifelse(column_type[1] == "POSIXct", TRUE, FALSE)
+    } else if (type == "col_is_date") {
+      logicals <- ifelse(column_type[1] == "Date", TRUE, FALSE)
+    } else {
+      logicals <- FALSE
+    }
+  }
+  
+  if (type == "cols_exist") {
+    
+    column_names <-
+      object %>%
+      utils::head(1) %>%
+      dplyr::as_tibble() %>%
+      colnames()
+    
+    logicals <- ifelse(column %in% column_names, TRUE, FALSE)
+  }
+  
+  logicals[which(is.na(logicals))] <- FALSE
+  
+  total_count <- length(logicals)
+  true_count <- sum(logicals)
+  false_count <- total_count - true_count
+  false_fraction <- false_count / total_count
+  
+  if (!is.null(notify_count)) {
+    if (false_count >= notify_count) {
+      
+      messaging::emit_error(
+        "The validation (`{type}()`) meets or exceeds the `notify_count` threshold",
+        " * `failing_count` ({false_count}) >= `notify_count` ({notify_count})",
+        type = type,
+        false_count = false_count,
+        notify_count = notify_count,
+        .format = "ERROR {text}"
+      )
+    }
+  } else if (!is.null(notify_fraction)) {
+    if ((false_count/total_count) >= notify_fraction) {
+      
+      messaging::emit_error(
+        "The validation (`{type}()`) meets or exceeds the `notify_fraction` threshold",
+        " * `failing_fraction` ({false_fraction}) >= `notify_fraction` ({notify_fraction})",
+        type = type,
+        false_fraction = false_fraction,
+        notify_fraction = notify_fraction,
+        .format = "ERROR {text}"
+      )
+    }
+  }
+  
+  if (!is.null(warn_count)) {
+    if (false_count >= warn_count) {
+      
+      messaging::emit_warning(
+        "The validation (`{type}()`) meets or exceeds the `warn_count` threshold",
+        " * `failing_count` ({false_count}) >= `warn_count` ({warn_count})",
+        type = type,
+        false_count = false_count,
+        warn_count = warn_count,
+        .format = "WARN {text}"
+      )
+      
+    }
+  } else if (!is.null(warn_fraction)) {
+    if ((false_count/total_count) >= warn_fraction) {
+      
+      messaging::emit_warning(
+        "The validation (`{type}()`) meets or exceeds the `warn_fraction` threshold",
+        " * `failing_fraction` ({false_fraction}) >= `warn_fraction` ({warn_fraction})",
+        type = type,
+        false_fraction = false_fraction,
+        warn_fraction = warn_fraction,
+        .format = "WARN {text}"
+      )
+    }
+  }
+  
+  object
 }

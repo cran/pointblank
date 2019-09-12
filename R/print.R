@@ -1,19 +1,15 @@
 #' Print the agent to the terminal
-#' @description This function will allow the
-#' agent to provide a summary report.
-#' @param x agent an agent object of class
-#' \code{ptblank_agent}.
+#'
+#' This function will allow the agent to provide a summary report.
+#' 
+#' @param x An agent object of class `ptblank_agent`.
+#' 
 #' @keywords internal
-#' @importFrom dplyr mutate select group_by summarize n ungroup transmute pull
 #' @export
-
 print.ptblank_agent <- function(x, ...) {
   
   args <- list(...)
   args <- NULL
-  
-  # Create bindings for specific variables
-  tbl_name <- db_type <- tbl_name_type <- tbl_name_type_n <- NULL
   
   # Get the console width
   console_width <- getOption("width")
@@ -24,7 +20,7 @@ print.ptblank_agent <- function(x, ...) {
     dplyr::mutate(tbl_name_type = paste0(tbl_name, "/", db_type)) %>%
     dplyr::select(tbl_name_type) %>%
     dplyr::group_by(tbl_name_type) %>%
-    dplyr::summarize(n = n()) %>%
+    dplyr::summarize(n = dplyr::n()) %>%
     dplyr::ungroup() %>%
     dplyr::transmute(tbl_name_type_n = paste0(tbl_name_type, " (", n, ")")) %>%
     dplyr::pull(tbl_name_type_n)
@@ -37,9 +33,7 @@ print.ptblank_agent <- function(x, ...) {
   # Generate the complete statement for printing
   if (is_agent_empty(x)) {
     
-    print_stmt <-
-      paste0(
-        "pointblank agent // <", x$validation_name, ">")
+    print_stmt <- paste0("pointblank agent // <", x$validation_name, ">")
     
   } else {
     
@@ -49,7 +43,8 @@ print.ptblank_agent <- function(x, ...) {
         "tables of focus: ",
         paste(tables_of_focus, collapse = ", "),
         ".", "\n",
-        "number of validation steps: ", number_of_validation_steps(x), "\n")
+        "number of validation steps: ", number_of_validation_steps(x), "\n"
+      )
     
     if (did_agent_interrogate(x)) {
       
@@ -74,7 +69,8 @@ print.ptblank_agent <- function(x, ...) {
           " failing validation",
           ifelse(failing_steps == 1, "", "s"),
           "   ",
-          "more info: `get_interrogation_summary()`")
+          "more info: `get_interrogation_summary()`"
+        )
     }
   }
   

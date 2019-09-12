@@ -7,16 +7,13 @@
 create_agent(validation_name = NULL)
 }
 \arguments{
-\item{validation_name}{an optional name
-for the validation pipeline that the
-agent will eventually carry out during
-the interrogation process. If no
-value is provided, a name will be
-generated based on the current system
+\item{validation_name}{An optional name for the validation pipeline that the
+agent will eventually carry out during the interrogation process. If no
+value is provided, a name will be generated based on the current system
 time.}
 }
 \value{
-an agent object.
+A \pkg{pointblank} agent object.
 }
 \description{
 Creates an agent object.
@@ -54,8 +51,5 @@ agent <-
 # 7 columns of its output
 (agent \%>\%
   get_interrogation_summary())[, 1:7]
-#> # A tibble: 1 x 7
-#>   tbl_name  db_type assertion_type column value regex all_passed
-#>      <chr>    <chr>          <chr>  <chr> <dbl> <chr>      <lgl>
-#> 1       df local_df    col_vals_gt      a     4  <NA>       TRUE
+  
 }

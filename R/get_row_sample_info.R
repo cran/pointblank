@@ -1,15 +1,15 @@
 #' Get information on sample rows from non-passing validations
-#' @description Get information on which validation
-#' steps produced sample rows from non-passing
-#' validations.
-#' @param agent an agent object of class
-#' \code{ptblank_agent}. It should have had
-#' \code{interrogate()} called on it, such
-#' that the validation steps were carried out
-#' and any sample rows from non-passing
-#' validations could potentially be available
-#' in the object.
-#' @examples 
+#'
+#' Get information on which validation steps produced sample rows from
+#' non-passing validations.
+#'
+#' @param agent An agent object of class `ptblank_agent`. It should have had
+#'   [interrogate()] called on it, such that the validation steps were carried
+#'   out and any sample rows from non-passing validations could potentially be
+#'   available in the object.
+#'   
+#' @examples
+#' \dontrun{
 #' # Set a seed
 #' set.seed(23)
 #' 
@@ -42,17 +42,10 @@
 #' # Find out which validation steps
 #' # contain sample row data
 #' get_row_sample_info(agent)
-#' #>   step   assertion_type n_failed rows_in_sample
-#' #> 1    1 col_vals_between       65             10
-#' @importFrom tibble tibble
-#' @importFrom purrr map_df
-#' @importFrom dplyr filter pull
-#' @export get_row_sample_info
-
+#' }
+#' 
+#' @export
 get_row_sample_info <- function(agent) {
-  
-  # Create bindings for specific variables
-  component_name <- brief <- NULL
   
   # Return NA if the agent hasn't
   # yet performed an interrogation
@@ -68,11 +61,12 @@ get_row_sample_info <- function(agent) {
   # the available briefs to it
   validation_set <- 
     agent$validation_set %>%
-    mutate(
+    dplyr::mutate(
       brief =
         agent$logical_plan %>%
         dplyr::filter(!(component_name %in% c("create_agent", "focus_on"))) %>%
-        dplyr::pull(brief))
+        dplyr::pull(brief)
+    )
   
   # Create a tibble that has the
   # validation step number, the assertion
@@ -81,24 +75,33 @@ get_row_sample_info <- function(agent) {
   # and the number of non-passing rows available
   # in the object
   row_sample_info <-
-    1:validation_steps %>%
+    seq_len(validation_steps) %>%
     purrr::map_df(.f = function(x) {
       
-      if (inherits(validation_set$row_sample[[x]][[1]], "tbl_df")) {
-        tibble::tibble(
-          step = x,
-          tbl = validation_set$tbl_name[x],
-          type = validation_set$assertion_type[x],
-          n_fail = validation_set$n_failed[x],
-          n_sampled = nrow(validation_set$row_sample[[x]][[1]]),
-          brief = validation_set$brief[x])
-      }})
+      if (!is.null(agent$row_samples) && x %in% agent$row_samples$pb_step_) {
+        n_sampled <- agent$row_samples %>%
+          dplyr::filter(pb_step_ == x) %>%
+          nrow()
+      } else {
+        n_sampled <- 0
+      }
+      
+      dplyr::tibble(
+        step = x,
+        tbl = validation_set$tbl_name[x],
+        type = validation_set$assertion_type[x],
+        n_fail = validation_set$n_failed[x],
+        n_sampled = n_sampled,
+        brief = validation_set$brief[x]
+      )
+      
+    })
   
   # Return the output table if there are
   # rows, otherwise return NA
   if (nrow(row_sample_info) == 0) {
     return(NA)
   } else if (nrow(row_sample_info > 0)) {
-    return(row_sample_info %>% as.data.frame(stringsAsFactors = FALSE))
+    return(row_sample_info)
   }
 }
