@@ -4,52 +4,54 @@
 \alias{create_agent}
 \title{Create a pointblank agent object}
 \usage{
-create_agent(validation_name = NULL)
+create_agent(tbl, name = NULL)
 }
 \arguments{
-\item{validation_name}{An optional name for the validation pipeline that the
-agent will eventually carry out during the interrogation process. If no
-value is provided, a name will be generated based on the current system
-time.}
+\item{tbl}{The input table that will be the focus of the validation. This can
+be a data frame, a tibble, or a \code{tbl_dbi} object.}
+
+\item{name}{An optional name for the validation plan that the agent will
+eventually carry out during the interrogation process. If no value is
+provided, a name will be generated based on the current system time.}
 }
 \value{
-A \pkg{pointblank} agent object.
+A \code{ptblank_agent} object.
 }
 \description{
 Creates an agent object.
 }
+\section{Function ID}{
+
+1-1
+}
+
 \examples{
-# Create a simple data frame
-# with a column of numerical values
-df <-
-  data.frame(
-    a = c(5, 7, 6, 5, 8, 7))
+library(dplyr)
+
+# Create a simple table with a
+# column of numerical values
+tbl <- tibble(a = c(5, 7, 8, 7))
 
 # Create a pointblank `agent` object
-agent <- create_agent()
+agent <- create_agent(tbl = tbl)
 
 # Then, as with any `ptblank_agent`
-# object, we can focus on a table,
-# add validation steps, and then
+# object, we can add validation steps
+# to the validation plan and then
 # eventually use `interrogate()`
-# to perform the validations;
-# here, in a single validation
-# step, we expect that values in
-# column `a` are always greater
-# than 4
+# to perform the validations; here,
+# with a single validation step, we
+# expect that values in column `a`
+# are always greater than 4
 agent <-
   agent \%>\%
-  focus_on(tbl_name = "df") \%>\%
-  col_vals_gt(
-    column = a,
-    value = 4) \%>\%
+  col_vals_gt(vars(a), 4) \%>\%
   interrogate()
  
-# A summary can be produced using
-# `get_interrogation_summary()`; we
-# we will just obtain the first
-# 7 columns of its output
-(agent \%>\%
-  get_interrogation_summary())[, 1:7]
-  
+# Get a tibble-based report from the
+# agent by using `get_agent_report()`
+agent \%>\%
+  get_agent_report(display_table = FALSE)
+
 }
+\concept{Create an Agent}

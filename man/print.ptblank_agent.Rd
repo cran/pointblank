@@ -2,7 +2,7 @@
 % Please edit documentation in R/print.R
 \name{print.ptblank_agent}
 \alias{print.ptblank_agent}
-\title{Print the agent to the terminal}
+\title{Print the agent information to the console}
 \usage{
 \method{print}{ptblank_agent}(x, ...)
 }
@@ -10,6 +10,6 @@
 \item{x}{An agent object of class \code{ptblank_agent}.}
 }
 \description{
-This function will allow the agent to provide a summary report.
+This function will allow the agent to provide a short message in the console.
 }
 \keyword{internal}

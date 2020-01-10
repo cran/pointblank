@@ -1,78 +1,92 @@
 #' Are numerical column data greater than a specific value?
 #'
-#' Verification step where numeric values in a table column should be greater
-#' than a specified value.
+#' The `col_vals_gt()` validation step function checks whether column values
+#' (in any number of specified `columns`) are *greater than* a specified
+#' `value` (the exact comparison used in this function is `col_val > value`).
+#' This function can be used directly on a data table or with an *agent* object
+#' (technically, a `ptblank_agent` object). Each validation step will operate
+#' over the number of test units that is equal to the number of rows in the
+#' table (after any `preconditions` have been applied).
+#' 
+#' If providing multiple column names, the result will be an expansion of
+#' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
+#' will result in the entry of two validation steps). Aside from column names
+#' in quotes and in `vars()`, **tidyselect** helper functions are available for
+#' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
+#' `matches()`, and `everything()`.
+#' 
+#' This validation step function supports special handling of `NA` values. The
+#' `na_pass` argument will determine whether an `NA` value appearing in a test
+#' unit should be counted as a *pass* or a *fail*. The default of
+#' `na_pass = FALSE` means that any `NA`s encountered will accumulate failing
+#' test units. 
+#' 
+#' Having table `preconditions` means **pointblank** will mutate the table just
+#' before interrogation. It's isolated to the validation steps produced by this
+#' validation step function. Using **dplyr** code is suggested here since the
+#' statements can be translated to SQL if necessary. The code is to be supplied
+#' as a one-sided **R** formula (using a leading `~`). In the formula
+#' representation, the obligatory `tbl` variable will serve as the input
+#' data table to be transformed (e.g.,
+#' `~ tbl %>% dplyr::mutate(col_a = col_b + 10)`. A series of expressions can be
+#' used by enclosing the set of statements with `{ }` but note that the `tbl`
+#' variable must be ultimately returned.
+#' 
+#' Often, we will want to specify `actions` for the validation. This argument,
+#' present in every validation step function, takes a specially-crafted list
+#' object that is best produced by the [action_levels()] function. Read that
+#' function's documentation for the lowdown on how to create reactions to
+#' above-threshold failure levels in validation. The basic gist is that you'll
+#' want at least a single threshold level (specified as either the fraction test
+#' units failed, or, an absolute value), often using the `warn_at` argument.
+#' This is especially true when `x` is a table object because, otherwise,
+#' nothing happens. For the `col_vals_*()`-type functions, using 
+#' `action_levels(warn_at = 0.25)` or `action_levels(stop_at = 0.25)` are good
+#' choices depending on the situation (the first produces a warning when a
+#' quarter of the total test units fails, the other `stop()`s at the same
+#' threshold level).
+#' 
+#' Want to describe this validation step in some detail? Keep in mind that this
+#' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
+#' with some text that fits. Don't worry if you don't want to do it. The
+#' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
+#' then be automatically generated.
 #'
 #' @param x A data frame, tibble, or an agent object of class `ptblank_agent`.
-#' @param column The column (or a set of columns, provided as a character
-#'   vector) to which this validation should be applied. Aside from a single
-#'   column name, column operations can be used to create one or more computed
-#'   columns (e.g., `a + b` or `a + sum(a)`).
+#' @param columns The column (or a set of columns, provided as a character
+#'   vector) to which this validation should be applied.
 #' @param value A numeric value used for this test. Any column values `>value`
 #'   are considered passing.
-#' @param incl_na Should `NA` values be a part of the condition? This is by
-#'   default `FALSE`.
-#' @param incl_nan Should `NaN` values be a part of the condition? This is by
-#'   default `FALSE`.
-#' @param preconditions An optional statement of filtering conditions that may
-#'   reduce the number of rows for validation for the current validation step.
-#'   The statements are executed for every row of the table in focus and are
-#'   often referred as predicate statements (they either return `TRUE` or
-#'   `FALSE` for every row evaluated, where rows evaluated as `TRUE` are the
-#'   rows that are retained for the validation step). For example, if a table
-#'   has columns `a`, `b`, and `c`, and, column `a` has numerical data, we can
-#'   write a statement `a < 5` that filters all rows in the table where values
-#'   in column a are less than five.
+#' @param na_pass Should any encountered `NA` values be allowed to pass a
+#'   validation unit? This is by default `FALSE`. Set to `TRUE` to give `NA`s
+#'   a pass.
+#' @param preconditions expressions used for mutating the input table before
+#'   proceeding with the validation. This is ideally as a one-sided R formula
+#'   using a leading `~`. In the formula representation, the `tbl` serves as the
+#'   input data table to be transformed (e.g.,
+#'   `~ tbl %>% dplyr::mutate(col = col + 10)`. A series of expressions can be
+#'   used by enclosing the set of statements with `{ }` but note that the `tbl`
+#'   object must be ultimately returned.
+#' @param actions A list containing threshold levels so that the validation step
+#'   can react accordingly when exceeding the set levels. This is to be created
+#'   with the [action_levels()] helper function.
 #' @param brief An optional, text-based description for the validation step.
-#' @param warn_count The threshold number for individual validations returning a
-#'   `FALSE` result before applying the `warn` flag.
-#' @param notify_count The threshold number for individual validations returning
-#'   a `FALSE` result before applying the `notify` flag.
-#' @param warn_fraction The threshold fraction for individual validations
-#'   returning a `FALSE` over all the entire set of individual validations.
-#'   Beyond this threshold, the `warn` flag will be applied.
-#' @param notify_fraction The threshold fraction for individual validations
-#'   returning a `FALSE` over all the entire set of individual validations.
-#'   Beyond this threshold, the `notify` flag will be applied.
-#' @param tbl_name The name of the local or remote table.
-#' @param db_type If the table is located in a database, the type of database is
-#'   required here. Currently, this can be either `PostgreSQL` or `MySQL`.
-#' @param creds_file If a connection to a database is required for reaching the
-#'   table specified in `tbl_name`, then a path to a credentials file can be
-#'   used to establish that connection. The credentials file is an `RDS`
-#'   containing a character vector with the following items in the specified
-#'   order: (1) database name (`dbname`), (2) the `host` name, (3) the `port`,
-#'   (4) the username (`user`), and (5) the `password`. This file can be easily
-#'   created using the [create_creds_file()] function.
-#' @param initial_sql When accessing a remote table, this provides an option to
-#'   provide an initial query component before conducting validations. An entire
-#'   SQL statement can be provided here, or, as a shortcut, the initial
-#'   `SELECT...` statement can be omitted for simple queries (e.g., `WHERE a > 1
-#'   AND b = 'one'`).
-#' @param file_path An optional path for a tabular data file to be loaded for
-#'   this verification step. Valid types are CSV and TSV files.
-#' @param col_types If validating a CSV or TSV file, an optional column
-#'   specification can be provided here as a string. This string representation
-#'   is where each character represents one column and the mappings are: `c` ->
-#'   character, `i` -> integer, `n` -> number, `d` -> double, `l` -> logical,
-#'   `D` -> date, `T` -> date time, `t` -> time, `?` -> guess, or `_/-`, which
-#'   skips the column.
+#'   
+#' @return Either a `ptblank_agent` object or a table object, depending on what
+#'   was passed to `x`.
 #'   
 #' @examples
-#' # Create a simple data frame
-#' # with a column of numerical values
-#' df <-
-#'   data.frame(
-#'     a = c(5, 7, 6, 5, 8, 7))
+#' library(dplyr)
+#' 
+#' # Create a simple table with a
+#' # column of numerical values
+#' tbl <- tibble(a = c(5, 7, 8, 5))
 #' 
 #' # Validate that values in column
 #' # `a` are always greater than 4
 #' agent <-
-#'   create_agent() %>%
-#'   focus_on(tbl_name = "df") %>%
-#'   col_vals_gt(
-#'     column = a,
-#'     value = 4) %>%
+#'   create_agent(tbl = tbl) %>%
+#'   col_vals_gt(vars(a), 4) %>%
 #'   interrogate()
 #' 
 #' # Determine if these column
@@ -80,65 +94,44 @@
 #' # by using `all_passed()`
 #' all_passed(agent)
 #' 
-#' @return Either a \pkg{pointblank} agent object or a table object, depending
-#'   on what was passed to `x`.
+#' @family Validation Step Functions
+#' @section Function ID:
+#' 2-6
+#' 
+#' @seealso The analogous function with a left-closed bound: [col_vals_gte()].
+#' 
 #' @import rlang
 #' @export
 col_vals_gt <- function(x,
-                        column,
+                        columns,
                         value,
-                        incl_na = FALSE,
-                        incl_nan = FALSE,
+                        na_pass = FALSE,
                         preconditions = NULL,
-                        brief = NULL,
-                        warn_count = NULL,
-                        notify_count = NULL,
-                        warn_fraction = NULL,
-                        notify_fraction = NULL,
-                        tbl_name = NULL,
-                        db_type = NULL,
-                        creds_file = NULL,
-                        initial_sql = NULL,
-                        file_path = NULL,
-                        col_types = NULL) {
+                        actions = NULL,
+                        brief = NULL) {
   
-  # Get the column name
-  column <- 
-    rlang::enquo(column) %>%
-    rlang::expr_text() %>%
-    stringr::str_replace_all("~", "") %>%
-    stringr::str_replace_all("\"", "'")
+  # Capture the `columns` expression
+  columns <- rlang::enquo(columns)
   
-  if (inherits(x , c("data.frame", "tbl_df", "tbl_dbi"))) {
+  # Resolve the columns based on the expression
+  columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+
+  if (is_a_table_object(x)) {
+
+    secret_agent <- create_agent(x) %>%
+      col_vals_gt(
+        columns = columns,
+        value = value,
+        na_pass = na_pass,
+        preconditions = preconditions,
+        brief = brief,
+        actions = prime_actions(actions)
+      ) %>% interrogate()
     
-    return(
-      x %>%
-        evaluate_single(
-          type = "col_vals_gt",
-          column = column,
-          value = value,
-          incl_na = incl_na,
-          incl_nan = incl_nan,
-          warn_count = warn_count,
-          notify_count = notify_count,
-          warn_fraction = warn_fraction,
-          notify_fraction = notify_fraction
-        )
-    )
+    return(x)
   }
   
   agent <- x
-  
-  # Get the preconditions
-  preconditions <- 
-    rlang::enquo(preconditions) %>%
-    rlang::expr_text() %>%
-    stringr::str_replace_all("~", "") %>%
-    stringr::str_replace_all("\"", "'")
-  
-  if (length(preconditions) == 0) {
-    preconditions <- NULL
-  }
   
   if (is.null(brief)) {
     
@@ -147,55 +140,27 @@ col_vals_gt <- function(x,
         agent = agent,
         assertion_type = "col_vals_gt",
         preconditions = preconditions,
-        column = column,
+        column = columns,
         value = value
       )
   }
   
-  # If "*" is provided for `column`, select all
-  # table columns for this verification
-  if (column[1] == "all_cols()") {
-    column <- get_all_cols(agent = agent)
-  }
-  
-  # Add one or more validation steps
-  agent <-
-    create_validation_step(
-      agent = agent,
-      assertion_type = "col_vals_gt",
-      column = column,
-      value = value,
-      incl_na = incl_na,
-      incl_nan = incl_nan,
-      preconditions = preconditions,
-      brief = brief,
-      warn_count = warn_count,
-      notify_count = notify_count,
-      warn_fraction = warn_fraction,
-      notify_fraction = notify_fraction,
-      tbl_name = ifelse(is.null(tbl_name), as.character(NA), tbl_name),
-      db_type = ifelse(is.null(db_type), as.character(NA), db_type),
-      creds_file = ifelse(is.null(creds_file), as.character(NA), creds_file),
-      init_sql = ifelse(is.null(initial_sql), as.character(NA), initial_sql),
-      file_path = ifelse(is.null(file_path), as.character(NA), file_path),
-      col_types = ifelse(is.null(col_types), as.character(NA), col_types)
-    )
-  
-  # If no `brief` provided, set as NA
-  if (is.null(brief)) {
-    brief <- as.character(NA)
-  }
-  
-  # Place the validation step in the logical plan
-  agent$logical_plan <-
-    dplyr::bind_rows(
-      agent$logical_plan,
-      dplyr::tibble(
-        component_name = "col_vals_gt",
-        parameters = as.character(NA),
+  # Add one or more validation steps based on the
+  # length of the `columns` variable
+  for (column in columns) {
+    
+    agent <-
+      create_validation_step(
+        agent = agent,
+        assertion_type = "col_vals_gt",
+        column = column,
+        value = value,
+        na_pass = na_pass,
+        preconditions = preconditions,
+        actions = actions,
         brief = brief
       )
-    )
-  
+  }
+
   agent
 }

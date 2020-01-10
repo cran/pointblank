@@ -1,27 +1,56 @@
 #' Do the columns contain logical values?
 #'
-#' Verification step where a table column is expected to consist of `logical`
-#' values.
+#' The `col_is_logical()` validation step function checks whether one or more
+#' columns is of the logical (`TRUE`/`FALSE`) type. Like many of the
+#' `col_is_*()`-type functions in **pointblank**, the only requirement is a
+#' specification of the column names. This function can be used directly on a
+#' data table or with an *agent* object (technically, a `ptblank_agent` object).
+#' Each validation step will operate over a single test unit, which is whether
+#' the column is an logical-type column or not.
+#' 
+#' If providing multiple column names, the result will be an expansion of
+#' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
+#' will result in the entry of two validation steps). Aside from column names
+#' in quotes and in `vars()`, **tidyselect** helper functions are available for
+#' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
+#' `matches()`, and `everything()`.
+#' 
+#' Often, we will want to specify `actions` for the validation. This argument,
+#' present in every validation step function, takes a specially-crafted list
+#' object that is best produced by the [action_levels()] function. Read that
+#' function's documentation for the lowdown on how to create reactions to
+#' above-threshold failure levels in validation. The basic gist is that you'll
+#' want at least a single threshold level (specified as either the fraction test
+#' units failed, or, an absolute value), often using the `warn_at` argument.
+#' This is especially true when `x` is a table object because, otherwise,
+#' nothing happens. For the `col_is_*()`-type functions, using 
+#' `action_levels(warn_at = 1)` or `action_levels(stop_at = 1)` are good choices
+#' depending on the situation (the first produces a warning, the other
+#' `stop()`s).
+#' 
+#' Want to describe this validation step in some detail? Keep in mind that this
+#' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
+#' with some text that fits. Don't worry if you don't want to do it. The
+#' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
+#' then be automatically generated.
 #'
 #' @inheritParams col_vals_gt
-#' @param column The name of a single table column, multiple columns in the same
-#'   table, or, a helper function such as [all_cols()].
+#' 
+#' @return Either a `ptblank_agent` object or a table object, depending on what
+#'   was passed to `x`.
 #'   
 #' @examples
-#' # Create a simple data frame
-#' # with a column containing data
-#' # classed as `logical`
-#' df <-
-#'   data.frame(
-#'     a = c(TRUE, FALSE))
+#' library(dplyr)
 #' 
-#' # Validate that column `a` in
-#' # the data frame is classed as
-#' # `logical`
+#' # Create a simple table with a
+#' # column of `logical` values
+#' tbl <- tibble(a = c(TRUE, FALSE))
+#' 
+#' # Validate that column `a` in the
+#' # table is classed as `logical`
 #' agent <-
-#'   create_agent() %>%
-#'   focus_on(tbl_name = "df") %>%
-#'   col_is_logical(column = a) %>%
+#'   create_agent(tbl = tbl) %>%
+#'   col_is_logical(vars(a)) %>%
 #'   interrogate()
 #' 
 #' # Determine if this column
@@ -29,102 +58,61 @@
 #' # `all_passed()`
 #' all_passed(agent)
 #' 
-#' @return Either a \pkg{pointblank} agent object or a table object, depending
-#'   on what was passed to `x`.
+#' @family Validation Step Functions
+#' @section Function ID:
+#' 2-19
+#' 
 #' @import rlang
 #' @export
 col_is_logical <- function(x,
-                           column,
-                           brief = NULL,
-                           warn_count = NULL,
-                           notify_count = NULL,
-                           warn_fraction = NULL,
-                           notify_fraction = NULL,
-                           tbl_name = NULL,
-                           db_type = NULL,
-                           creds_file = NULL,
-                           initial_sql = NULL,
-                           file_path = NULL,
-                           col_types = NULL) {
+                           columns,
+                           actions = NULL,
+                           brief = NULL) {
   
-  # Get the column name
-  column <- 
-    rlang::enquo(column) %>%
-    rlang::expr_text() %>%
-    stringr::str_replace_all("~", "") %>%
-    stringr::str_replace_all("\"", "'")
+  # Capture the `columns` expression
+  columns <- rlang::enquo(columns)
   
-  if (inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))) {
+  # Resolve the columns based on the expression
+  columns <- resolve_columns(x = x, var_expr = columns, preconditions = NULL)
+  
+  if (is_a_table_object(x)) {
     
-    return(
-      x %>%
-        evaluate_single(
-          type = "col_is_logical",
-          column = column,
-          value = value,
-          warn_count = warn_count,
-          notify_count = notify_count,
-          warn_fraction = warn_fraction,
-          notify_fraction = notify_fraction
-        )
-    )
+    secret_agent <- create_agent(x) %>%
+      col_is_logical(
+        columns = columns,
+        brief = brief,
+        actions = prime_actions(actions)
+      ) %>% interrogate()
+    
+    return(x)
   }
   
   agent <- x
-  
-  preconditions <- NULL
-  
+
   if (is.null(brief)) {
     
     brief <-
       create_autobrief(
         agent = agent,
         assertion_type = "col_is_logical",
-        column = column
+        column = columns
       )
   }
   
-  # If "*" is provided for `column`, select all
-  # table columns for this verification
-  if (column[1] == "all_cols()") {
-    column <- get_all_cols(agent = agent)
-  }
-  
-  # Add one or more validation steps
-  agent <-
-    create_validation_step(
-      agent = agent,
-      assertion_type = "col_is_logical",
-      column = column,
-      preconditions = preconditions,
-      brief = brief,
-      warn_count = warn_count,
-      notify_count = notify_count,
-      warn_fraction = warn_fraction,
-      notify_fraction = notify_fraction,
-      tbl_name = ifelse(is.null(tbl_name), as.character(NA), tbl_name),
-      db_type = ifelse(is.null(db_type), as.character(NA), db_type),
-      creds_file = ifelse(is.null(creds_file), as.character(NA), creds_file),
-      init_sql = ifelse(is.null(initial_sql), as.character(NA), initial_sql),
-      file_path = ifelse(is.null(file_path), as.character(NA), file_path),
-      col_types = ifelse(is.null(col_types), as.character(NA), col_types)
-    )
-  
-  # If no `brief` provided, set as NA
-  if (is.null(brief)) {
-    brief <- as.character(NA)
-  }
-  
-  # Place the validation step in the logical plan
-  agent$logical_plan <-
-    dplyr::bind_rows(
-      agent$logical_plan,
-      dplyr::tibble(
-        component_name = "col_is_logical",
-        parameters = as.character(NA),
+  # Add one or more validation steps based on the
+  # length of the `columns` variable
+  for (column in columns) {
+    
+    agent <-
+      create_validation_step(
+        agent = agent,
+        assertion_type = "col_is_logical",
+        column = column,
+        preconditions = NULL,
+        actions = actions,
         brief = brief
       )
-    )
-  
+  }
+
   agent
 }

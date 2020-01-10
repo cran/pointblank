@@ -2,126 +2,115 @@
 #'
 #' Creates an agent object.
 #'
-#' @param validation_name An optional name for the validation pipeline that the
-#'   agent will eventually carry out during the interrogation process. If no
-#'   value is provided, a name will be generated based on the current system
-#'   time.
+#' @param tbl The input table that will be the focus of the validation. This can
+#'   be a data frame, a tibble, or a `tbl_dbi` object.
+#' @param name An optional name for the validation plan that the agent will
+#'   eventually carry out during the interrogation process. If no value is
+#'   provided, a name will be generated based on the current system time.
 #'   
-#' @examples 
-#' # Create a simple data frame
-#' # with a column of numerical values
-#' df <-
-#'   data.frame(
-#'     a = c(5, 7, 6, 5, 8, 7))
+#' @return A `ptblank_agent` object.
+#'   
+#' @examples
+#' library(dplyr)
+#' 
+#' # Create a simple table with a
+#' # column of numerical values
+#' tbl <- tibble(a = c(5, 7, 8, 7))
 #' 
 #' # Create a pointblank `agent` object
-#' agent <- create_agent()
+#' agent <- create_agent(tbl = tbl)
 #'
 #' # Then, as with any `ptblank_agent`
-#' # object, we can focus on a table,
-#' # add validation steps, and then
+#' # object, we can add validation steps
+#' # to the validation plan and then
 #' # eventually use `interrogate()`
-#' # to perform the validations;
-#' # here, in a single validation
-#' # step, we expect that values in
-#' # column `a` are always greater
-#' # than 4
+#' # to perform the validations; here,
+#' # with a single validation step, we
+#' # expect that values in column `a`
+#' # are always greater than 4
 #' agent <-
 #'   agent %>%
-#'   focus_on(tbl_name = "df") %>%
-#'   col_vals_gt(
-#'     column = a,
-#'     value = 4) %>%
+#'   col_vals_gt(vars(a), 4) %>%
 #'   interrogate()
 #'  
-#' # A summary can be produced using
-#' # `get_interrogation_summary()`; we
-#' # we will just obtain the first
-#' # 7 columns of its output
-#' (agent %>%
-#'   get_interrogation_summary())[, 1:7]
+#' # Get a tibble-based report from the
+#' # agent by using `get_agent_report()`
+#' agent %>%
+#'   get_agent_report(display_table = FALSE)
+#' 
+#' @family Create an Agent
+#' @section Function ID:
+#' 1-1
 #'   
-#' @return A \pkg{pointblank} agent object.
 #' @export
-create_agent <- function(validation_name = NULL) {
-  
+create_agent <- function(tbl,
+                         name = NULL) {
+
   # Generate an agent name if none provided
-  if (is.null(validation_name)) {
-    validation_name <- paste0("agent_", gsub(" ", "_", Sys.time() %>% as.character()))
+  if (is.null(name)) {
+    name <- paste0("agent_", gsub(" ", "_", Sys.time() %>% as.character()))
     brief <- "Create agent with auto-assigned validation name"
   } else {
     brief <- "Create agent with an assigned validation name"
   }
+
+  tbl_name <- deparse(match.call()$tbl)
   
+  if (tbl_name == ".") {
+    tbl_name <- "table"
+  }
+
+  suppressWarnings(
+    column_names_types <-
+      tbl %>%
+      utils::head(1) %>%
+      dplyr::collect() %>%
+      vapply(
+        FUN.VALUE = character(1),
+        FUN = function(x) class(x)[1]
+      )
+  )
+  
+  column_names <- names(column_names_types)
+  column_types <- unname(unlist(column_names_types))
+
   # Create the agent list object
   agent <-
     list(
-      validation_name = as.character(NA)[-1],
-      validation_time = as.POSIXct(NA)[-1],
-      focal_tbl_name = as.character(NA)[-1],
-      focal_file_name = as.character(NA)[-1],
-      focal_db_type = as.character(NA)[-1],
-      focal_col_names = as.character(NA)[-1],
-      focal_col_types = as.character(NA)[-1],
-      focal_db_cred_file_path = as.character(NA)[-1],
-      focal_db_env_vars = list(),
-      focal_init_sql = as.character(NA)[-1],
-      email_creds_file_path = as.character(NA)[-1],
-      email_notification_recipients = as.character(NA)[-1],
-      email_notifications_active = FALSE,
-      slack_webhook_url = as.character(NA)[-1],
-      slack_channel = as.character(NA)[-1],
-      slack_username = as.character(NA)[-1],
-      slack_author_name = as.character(NA)[-1],
-      slack_title = as.character(NA)[-1],
-      slack_report_url = as.character(NA)[-1],
-      slack_footer_thumb_url = as.character(NA)[-1],
-      slack_footer_text = as.character(NA)[-1],
-      slack_notifications_active = FALSE,
-      logical_plan =
-        dplyr::tibble(
-          component_name = as.character("create_agent"),
-          parameters = as.character(NA),
-          brief = brief
-        ),
+      name = name,
+      time = as.POSIXct(NA)[-1],
+      tbl = tbl,
+      tbl_name = tbl_name,
+      tbl_src = character(0),
+      col_names = column_names,
+      col_types = column_types,
       validation_set =
         dplyr::tibble(
-          tbl_name = as.character(NA),
-          db_type = as.character(NA),
-          assertion_type = as.character(NA),
-          column = as.character(NA),
-          value = as.numeric(NA),
-          regex = as.character(NA),
-          all_passed = as.logical(NA),
-          n = as.integer(NA),
-          n_passed = as.integer(NA),
-          n_failed = as.integer(NA),
-          f_passed = as.numeric(NA),
-          f_failed = as.numeric(NA),
-          warn_count = as.numeric(NA),
-          notify_count = as.numeric(NA),
-          warn_fraction = as.numeric(NA),
-          notify_fraction = as.numeric(NA),
-          warn = as.logical(NA),
-          notify = as.logical(NA),
-          row_sample = as.numeric(NA),
-          init_sql = as.character(NA),
-          db_cred_file_path = as.character(NA),
-          file_path = as.character(NA),
-          col_types = as.character(NA),
-          time_processed = as.POSIXct(NA),
-          proc_duration_s = as.numeric(NA)
+          i = integer(0),
+          assertion_type = character(0),
+          column = list(NULL),
+          value = numeric(0),
+          set = list(NULL),
+          regex = character(0),
+          na_pass = logical(0),
+          preconditions = list(NULL),
+          actions = list(NULL),
+          brief = character(0),
+          all_passed = logical(0),
+          n = integer(0),
+          n_passed = integer(0),
+          n_failed = integer(0),
+          f_passed = numeric(0),
+          f_failed = numeric(0),
+          warn = logical(0),
+          notify = logical(0),
+          stop = logical(0),
+          row_sample = numeric(0),
+          time_processed = as.POSIXct(NA)[-1],
+          proc_duration_s = numeric(0)
         ),
-      sets = list(),
-      preconditions = list()
+      extracts = list()
     )
-  
-  # Add the agent name to the object
-  agent$validation_name <- validation_name
-  
-  agent$validation_set <-
-    agent$validation_set %>%
-    dplyr::filter(n == 1)
   
   # Assign the class attribute value `ptblank_agent` to
   # the `agent object`

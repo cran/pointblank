@@ -4,85 +4,77 @@
 \alias{col_is_character}
 \title{Do the columns contain character/string data?}
 \usage{
-col_is_character(x, column, brief = NULL, warn_count = NULL,
-  notify_count = NULL, warn_fraction = NULL, notify_fraction = NULL,
-  tbl_name = NULL, db_type = NULL, creds_file = NULL,
-  initial_sql = NULL, file_path = NULL, col_types = NULL)
+col_is_character(x, columns, actions = NULL, brief = NULL)
 }
 \arguments{
 \item{x}{A data frame, tibble, or an agent object of class \code{ptblank_agent}.}
 
-\item{column}{The name of a single table column, multiple columns in the same
-table, or, a helper function such as \code{\link[=all_cols]{all_cols()}}.}
+\item{columns}{The column (or a set of columns, provided as a character
+vector) to which this validation should be applied.}
+
+\item{actions}{A list containing threshold levels so that the validation step
+can react accordingly when exceeding the set levels. This is to be created
+with the \code{\link[=action_levels]{action_levels()}} helper function.}
 
 \item{brief}{An optional, text-based description for the validation step.}
-
-\item{warn_count}{The threshold number for individual validations returning a
-\code{FALSE} result before applying the \code{warn} flag.}
-
-\item{notify_count}{The threshold number for individual validations returning
-a \code{FALSE} result before applying the \code{notify} flag.}
-
-\item{warn_fraction}{The threshold fraction for individual validations
-returning a \code{FALSE} over all the entire set of individual validations.
-Beyond this threshold, the \code{warn} flag will be applied.}
-
-\item{notify_fraction}{The threshold fraction for individual validations
-returning a \code{FALSE} over all the entire set of individual validations.
-Beyond this threshold, the \code{notify} flag will be applied.}
-
-\item{tbl_name}{The name of the local or remote table.}
-
-\item{db_type}{If the table is located in a database, the type of database is
-required here. Currently, this can be either \code{PostgreSQL} or \code{MySQL}.}
-
-\item{creds_file}{If a connection to a database is required for reaching the
-table specified in \code{tbl_name}, then a path to a credentials file can be
-used to establish that connection. The credentials file is an \code{RDS}
-containing a character vector with the following items in the specified
-order: (1) database name (\code{dbname}), (2) the \code{host} name, (3) the \code{port},
-(4) the username (\code{user}), and (5) the \code{password}. This file can be easily
-created using the \code{\link[=create_creds_file]{create_creds_file()}} function.}
-
-\item{initial_sql}{When accessing a remote table, this provides an option to
-provide an initial query component before conducting validations. An entire
-SQL statement can be provided here, or, as a shortcut, the initial
-\code{SELECT...} statement can be omitted for simple queries (e.g., \code{WHERE a > 1 AND b = 'one'}).}
-
-\item{file_path}{An optional path for a tabular data file to be loaded for
-this verification step. Valid types are CSV and TSV files.}
-
-\item{col_types}{If validating a CSV or TSV file, an optional column
-specification can be provided here as a string. This string representation
-is where each character represents one column and the mappings are: \code{c} ->
-character, \code{i} -> integer, \code{n} -> number, \code{d} -> double, \code{l} -> logical,
-\code{D} -> date, \code{T} -> date time, \code{t} -> time, \code{?} -> guess, or \code{_/-}, which
-skips the column.}
 }
 \value{
-Either a \pkg{pointblank} agent object or a table object, depending
-on what was passed to \code{x}.
+Either a \code{ptblank_agent} object or a table object, depending on what
+was passed to \code{x}.
 }
 \description{
-Verification step where a table column is expected to consist of string data.
+The \code{col_is_character()} validation step function checks whether one or more
+columns is of the character type. Like many of the \verb{col_is_*()}-type
+functions in \strong{pointblank}, the only requirement is a specification of the
+column names. This function can be used directly on a data table or with an
+\emph{agent} object (technically, a \code{ptblank_agent} object). Each validation step
+will operate over a single test unit, which is whether the column is a
+character-type column or not.
 }
-\examples{
-# Create a simple data frame
-# with a column containing data
-# classed as `character`
-df <-
-  data.frame(
-    a = c("one", "two"),
-    stringsAsFactors = FALSE)
+\details{
+If providing multiple column names, the result will be an expansion of
+validation steps to that number of column names (e.g., \code{vars(col_a, col_b)}
+will result in the entry of two validation steps). Aside from column names
+in quotes and in \code{vars()}, \strong{tidyselect} helper functions are available for
+specifying columns. They are: \code{starts_with()}, \code{ends_with()}, \code{contains()},
+\code{matches()}, and \code{everything()}.
 
-# Validate that column `a`
-# in the data frame is classed
-# as `character`
+Often, we will want to specify \code{actions} for the validation. This argument,
+present in every validation step function, takes a specially-crafted list
+object that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that
+function's documentation for the lowdown on how to create reactions to
+above-threshold failure levels in validation. The basic gist is that you'll
+want at least a single threshold level (specified as either the fraction test
+units failed, or, an absolute value), often using the \code{warn_at} argument.
+This is especially true when \code{x} is a table object because, otherwise,
+nothing happens. For the \verb{col_is_*()}-type functions, using
+\code{action_levels(warn_at = 1)} or \code{action_levels(stop_at = 1)} are good choices
+depending on the situation (the first produces a warning, the other
+\code{stop()}s).
+
+Want to describe this validation step in some detail? Keep in mind that this
+is only useful if \code{x} is an \emph{agent}. If that's the case, \code{brief} the agent
+with some text that fits. Don't worry if you don't want to do it. The
+\emph{autobrief} protocol is kicked in when \code{brief = NULL} and a simple brief will
+then be automatically generated.
+}
+\section{Function ID}{
+
+2-16
+}
+
+\examples{
+library(dplyr)
+
+# Create a simple table with
+# a column of `character` values
+tbl <- tibble(a = c("one", "two"))
+
+# Validate that column `a` in the
+# table is classed as `character`
 agent <-
-  create_agent() \%>\%
-  focus_on(tbl_name = "df") \%>\%
-  col_is_character(
-    column = a) \%>\%
+  create_agent(tbl = tbl) \%>\%
+  col_is_character(vars(a)) \%>\%
   interrogate()
 
 # Determine if these column
@@ -91,3 +83,29 @@ agent <-
 all_passed(agent)
 
 }
+\seealso{
+Other Validation Step Functions: 
+\code{\link{col_exists}()},
+\code{\link{col_is_date}()},
+\code{\link{col_is_factor}()},
+\code{\link{col_is_integer}()},
+\code{\link{col_is_logical}()},
+\code{\link{col_is_numeric}()},
+\code{\link{col_is_posix}()},
+\code{\link{col_vals_between}()},
+\code{\link{col_vals_equal}()},
+\code{\link{col_vals_gte}()},
+\code{\link{col_vals_gt}()},
+\code{\link{col_vals_in_set}()},
+\code{\link{col_vals_lte}()},
+\code{\link{col_vals_lt}()},
+\code{\link{col_vals_not_between}()},
+\code{\link{col_vals_not_equal}()},
+\code{\link{col_vals_not_in_set}()},
+\code{\link{col_vals_not_null}()},
+\code{\link{col_vals_null}()},
+\code{\link{col_vals_regex}()},
+\code{\link{conjointly}()},
+\code{\link{rows_distinct}()}
+}
+\concept{Validation Step Functions}

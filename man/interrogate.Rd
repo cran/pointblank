@@ -2,17 +2,23 @@
 % Please edit documentation in R/interrogate.R
 \name{interrogate}
 \alias{interrogate}
-\title{Given an agent that is fully loaded with tasks, perform an interrogation}
+\title{Given an agent that has a validation plan, perform an interrogation}
 \usage{
-interrogate(agent, get_problem_rows = TRUE, get_first_n = NULL,
-  sample_n = NULL, sample_frac = NULL, sample_limit = 5000)
+interrogate(
+  agent,
+  extract_failed = TRUE,
+  get_first_n = NULL,
+  sample_n = NULL,
+  sample_frac = NULL,
+  sample_limit = 5000
+)
 }
 \arguments{
 \item{agent}{An agent object of class \code{ptblank_agent}.}
 
-\item{get_problem_rows}{An option to collect rows that didn't pass a
-particular validation step. The default is \code{TRUE} and further options allow
-for fine control of how these rows are collected.}
+\item{extract_failed}{An option to collect rows that didn't pass a particular
+validation step. The default is \code{TRUE} and further options allow for fine
+control of how these rows are collected.}
 
 \item{get_first_n}{If the option to collect non-passing rows is chosen, there
 is the option here to collect the first \code{n} rows here. Supply the number of
@@ -35,46 +41,51 @@ rows.}
 when sampling non-passing rows using the \code{sample_frac} option.}
 }
 \value{
-A \pkg{pointblank} agent object.
+A \code{ptblank_agent} object.
 }
 \description{
-The agent has all the information on what to do, so now all interrogations
-can proceed efficiently, and, according to plan.
+When the agent has all the information on what to do (i.e., a validation plan
+which is a series of validation steps), the interrogation process can occur
+according its plan. After that, the agent will have gathered intel, and we
+can use functions like \code{\link[=get_agent_report]{get_agent_report()}} and \code{\link[=all_passed]{all_passed()}} to understand
+how the interrogation went down.
 }
+\section{Function ID}{
+
+3-1
+}
+
 \examples{
-# Create 2 simple data frames
-# with 2 columns of numerical
-# values in each
-df_1 <-
-  data.frame(
+library(dplyr)
+
+# Create a simple table with two
+# columns of numerical values
+tbl <-
+  tibble(
     a = c(5, 7, 6, 5, 8, 7),
-    b = c(7, 1, 0, 0, 0, 3))
-    
-df_2 <-
-  data.frame(
-    c = c(8, 8, 8, 6, 1, 3),
-    d = c(9, 8, 7, 2, 3, 3))
+    b = c(7, 1, 0, 0, 0, 3)
+  )
 
 # Validate that values in column
-# `a` from `df_1` are always >= 5,
-# and also validate that, in `df_2`,
-# values in `c` are always == 8
-# when values in `d` are >= 5  
+# `a` from `tbl` are always > 5,
+# using `interrogate()` carries out
+# the validation plan and completes
+# the whole process
 agent <-
-  create_agent() \%>\%
-  focus_on(tbl_name = "df_1") \%>\%
-  col_vals_gte(
-    column = a,
-    value = 5) \%>\%
-  focus_on(tbl_name = "df_2") \%>\%
-  col_vals_equal(
-    column = c,
-    value = 8,
-    preconditions = d >= 5) \%>\%
+  create_agent(tbl = tbl) \%>\%
+  col_vals_gt(vars(a), 5) \%>\%
   interrogate()
   
-# Get a basic summary with
-# `get_interrogation_summary()`
-get_interrogation_summary(agent)[, 1:7]
+# Get a tibble-based report from the
+# agent by using `get_agent_report()`
+agent \%>\%
+  get_agent_report(display_table = FALSE)
 
 }
+\seealso{
+Other Interrogate and Get Info: 
+\code{\link{all_passed}()},
+\code{\link{get_agent_report}()},
+\code{\link{get_data_extracts}()}
+}
+\concept{Interrogate and Get Info}

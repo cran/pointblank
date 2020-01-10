@@ -1,12 +1,15 @@
-#' Given an agent that is fully loaded with tasks, perform an interrogation
+#' Given an agent that has a validation plan, perform an interrogation
 #'
-#' The agent has all the information on what to do, so now all interrogations
-#' can proceed efficiently, and, according to plan.
+#' When the agent has all the information on what to do (i.e., a validation plan
+#' which is a series of validation steps), the interrogation process can occur
+#' according its plan. After that, the agent will have gathered intel, and we
+#' can use functions like [get_agent_report()] and [all_passed()] to understand
+#' how the interrogation went down.
 #'
 #' @param agent An agent object of class `ptblank_agent`.
-#' @param get_problem_rows An option to collect rows that didn't pass a
-#'   particular validation step. The default is `TRUE` and further options allow
-#'   for fine control of how these rows are collected.
+#' @param extract_failed An option to collect rows that didn't pass a particular
+#'   validation step. The default is `TRUE` and further options allow for fine
+#'   control of how these rows are collected.
 #' @param get_first_n If the option to collect non-passing rows is chosen, there
 #'   is the option here to collect the first `n` rows here. Supply the number of
 #'   rows to extract from the top of the non-passing rows table (the ordering of
@@ -24,700 +27,147 @@
 #' @param sample_limit A value that limits the possible number of rows returned
 #'   when sampling non-passing rows using the `sample_frac` option.
 #'   
-#' @examples 
-#' # Create 2 simple data frames
-#' # with 2 columns of numerical
-#' # values in each
-#' df_1 <-
-#'   data.frame(
+#' @return A `ptblank_agent` object.
+#'   
+#' @examples
+#' library(dplyr)
+#' 
+#' # Create a simple table with two
+#' # columns of numerical values
+#' tbl <-
+#'   tibble(
 #'     a = c(5, 7, 6, 5, 8, 7),
-#'     b = c(7, 1, 0, 0, 0, 3))
-#'     
-#' df_2 <-
-#'   data.frame(
-#'     c = c(8, 8, 8, 6, 1, 3),
-#'     d = c(9, 8, 7, 2, 3, 3))
+#'     b = c(7, 1, 0, 0, 0, 3)
+#'   )
 #' 
 #' # Validate that values in column
-#' # `a` from `df_1` are always >= 5,
-#' # and also validate that, in `df_2`,
-#' # values in `c` are always == 8
-#' # when values in `d` are >= 5  
+#' # `a` from `tbl` are always > 5,
+#' # using `interrogate()` carries out
+#' # the validation plan and completes
+#' # the whole process
 #' agent <-
-#'   create_agent() %>%
-#'   focus_on(tbl_name = "df_1") %>%
-#'   col_vals_gte(
-#'     column = a,
-#'     value = 5) %>%
-#'   focus_on(tbl_name = "df_2") %>%
-#'   col_vals_equal(
-#'     column = c,
-#'     value = 8,
-#'     preconditions = d >= 5) %>%
+#'   create_agent(tbl = tbl) %>%
+#'   col_vals_gt(vars(a), 5) %>%
 #'   interrogate()
 #'   
-#' # Get a basic summary with
-#' # `get_interrogation_summary()`
-#' get_interrogation_summary(agent)[, 1:7]
+#' # Get a tibble-based report from the
+#' # agent by using `get_agent_report()`
+#' agent %>%
+#'   get_agent_report(display_table = FALSE)
 #' 
-#' @return A \pkg{pointblank} agent object.
-#' @import rlang
+#' @family Interrogate and Get Info
+#' @section Function ID:
+#' 3-1
+#' 
 #' @export
 interrogate <- function(agent,
-                        get_problem_rows = TRUE,
+                        extract_failed = TRUE,
                         get_first_n = NULL,
                         sample_n = NULL,
                         sample_frac = NULL,
                         sample_limit = 5000) {
-  
 
-  
-  # Get the starting time for the interrogation
-  interrogation_start_time <- Sys.time()
-  
   # Add the starting time to the `agent` object
-  agent$validation_time <- interrogation_start_time
+  agent$time <- Sys.time()
   
-  # Get number of rows in `validation_set`
-  n_validations <- nrow(agent$validation_set)
+  validation_steps <- unique(agent$validation_set$i)
   
-  for (i in 1:n_validations) {
+  for (i in validation_steps) {
     
     # Get the starting time for the validation step
     validation_start_time <- Sys.time()
     
-    if (agent$validation_set$db_type[i] == "local_df") {
-      
-      # Create `table` object as the direct reference to a
-      # local `data.frame` or `tbl_df` object
-      table <- get(agent$validation_set$tbl_name[i])
-      
-    } else if (agent$validation_set$db_type[i] == "local_file") {
-      
-      file_path <- agent$validation_set$file_path[i]
-      col_types <- agent$validation_set$col_types[i]
-      
-      # Infer the file type from the extension
-      file_extension <- 
-        (agent$validation_set$file_path[i] %>% 
-           basename() %>% 
-           stringr::str_split(pattern = "\\.") %>% 
-           unlist())[2] %>% 
-        tolower()
-      
-      if (is.na(col_types)) {
-        
-        if (file_extension == "csv") {
-          
-          table <- 
-            suppressMessages(
-              readr::read_csv(
-                file = file_path))
-          
-        } else if (file_extension == "tsv") {
-          
-          table <- 
-            suppressMessages(
-              readr::read_tsv(
-                file = file_path))
-        }
-      }
-      
-      if (!is.na(col_types)) {
-        
-        if (file_extension == "csv") {
-          
-          table <- 
-            suppressMessages(
-              readr::read_csv(
-                file = file_path,
-                col_types = col_types))
-          
-        } else if (file_extension == "tsv") {
-          
-          table <- 
-            suppressMessages(
-              readr::read_tsv(
-                file = file_path,
-                col_types = col_types))
-        }
-      }
-    } else if (agent$validation_set$db_type[i] %in% c("PostgreSQL", "MySQL")) {
-      
-      # Determine if there is an initial SQL
-      # statement available as part of the 
-      # table focus (`focal_sql`) or as
-      # part of the validation step (`init_sql`)
-      if (!is.na(agent$validation_set$init_sql[i])) {
-        initial_sql_stmt <- agent$validation_set$init_sql[i]
-      } else if (!is.na(agent$focal_init_sql)) {
-        initial_sql_stmt <- agent$focal_init_sql
-      } else {
-        initial_sql_stmt <- NULL
-      }
-      
-      # Create `table` object as an SQL entry point for a remote table
-      
-      if (!is.na(agent$focal_db_cred_file_path)) {
-        
-        table <- 
-          set_entry_point(
-            table = agent$validation_set$tbl_name[i],
-            db_type = agent$validation_set$db_type[i],
-            creds_file = agent$validation_set$db_cred_file_path[i],
-            initial_sql = initial_sql_stmt)
-        
-      } else if (length(agent$focal_db_env_vars) != 0) {
-        
-        table <- 
-          set_entry_point(
-            table = agent$validation_set$tbl_name[i],
-            db_type = agent$validation_set$db_type[i],
-            db_creds_env_vars = agent$focal_db_env_vars,
-            initial_sql = initial_sql_stmt)
-      }
-    }
+    # Get the table object for interrogation 
+    table <- get_tbl_object(agent)
     
     # Use preconditions to modify the table
-    if (!is.na(agent$preconditions[[i, 1]]) &&
-        agent$preconditions[[i, 1]] != "NULL") {
-      
-      # Get the preconditions as a character vector
-      preconditions <-
-        stringr::str_trim(
-          agent$preconditions[[i, 1]] %>%
-            strsplit(";") %>%
-            unlist())
-      
-      if (!is.null(preconditions)) {
-        for (j in 1:length(preconditions)) {
-          
-          # Apply the preconditions to filter the table
-          # before any validation occurs
-          table <-
-            table %>%
-            dplyr::filter_(preconditions[j])
-        }
-      }
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on assertion types that
-    # rely on betweenness checking
-    
-    if (agent$validation_set$assertion_type[i] %in%
-        c("col_vals_between", "col_vals_not_between")) {
-      
-      # Get the `left` and `right` bounding values
-      bounding_vals <- 
-        (agent[["sets"]] %>%
-           dplyr::select(set) %>%
-           purrr::flatten_chr())[[i]]
-      
-      left <-
-        (bounding_vals %>%
-           strsplit(",") %>%
-           unlist() %>%
-           as.numeric())[[1]]
-      
-      right <-
-        (bounding_vals %>%
-           strsplit(",") %>%
-           unlist() %>%
-           as.numeric())[[2]]
-      
-      incl_na <- 
-        (agent[["sets"]] %>%
-           dplyr::select(incl_na) %>%
-           purrr::flatten_lgl())[[i]]
-      
-      incl_nan <- 
-        (agent[["sets"]] %>%
-           dplyr::select(incl_nan) %>%
-           purrr::flatten_lgl())[[i]]
-      
-      # Use the column name as an `rlang` symbol
-      column <- rlang::sym(agent$validation_set$column[i])
-      
-      if (agent$validation_set$assertion_type[i] == "col_vals_between") {
-        
-        # Get the final judgment on the table and the query
-        judgment <-
-          table %>%
-          dplyr::mutate(pb_is_good_ = dplyr::case_when(
-            !!column >= left & !!column <= right ~ TRUE,
-            !!column < left | !!column > right ~ FALSE,
-            is.na(!!column) & incl_na ~ TRUE,
-            is.na(!!column) & incl_na == FALSE ~ FALSE,
-            is.nan(!!column) & incl_nan ~ TRUE,
-            is.nan(!!column) & incl_nan == FALSE ~ FALSE
-          ))
-      }
-      
-      if (agent$validation_set$assertion_type[i] == "col_vals_not_between") {
-        
-        excl_na <- incl_na
-        excl_nan <- incl_nan
-        
-        # Get the final judgment on the table and the query
-        judgment <-
-          table %>%
-          dplyr::mutate(pb_is_good_ = dplyr::case_when(
-            !!column < left | !!column > right ~ TRUE,
-            !!column >= left & !!column <= right ~ FALSE,
-            is.na(!!column) & excl_na ~ TRUE,
-            is.na(!!column) & excl_na == FALSE ~ FALSE,
-            is.nan(!!column) & excl_nan ~ TRUE,
-            is.nan(!!column) & excl_nan == FALSE ~ FALSE
-          ))
-      }
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on assertion types that
-    # rely on set membership
-    
-    if (agent$validation_set$assertion_type[i] %in%
-        c("col_vals_in_set", "col_vals_not_in_set")) {
-      
-      # Get the set values for the expression
-      set <- 
-        (agent[["sets"]] %>%
-           dplyr::select(set) %>%
-           purrr::flatten_chr())[[i]]
-      
-      set <- 
-        stringr::str_trim(
-          set %>%
-            strsplit(",") %>%
-            unlist())
-      
-      # Get the class of the set components
-      set_class <- 
-        (agent[["sets"]] %>%
-           dplyr::select(class) %>%
-           purrr::flatten_chr())[[i]]
-      
-      if (set_class == "numeric") {
-        set <- as.numeric(set)
-      }
-      
-      if (agent$validation_set$assertion_type[i] == "col_vals_in_set") {
-        
-        # Use the column name as an `rlang` symbol
-        column <- rlang::sym(agent$validation_set$column[i])
-        
-        # Get the final judgment on the table and the query
-        judgment <-
-          table %>%
-          dplyr::mutate(pb_is_good_ = dplyr::case_when(
-            !!column %in% set ~ TRUE,
-            !(!!column %in% set) ~ FALSE
-          ))
-      }
-      
-      if (agent$validation_set$assertion_type[i] == "col_vals_not_in_set") {
-        
-        # Use the column name as an `rlang` symbol
-        column <- rlang::sym(agent$validation_set$column[i])
-        
-        # Get the final judgment on the table and the query
-        judgment <-
-          table %>%
-          dplyr::mutate(pb_is_good_ = dplyr::case_when(
-            !(!!column %in% set) ~ TRUE,
-            !!column %in% set ~ FALSE
-          ))
-      }
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on regex matching
-    
-    if (agent$validation_set$assertion_type[i] == "col_vals_regex") {
-      
-      # Get the regex matching statement
-      regex <- agent$validation_set$regex[i]
-      
-      # Get the final judgment on the table and the query
-      judgment <- 
-        table %>%
-        dplyr::mutate_(.dots = stats::setNames(
-          paste0("grepl(\"",
-                 agent$validation_set$regex[i],
-                 "\", ", agent$validation_set$column[i],
-                 ")"),
-          "pb_is_good_"))
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on the presence
-    # of NULL values
-    
-    if (agent$validation_set$assertion_type[i] == "col_vals_null") {
-      
-      # Get the final judgment on the table and the query
-      judgment <- 
-        table %>%
-        dplyr::mutate_(.dots = stats::setNames(
-          paste0("is.na(",
-                 agent$validation_set$column[i],
-                 ")"),
-          "pb_is_good_"))
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on the absence
-    # of NULL values
-    
-    if (agent$validation_set$assertion_type[i] == "col_vals_not_null") {
-      
-      # Get the final judgment on the table and the query
-      judgment <- 
-        table %>%
-        dplyr::mutate_(.dots = stats::setNames(
-          paste0("!is.na(",
-                 agent$validation_set$column[i],
-                 ")"),
-          "pb_is_good_"))
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on assertion types that
-    # check the table structure
-    
-    if (agent$validation_set$assertion_type[i] == "cols_exist") {
-      
-      # Get the column names for the table
-      column_names <-
-        table %>%
-        dplyr::filter(dplyr::row_number() == 1) %>%
-        dplyr::as_tibble() %>%
-        colnames()
-      
-      judgment <-
-        ifelse(
-          agent$validation_set$column[i] %in% column_names,
-          TRUE, FALSE)
-      
-      agent$validation_set$n[i] <- 1
-      
-      agent$validation_set$n_passed[i] <- 
-        agent$validation_set$f_passed[i] <-
-        ifelse(judgment, 1, 0)
-      
-      agent$validation_set$n_failed[i] <-
-        agent$validation_set$f_failed[i] <-
-        ifelse(judgment, 0, 1)
-      
-      agent$validation_set$all_passed[i] <-
-        ifelse(judgment, TRUE, FALSE)
-      
-      if (judgment) {
-        n_failed <- false_count <- 0
-      } else {
-        n_failed <- false_count <- 1  
-      }
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables based on assertion types that rely on
-    # comparison operators
-    
-    if (agent$validation_set$assertion_type[i] %in%
-        c("col_vals_gt", "col_vals_gte",
-          "col_vals_lt", "col_vals_lte",
-          "col_vals_equal", "col_vals_not_equal")) {
-      
-      # Get operator values for all assertion types involving
-      # simple operator comparisons
-      if (agent$validation_set$assertion_type[i] == "col_vals_gt") {
-        operator <- ">"
-      } else if (agent$validation_set$assertion_type[i] == "col_vals_gte") {
-        operator <- ">="
-      } else if (agent$validation_set$assertion_type[i] == "col_vals_lt") {
-        operator <- "<"
-      } else if (agent$validation_set$assertion_type[i] == "col_vals_lte") {
-        operator <- "<="
-      } else if (agent$validation_set$assertion_type[i] == "col_vals_equal") {
-        operator <- "=="
-      } else if (agent$validation_set$assertion_type[i] == "col_vals_not_equal") {
-        operator <- "!="
-      } 
-      
-      # Get the final judgment on the table and the query
-      judgment <- 
-        table %>%
-        dplyr::mutate_(.dots = stats::setNames(
-          paste0(
-            agent$validation_set$column[i],
-            operator,
-            agent$validation_set$value[i]),
-          "pb_is_good_"))
-    }
-    
-    # ---------------------------------------------------------------
-    # Determine the `false_count` for all validations
-    # that validate individual rows in one or more table columns
-    
-    if (grepl("col_vals.*", agent$validation_set$assertion_type[i])) {
-      
-      # Get total count of rows
-      row_count <-
-        judgment %>%
-        dplyr::group_by() %>%
-        dplyr::summarize(row_count = dplyr::n()) %>%
-        dplyr::as_tibble() %>%
-        purrr::flatten_dbl()
-      
-      # Get total count of TRUE rows
-      n_passed <-
-        judgment %>%
-        dplyr::filter(pb_is_good_ == TRUE) %>%
-        dplyr::group_by() %>%
-        dplyr::summarize(row_count = dplyr::n()) %>%
-        dplyr::as_tibble() %>%
-        purrr::flatten_dbl()
-      
-      # Get total count of FALSE rows
-      n_failed <-
-        judgment %>%
-        dplyr::filter(pb_is_good_ == FALSE) %>%
-        dplyr::group_by() %>%
-        dplyr::summarize(row_count = dplyr::n()) %>%
-        dplyr::as_tibble() %>%
-        purrr::flatten_dbl()
-      
-      agent$validation_set$n[i] <- row_count
-      agent$validation_set$n_passed[i] <- n_passed
-      agent$validation_set$n_failed[i] <- n_failed
-      agent$validation_set$f_passed[i] <- round((n_passed / row_count), 5)
-      agent$validation_set$f_failed[i] <- round((n_failed / row_count), 5)
-      
-      # Get count of rows where `pb_is_good_ == FALSE`
-      false_count <-
-        judgment %>%
-        dplyr::filter(pb_is_good_ == FALSE) %>%
-        dplyr::group_by() %>%
-        dplyr::summarize(pb_is_not_good_ = dplyr::n()) %>%
-        dplyr::as_tibble() %>%
-        purrr::flatten_dbl()
-      
-      if (false_count > 0) {
-        
-        # State that `all_passed` is FALSE
-        agent$validation_set$all_passed[i] <- FALSE
-        
-        # Collect problem rows if requested
-        
-        if (isTRUE(get_problem_rows)) {
-          
-          problem_rows <- 
-            judgment %>%
-            dplyr::filter(pb_is_good_ == FALSE) %>%
-            dplyr::select(-pb_is_good_)
-          
-          if (!is.null(get_first_n)) {
-            
-            problem_rows <-
-              problem_rows %>%
-              utils::head(get_first_n) %>%
-              dplyr::as_tibble()
-            
-          } else if (!is.null(sample_n) &
-                     !(agent$validation_set$db_type[i] %in% c("PostgreSQL", "MySQL"))) {
-            
-            problem_rows <-
-              dplyr::sample_n(
-                tbl = problem_rows,
-                size = sample_n,
-                replace = FALSE) %>%
-              dplyr::as_tibble()
-            
-          } else if (!is.null(sample_frac) &
-                     !(agent$validation_set$db_type[i] %in% c("PostgreSQL", "MySQL"))) {
-            
-            problem_rows <-
-              dplyr::sample_frac(
-                tbl = problem_rows,
-                size = sample_frac,
-                replace = FALSE) %>%
-              dplyr::as_tibble() %>%
-              utils::head(sample_limit)
-            
-          } else {
-            
-            problem_rows <-
-              problem_rows %>%
-              utils::head(5000) %>%
-              dplyr::as_tibble()
-          }
-          
-          problem_rows <-
-            problem_rows %>%
-            dplyr::mutate(pb_step_ = i) %>%
-            dplyr::select(pb_step_, dplyr::everything())
-        }
+    table <- apply_preconditions_to_tbl(agent, idx = i, tbl = table)
 
-        # Place the sample of problem rows in `agent$row_samples`
-        agent$row_samples <- problem_rows
-        
-      } else if (false_count == 0) {
-        agent$validation_set$all_passed[i] <- TRUE
-      }
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables on expected column types
-    
-    if (grepl("col_is_.*", agent$validation_set$assertion_type[i])) {
-      
-      if (inherits(table, "data.frame")) {
-        
-        column_type <-
-          (table %>%
-             dplyr::select_(agent$validation_set$column[i]) %>%
-             dplyr::filter(dplyr::row_number() == 1) %>%
-             dplyr::collect() %>%
-             as.data.frame(stringsAsFactors = FALSE))[1, 1] %>% 
-          class()
-        
-        agent$validation_set$n[i] <- 1
-        
-        if (agent$validation_set$assertion_type[i] == "col_is_numeric") {
-          passed <- ifelse(column_type[1] == "numeric", TRUE, FALSE)
-        } else if (agent$validation_set$assertion_type[i] == "col_is_integer") {
-          passed <- ifelse(column_type[1] == "integer", TRUE, FALSE)
-        } else if (agent$validation_set$assertion_type[i] == "col_is_character") {
-          passed <- ifelse(column_type[1] == "character", TRUE, FALSE)
-        } else if (agent$validation_set$assertion_type[i] == "col_is_logical") {
-          passed <- ifelse(column_type[1] == "logical", TRUE, FALSE)
-        } else if (agent$validation_set$assertion_type[i] == "col_is_factor") {
-          passed <- ifelse(column_type[1] == "factor", TRUE, FALSE)
-        } else if (agent$validation_set$assertion_type[i] == "col_is_posix") {
-          passed <- ifelse(column_type[1] == "POSIXct", TRUE, FALSE)
-        } else if (agent$validation_set$assertion_type[i] == "col_is_date") {
-          passed <- ifelse(column_type[1] == "Date", TRUE, FALSE)
-        } else {
-          passed <- FALSE
-        }
-        
-        if (passed == TRUE) {
-          agent$validation_set$n_passed[i] <- 
-            agent$validation_set$f_passed[i] <- 1
-          agent$validation_set$n_failed[i] <- 
-            agent$validation_set$f_failed[i] <- 0
-          false_count <- 0
-        } else {
-          agent$validation_set$n_passed[i] <- 
-            agent$validation_set$f_passed[i] <- 0
-          agent$validation_set$n_failed[i] <- 
-            agent$validation_set$f_failed[i] <- 1
-          false_count <- 1
-        }
-        
-        if (false_count > 0) {
-          agent$validation_set$all_passed[i] <- FALSE
-        } else if (false_count == 0) {
-          agent$validation_set$all_passed[i] <- TRUE
-        }
-      }
-    }
-    
-    # ---------------------------------------------------------------
-    # Judge tables on expectation of non-duplicated rows
-    
-    if (agent$validation_set$assertion_type[i] == "rows_not_duplicated") {
-      
-      # Determine if grouping columns are provided in the test
-      # for distinct rows and parse the column names
-      
-      if (!is.na(agent$validation_set$column[i])) {
-        if (grepl("(,|&)", agent$validation_set$column[i])) {
-          columns <-
-            stringr::str_trim(
-              stringr::str_split(
-                agent$validation_set$column[i],
-                pattern = "(,|&)") %>%
-                purrr::flatten_chr())
-        } else {
-          columns <- agent$validation_set$column[i]
-        }
-      } else if (is.na(agent$validation_set$column[i])) {
-        columns <-
-          table %>%
-          dplyr::filter(dplyr::row_number() == 1) %>%
-          dplyr::as_tibble() %>%
-          names()
-      }
-      
-      # Get total count of rows
-      row_count <-
-        table %>%
-        dplyr::group_by() %>%
-        dplyr::summarize(row_count = dplyr::n()) %>%
-        dplyr::as_tibble() %>%
-        purrr::flatten_dbl()
+    # Get the assertion type for this verification step
+    assertion_type <- get_assertion_type_at_idx(agent, idx = i)
 
-      # Get the rows that are duplicate rows, if any
-      duplicate_rows <- 
-        table %>%
-        dplyr::select(dplyr::one_of(columns)) %>%
-        dplyr::group_by_(.dots = columns) %>%
-        dplyr::filter(dplyr::n() > 1) %>%
-        dplyr::ungroup()
+    if (assertion_type != "conjointly") {
       
-      # Determine whether the test for duplicated passed
-      # (no duplicates) or failed (one or more duplicates)
-      passed <-
-        ifelse(
-          duplicate_rows %>%
-            dplyr::group_by() %>%
-            dplyr::summarize(row_count = dplyr::n()) %>%
-            dplyr::as_tibble() %>%
-            purrr::flatten_dbl() == 0, TRUE, FALSE)
+      # Perform table checking based on assertion type
+      tbl_checked <- check_table_with_assertion(agent, idx = i, table, assertion_type)
       
-      if (passed == TRUE) {
-        n_passed <- row_count
-        n_failed <- false_count <- 0
-      } else if (passed == FALSE) {
-        n_failed <- false_count <-
-          duplicate_rows %>%
-          dplyr::group_by() %>%
-          dplyr::summarize(row_count = dplyr::n()) %>%
-          dplyr::as_tibble() %>%
-          purrr::flatten_dbl()
+    } else if (assertion_type == "conjointly") {
+      
+      validation_formulas <- agent$validation_set[[i, "set"]]
+      validation_n <- length(validation_formulas)
+      
+      # Create a double agent
+      double_agent <- create_agent(tbl = agent$tbl)
+      
+      for (formula in validation_formulas) {
         
-        n_passed <- row_count - n_failed
+        double_agent <-
+          eval(
+            expr = parse(
+              text =
+                formula %>%
+                rlang::f_rhs() %>%
+                rlang::expr_deparse() %>%
+                tidy_gsub("(.", "(double_agent", fixed = TRUE)
+            ),
+            envir = NULL
+          )
       }
       
-      agent$validation_set$n[i] <- row_count
-      agent$validation_set$n_passed[i] <- n_passed
-      agent$validation_set$n_failed[i] <- n_failed
-      agent$validation_set$f_passed[i] <- round((n_passed / row_count), 5)
-      agent$validation_set$f_failed[i] <- round((n_failed / row_count), 5)
+      tbl_checked <- table
       
-      if (false_count > 0) {
-        agent$validation_set$all_passed[i] <- FALSE
-      } else if (false_count == 0) {
-        agent$validation_set$all_passed[i] <- TRUE
+      for (j in seq(nrow(double_agent$validation_set))) {
+        
+        # Get the assertion type for this verification step
+        assertion_type <- 
+          get_assertion_type_at_idx(agent = double_agent, idx = j)
+        
+        tbl_checked <- 
+          dplyr::bind_cols(
+            tbl_checked,
+            check_table_with_assertion(
+              agent = double_agent,
+              idx = j,
+              table,
+              assertion_type
+            )
+          )
       }
+      
+      tbl_checked <-
+        tbl_checked %>%
+        dplyr::select(dplyr::starts_with("pb_is_good_")) %>%
+        dplyr::mutate_all(as.numeric) %>%
+        dplyr::mutate(pb_sum = rowSums(dplyr::select(., dplyr::everything()))) %>%
+        dplyr::select(pb_is_good_ = pb_sum) %>%
+        dplyr::mutate(pb_is_good_ = dplyr::case_when(
+          pb_is_good_ == validation_n ~ TRUE,
+          TRUE ~ FALSE
+        ))
+      
+      tbl_checked <- dplyr::bind_cols(table, tbl_checked)
     }
+
+    # Add in the necessary reporting data for the validation
+    agent <- add_reporting_data(agent, idx = i, tbl_checked = tbl_checked)
     
-    # ---------------------------------------------------------------
-    # Determine the course of action for each validation check
-    
-    actions <-
-      determine_action(
-        n = agent$validation_set$n[i],
-        false_count = false_count,
-        warn_count = agent$validation_set$warn_count[i],
-        notify_count = agent$validation_set$notify_count[i],
-        warn_fraction = agent$validation_set$warn_fraction[i],
-        notify_fraction = agent$validation_set$notify_fraction[i])
-    
-    agent$validation_set$notify[i] <- actions$notify
-    agent$validation_set$warn[i] <- actions$warn
+    # Perform any necessary actions if threshold levels are exceeded
+    perform_action(agent, idx = i, type = "warn")
+    perform_action(agent, idx = i, type = "notify")
+    perform_action(agent, idx = i, type = "stop")
+
+    # Add extracts of failed rows if `extract_failed` is TRUE
+    agent <- 
+      add_table_extract(
+        agent = agent,
+        idx = i,
+        tbl_checked = tbl_checked,
+        extract_failed = extract_failed,
+        get_first_n = get_first_n,
+        sample_n = sample_n,
+        sample_frac = sample_frac,
+        sample_limit = sample_limit
+      )
     
     # Get the ending time for the validation step
     validation_end_time <- Sys.time()
@@ -730,101 +180,618 @@ interrogate <- function(agent,
     agent$validation_set$proc_duration_s[i] <- time_diff_s
   }
   
-  # Disconnect any open PostgreSQL connections --------------------
-  #disconnect_postgres()
+  class(agent) <- c("has_intel", "ptblank_agent")
   
-  # Notification Step - email ---------------------------------------------
-  if (length(agent$email_creds_file_path) > 0 &
-      length(agent$email_notification_recipients) > 0 & 
-      agent$email_notifications_active == TRUE &
-      nrow(agent$validation_set) > 0 &
-      any(agent$validation_set$notify == TRUE)) {
+  agent
+}
+
+check_table_with_assertion <- function(agent, idx, table, assertion_type) {
+  
+    switch(
+      assertion_type,
+      "col_vals_gt" =,
+      "col_vals_gte" =,
+      "col_vals_lt" =,
+      "col_vals_lte" =,
+      "col_vals_equal" =,
+      "col_vals_not_equal" = interrogate_comparison(agent, idx, table, assertion_type),
+      "col_vals_between" =,
+      "col_vals_not_between" = interrogate_between(agent, idx, table, assertion_type),
+      "col_vals_in_set" =,
+      "col_vals_not_in_set" = interrogate_set(agent, idx, table, assertion_type),
+      "col_vals_null" = interrogate_null(agent, idx, table),
+      "col_vals_not_null" = interrogate_not_null(agent, idx, table),
+      "col_vals_regex" = interrogate_regex(agent, idx, table),
+      "col_exists" = interrogate_col_exists(agent, idx, table),
+      "col_is_numeric" =,
+      "col_is_integer" =,
+      "col_is_character" =,
+      "col_is_logical" =,
+      "col_is_posix" =,
+      "col_is_date" =,
+      "col_is_factor" = interrogate_col_type(agent, idx, table, assertion_type),
+      "rows_distinct" = interrogate_distinct(agent, idx, table)
+    )
+}
+
+interrogate_comparison <- function(agent, idx, table, assertion_type) {
+  
+  # Get the value for the expression
+  value <- get_column_value_at_idx(agent = agent, idx = idx)
+  
+  # Obtain the target column as a label
+  column <- 
+    get_column_as_sym_at_idx(agent = agent, idx = idx) %>%
+    rlang::as_label()
+  
+  # Determine whether NAs should be allowed
+  na_pass <- get_column_na_pass_at_idx(agent = agent, idx = idx)
+  
+  # Get operator values for all assertion types involving
+  # simple operator comparisons
+  operator <- 
+    switch(
+      assertion_type,
+      "col_vals_gt" = ">",
+      "col_vals_gte" = ">=",
+      "col_vals_lt" = "<",
+      "col_vals_lte" = "<=",
+      "col_vals_equal" = "==",
+      "col_vals_not_equal" = "!="
+    )
+  
+  # Construct a string-based expression for the validation
+  expression <- paste(column, operator, value)
+  
+  # Perform rowwise validations for the column
+  table %>%
+    dplyr::mutate(pb_is_good_ = !!rlang::parse_expr(expression)) %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      is.na(pb_is_good_) ~ na_pass,
+      TRUE ~ pb_is_good_
+    ))
+}
+
+interrogate_between <- function(agent, idx, table, assertion_type) {
+  
+  # Get the set values for the expression
+  set <- get_column_set_values_at_idx(agent = agent, idx = idx)
+  
+  # Determine whether NAs should be allowed
+  na_pass <- get_column_na_pass_at_idx(agent = agent, idx = idx)
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  incl_left <- names(set)[1] %>% as.logical()
+  incl_right <- names(set)[2] %>% as.logical()
+  incl_str <- paste(ifelse(names(set), "incl", "excl"), collapse = "_")
+  
+  if (assertion_type == "col_vals_between") {
     
-    # TODO: perform notification via notification method
+    # Perform rowwise validations for the column
+    tbl_checked <- 
+      switch(
+        incl_str,
+        "incl_incl" = ib_incl_incl(table, {{column}}, set, na_pass),
+        "excl_incl" = ib_excl_incl(table, {{column}}, set, na_pass),
+        "incl_excl" = ib_incl_excl(table, {{column}}, set, na_pass),
+        "excl_excl" = ib_excl_excl(table, {{column}}, set, na_pass)
+      )
   }
   
-  # Notification Step - Slack ---------------------------------------------
-  if (length(agent$slack_webhook_url) > 0 & 
-      agent$slack_notifications_active == TRUE &
-      nrow(agent$validation_set) > 0 &
-      any(agent$validation_set$notify == TRUE)) {
+  if (assertion_type == "col_vals_not_between") {
     
-    # TODO: perform notification via notification method
-    notify_count <- 
-      agent$validation_set %>%
-      dplyr::select(notify) %>%
-      dplyr::filter(notify == TRUE) %>%
-      nrow()
-    
-    warning_count <- 
-      agent$validation_set %>%
-      dplyr::select(warn) %>%
-      dplyr::filter(warn == TRUE) %>%
-      nrow()
-    
-    # If a value for `slack_footer_timestamp` is not
-    # provided, use the system time as the timestamp
-    if (is.null(slack_footer_timestamp)) {
-      slack_footer_timestamp <- Sys.time() %>% as.integer()
-    }
-    
-    if (notify_count > 0) {
-      
-      notify_text <-
-        ifelse(
-          notify_count == 1,
-          glue::glue("There is {notify_count} validation step that resulted in significant failures."),
-          glue::glue("There are {notify_count} validation steps that resulted in significant failures."))
-    }
-    
-    if (warning_count > 0) {
-      
-      warning_text <-
-        ifelse(
-          warning_count == 1,
-          glue::glue("There is {warning_count} validation step that issued a warning."),
-          glue::glue("There are {warning_count} validation steps that issued warnings."))
-    }
-    
-    if (notify_count > 0 & warning_count > 0) {
-      notification_text <- paste0(
-        gsub("\\.", "", notify_text),
-        " and ",
-        gsub("There", "there", warning_text))
-    }
-    
-    if (notify_count > 1 & warning_count == 0) {
-      notification_text <- notify_text
-    }
-    
-    slack_footer_timestamp <- Sys.time() %>% as.integer()
-    
-    httr::POST(
-      url = agent$slack_webhook_url,
-      encode = "form",
-      httr::add_headers(
-        `Content-Type` = "application/x-www-form-urlencoded",
-        Accept = "*/*"),
-      body = utils::URLencode(
-        glue::glue(
-          "payload={{
-                   \"channel\": \"{agent$slack_channel}\",
-                   \"username\": \"{agent$slack_username}\",
-                   \"attachments\": [
-                   {{
-                   \"fallback\": \"{agent$slack_title}\",
-                   \"color\": \"danger\",
-                   \"author_name\": \"{agent$slack_author_name}\",
-                   \"title\": \"{agent$slack_title}\",
-                   \"title_link\": \"{agent$slack_report_url}\",
-                   \"text\": \"{notification_text}\",
-                   \"thumb_url\": \"{agent$slack_footer_thumb_url}\",
-                   \"footer\": \"{agent$slack_footer_text}\",
-                   \"ts\": {slack_footer_timestamp}
-                   }}
-                   ]
-                   }}")))
+    # Perform rowwise validations for the column
+    tbl_checked <- 
+      switch(
+        incl_str,
+        "incl_incl" = nb_incl_incl(table, {{column}}, set, na_pass),
+        "excl_incl" = nb_excl_incl(table, {{column}}, set, na_pass),
+        "incl_excl" = nb_incl_excl(table, {{column}}, set, na_pass),
+        "excl_excl" = nb_excl_excl(table, {{column}}, set, na_pass)
+      )
   }
+  
+  tbl_checked
+}
+
+interrogate_set <- function(agent, idx, table, assertion_type) {
+  
+  # Get the set values for the expression
+  set <- get_column_set_values_at_idx(agent = agent, idx = idx)
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  if (assertion_type == "col_vals_in_set") {
+    
+    # Perform rowwise validations for the column
+    tbl_checked <-
+      table %>%
+      dplyr::mutate(pb_is_good_ = dplyr::case_when(
+        {{ column }} %in% set ~ TRUE,
+        !({{ column }} %in% set) ~ FALSE
+      ))
+  }
+  
+  if (assertion_type == "col_vals_not_in_set") {
+    
+    # Perform rowwise validations for the column
+    tbl_checked <-
+      table %>%
+      dplyr::mutate(pb_is_good_ = dplyr::case_when(
+        !({{ column }} %in% set) ~ TRUE,
+        {{ column }} %in% set ~ FALSE
+      ))
+  }
+  
+  tbl_checked
+}
+
+interrogate_null <- function(agent, idx, table) {
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  # Perform rowwise validations for the column
+  table %>% dplyr::mutate(pb_is_good_ = is.na({{ column }}))
+}
+
+interrogate_not_null <- function(agent, idx, table) {
+
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  # Perform rowwise validations for the column
+  table %>% dplyr::mutate(pb_is_good_ = !is.na({{ column }}))
+}
+
+interrogate_regex <- function(agent, idx, table) {
+  
+  # Get the regex matching statement
+  regex <- agent$validation_set$regex[idx]
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  # Determine whether NAs should be allowed
+  na_pass <- get_column_na_pass_at_idx(agent = agent, idx = idx)
+  
+  # Perform rowwise validations for the column
+  table %>% 
+    dplyr::mutate(pb_is_good_ = ifelse(!is.na({{ column }}), grepl(regex, {{ column }}), NA)) %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      is.na(pb_is_good_) ~ na_pass,
+      TRUE ~ pb_is_good_
+    ))
+}
+
+interrogate_col_exists <- function(agent, idx, table) {
+
+  # Get the column names for the table
+  column_names <- get_all_cols(agent = agent)
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  dplyr::tibble(pb_is_good_ = as.character(column) %in% column_names)
+}
+
+interrogate_col_type <- function(agent, idx, table, assertion_type) {
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  column_class <-
+    table %>%
+    dplyr::select({{ column }}) %>%
+    utils::head(1) %>%
+    dplyr::as_tibble() %>%
+    dplyr::pull({{ column }}) %>%
+    class()
+  
+  validation_res <- 
+    switch(
+      column_class[1],
+      "numeric" = ifelse(assertion_type == "col_is_numeric", TRUE, FALSE),
+      "integer" = ifelse(assertion_type == "col_is_integer", TRUE, FALSE),
+      "character" = ifelse(assertion_type == "col_is_character", TRUE, FALSE),
+      "logical" = ifelse(assertion_type == "col_is_logical", TRUE, FALSE),
+      "factor" = ifelse(assertion_type == "col_is_factor", TRUE, FALSE),
+      "POSIXct" = ifelse(assertion_type == "col_is_posix", TRUE, FALSE),
+      "Date" = ifelse(assertion_type == "col_is_date", TRUE, FALSE),
+      FALSE
+    )
+  
+  dplyr::tibble(pb_is_good_ = validation_res)
+}
+
+interrogate_distinct <- function(agent, idx, table) {
+
+  # Determine if grouping columns are provided in the test
+  # for distinct rows and parse the column names
+  if (!is.na(agent$validation_set$column[idx] %>% unlist())) {
+    
+    column_names <- 
+      get_column_as_sym_at_idx(agent = agent, idx = idx) %>%
+      as.character()
+    
+    if (grepl("(,|&)", column_names)) {
+      column_names <- 
+        strsplit(split = "(, |,|&)", column_names) %>%
+        unlist()
+    }
+    
+  } else if (is.na(agent$validation_set$column[idx] %>% unlist())) {
+    column_names <- get_all_cols(agent = agent)
+  }
+  
+  col_syms <- rlang::syms(column_names)
+  
+  # Get total count of rows
+  row_count <-
+    table %>%
+    dplyr::group_by() %>%
+    dplyr::summarize(row_count = dplyr::n()) %>%
+    dplyr::as_tibble() %>%
+    dplyr::pull(row_count)
+  
+  # Get the rows that are duplicate rows, if any
+  duplicate_rows <- 
+    table %>%
+    dplyr::select({{ column_names }}) %>%
+    dplyr::mutate(`__pb_index__` = seq(row_count)) %>%
+    dplyr::group_by(!!!col_syms) %>%
+    dplyr::filter(dplyr::n() > 1) %>%
+    dplyr::ungroup()
+  
+  duplicate_row_idx <-
+    duplicate_rows %>%
+    dplyr::pull(`__pb_index__`)
+  
+  # Determine whether the test for duplicated passed
+  # (no duplicates) or failed (one or more duplicates)
+  duplicate_count <-
+    duplicate_rows %>%
+    dplyr::group_by() %>%
+    dplyr::summarize(row_count = dplyr::n()) %>%
+    dplyr::as_tibble() %>%
+    dplyr::pull(row_count)
+  
+  validation_res <- ifelse(duplicate_count == 0, TRUE, FALSE)
+  
+  # Perform rowwise validations for the column
+  table %>%
+    dplyr::mutate(pb_is_good_ = ifelse(
+      dplyr::row_number() %in% duplicate_row_idx, FALSE, TRUE)
+    )
+}
+
+add_reporting_data <- function(agent, idx, tbl_checked) {
+
+  # Get total count of rows
+  row_count <- 
+    tbl_checked %>%
+    dplyr::summarize(n = dplyr::n()) %>%
+    dplyr::pull(n) %>%
+    as.numeric()
+  
+  # Get total count of TRUE rows
+  n_passed <-
+    tbl_checked %>%
+    dplyr::filter(pb_is_good_ == TRUE) %>%
+    dplyr::summarize(n = dplyr::n()) %>%
+    dplyr::pull(n) %>%
+    as.numeric()
+  
+  # Get total count of FALSE rows
+  n_failed <-
+    tbl_checked %>%
+    dplyr::filter(pb_is_good_ == FALSE) %>%
+    dplyr::summarize(n = dplyr::n()) %>%
+    dplyr::pull(n) %>%
+    as.numeric()
+  
+  agent$validation_set$n[idx] <- row_count
+  agent$validation_set$n_passed[idx] <- n_passed
+  agent$validation_set$n_failed[idx] <- n_failed
+  agent$validation_set$f_passed[idx] <- round((n_passed / row_count), 5)
+  agent$validation_set$f_failed[idx] <- round((n_failed / row_count), 5)
+  
+  if (n_failed > 0) {
+    agent$validation_set$all_passed[idx] <- FALSE
+  } else {
+    agent$validation_set$all_passed[idx] <- TRUE
+  }
+
+  determine_action(agent, idx, false_count = n_failed)
+}
+
+ib_incl_incl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} >= set[1] & {{ column }} <= set[2] ~ TRUE,
+      {{ column }} < set[1] | {{ column }} > set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+ib_excl_incl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} > set[1] & {{ column }} <= set[2] ~ TRUE,
+      {{ column }} <= set[1] | {{ column }} > set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+ib_incl_excl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} >= set[1] & {{ column }} < set[2] ~ TRUE,
+      {{ column }} < set[1] | {{ column }} >= set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+ib_excl_excl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} > set[1] & {{ column }} < set[2] ~ TRUE,
+      {{ column }} <= set[1] | {{ column }} >= set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+nb_incl_incl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} < set[1] | {{ column }} > set[2] ~ TRUE,
+      {{ column }} >= set[1] & {{ column }} <= set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+nb_excl_incl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} <= set[1] | {{ column }} > set[2] ~ TRUE,
+      {{ column }} > set[1] & {{ column }} <= set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+nb_incl_excl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} < set[1] | {{ column }} >= set[2] ~ TRUE,
+      {{ column }} >= set[1] & {{ column }} < set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+nb_excl_excl <- function(table, column, set, na_pass) {
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} <= set[1] | {{ column }} >= set[2] ~ TRUE,
+      {{ column }} > set[1] & {{ column }} < set[2] ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+
+perform_action <- function(agent, idx, type) {
+
+  actions <- agent$validation_set[[idx, "actions"]]
+  
+  .warn <- agent$validation_set[[idx, "warn"]]
+  .notify <- agent$validation_set[[idx, "notify"]]
+  .stop <- agent$validation_set[[idx, "stop"]]
+  
+  .name <- agent$name
+  .time <- agent$time
+  .tbl <- agent$tbl
+  .tbl_name <- agent$tbl_name
+  .col_names <- agent$col_names
+  .col_types <- agent$col_types
+  
+  .i <- idx
+  .type <- agent$validation_set[[idx, "assertion_type"]]
+  .column <- agent$validation_set[[idx, "column"]] %>% unlist()
+  .value <- agent$validation_set[[idx, "value"]]
+  .set <- agent$validation_set[[idx, "set"]] %>% unlist()
+  .regex <- agent$validation_set[[idx, "regex"]]
+  .brief <- agent$validation_set[[idx, "brief"]]
+  .n <- agent$validation_set[[idx, "n"]]
+  .n_passed <- agent$validation_set[[idx, "n_passed"]]
+  .n_failed <- agent$validation_set[[idx, "n_failed"]]
+  .f_passed <- agent$validation_set[[idx, "f_passed"]]
+  .f_failed <- agent$validation_set[[idx, "f_failed"]]
+  
+  # Have the local vars packaged in a list to make creating
+  # custom functions more convenient
+  .vars_list <-
+    list(
+      warn = .warn,
+      notify = .notify,
+      stop = .stop,
+      name = .name,
+      time = .time,
+      tbl = .tbl,
+      tbl_name = .tbl_name,
+      col_names = .col_names,
+      col_types = .col_types,
+      i = .i,
+      type = .type,
+      column = .column,
+      value = .value,
+      set = .set,
+      regex = .regex,
+      brief = .brief,
+      n = .n,
+      n_passed = .n_passed,
+      n_failed = .n_failed,
+      f_passed = .f_passed,
+      f_failed = .f_failed
+    )
+  
+  if (type == "warn") {
+    if (!is.na(.warn) && .warn) {
+      if ("warn" %in% names(actions$fns) && !is.null(actions$fns$warn)) {
+        actions$fns$warn %>% rlang::f_rhs() %>% rlang::eval_tidy()
+      }
+    }
+  } else if (type == "notify") {
+    if (!is.na(.notify) && .notify) {
+      if ("notify" %in% names(actions$fns) && !is.null(actions$fns$notify)) {
+        actions$fns$notify %>% rlang::f_rhs() %>% rlang::eval_tidy()
+      }
+    }
+  } else if (type == "stop") {
+    if (!is.na(.stop) && .stop) {
+      if ("stop" %in% names(actions$fns) && !is.null(actions$fns$stop)) {
+        actions$fns$stop %>% rlang::f_rhs() %>% rlang::eval_tidy()
+      }
+    }
+  }
+  
+  return(NULL)
+}
+
+add_table_extract <- function(agent,
+                              idx,
+                              tbl_checked,
+                              extract_failed,
+                              get_first_n,
+                              sample_n,
+                              sample_frac,
+                              sample_limit) {
+
+  if (!extract_failed) {
+    return(agent)
+  }
+
+  tbl_type <- tbl_checked %>% class()
+  
+  problem_rows <- 
+    tbl_checked %>%
+    dplyr::filter(pb_is_good_ == FALSE) %>%
+    dplyr::select(-pb_is_good_)
+  
+  if (!is.null(get_first_n)) {
+    
+    problem_rows <-
+      problem_rows %>%
+      utils::head(get_first_n) %>%
+      dplyr::as_tibble()
+    
+  } else if (all(!is.null(sample_n) & 
+                 ("data.frame" %in% tbl_type || "tbl_df" %in% tbl_type))) {
+    
+    problem_rows <-
+      dplyr::sample_n(
+        tbl = problem_rows,
+        size = sample_n,
+        replace = FALSE) %>%
+      dplyr::as_tibble()
+    
+  } else if (all(!is.null(sample_frac) & 
+                 ("data.frame" %in% tbl_type || "tbl_df" %in% tbl_type))) {
+    
+    problem_rows <-
+      dplyr::sample_frac(
+        tbl = problem_rows,
+        size = sample_frac,
+        replace = FALSE) %>%
+      dplyr::as_tibble() %>%
+      utils::head(sample_limit)
+    
+  } else {
+    
+    problem_rows <-
+      problem_rows %>%
+      utils::head(5000) %>%
+      dplyr::as_tibble()
+  }
+  
+  # Place the sample of problem rows in `agent$extracts`
+  if (nrow(problem_rows) > 0) {
+    
+    list_i <- list(problem_rows)
+    list_i <- rlang::set_names(list_i, idx)
+    
+    agent$extracts <- c(agent$extracts, list_i)
+  }
+  
+  agent
+}
+
+determine_action <- function(agent, idx, false_count) {
+  
+  al <- agent$validation_set[[idx, "actions"]]
+  n <- agent$validation_set[[idx, "n"]]
+
+  warn <- stop <- notify <- FALSE
+  
+  if (is.null(al$warn_count) && is.null(al$warn_fraction)) {
+    warn <- NA
+  }
+  if (is.null(al$stop_count) && is.null(al$stop_fraction)) {
+    stop <- NA
+  }
+  if (is.null(al$notify_count) && is.null(al$notify_fraction)) {
+    notify <- NA
+  }
+
+  if (!is.na(warn)) {
+    if (is.null(al$warn_count)) {
+      warn <- FALSE
+    } else if (false_count >= al$warn_count) {
+      warn <- TRUE
+    }
+  }
+  
+  if (!is.na(stop)) {
+    if (is.null(al$stop_count)) {
+      stop <- FALSE
+    } else if (false_count >= al$stop_count) {
+      stop <- TRUE
+    }
+  }
+  
+  if (!is.na(notify)) {
+    if (is.null(al$notify_count)) {
+      notify <- FALSE
+    } else if (false_count >= al$notify_count) {
+      notify <- TRUE
+    }
+  }
+  
+  if (!is.na(warn)) {
+    if (!is.null(al$warn_fraction)) {
+      warn_count <- round(al$warn_fraction * n, 0)
+      if (false_count >= warn_count) warn <- TRUE
+    }
+  }
+  
+  if (!is.na(stop)) {
+    if (!is.null(al$stop_fraction)) {
+      stop_count <- round(al$stop_fraction * n, 0)
+      if (false_count >= stop_count) stop <- TRUE
+    }
+  }
+  
+  if (!is.na(notify)) {
+    if (!is.null(al$notify_fraction)) {
+      notify_count <- round(al$notify_fraction * n, 0)
+      if (false_count >= notify_count) notify <- TRUE
+    }
+  }
+  
+  agent$validation_set[[idx, "warn"]] <- warn
+  agent$validation_set[[idx, "notify"]] <- notify
+  agent$validation_set[[idx, "stop"]] <- stop
   
   agent
 }

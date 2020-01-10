@@ -1,28 +1,75 @@
 #' Do strings in column data match a regex pattern?
-#'
-#' Verification step where string-based column data should correspond to a regex
-#' matching expression.
+#' 
+#' The `col_vals_regex()` validation step function checks whether column values
+#' (in any number of specified `columns`) should correspond to a `regex`
+#' matching expression. This function can be used directly on a data table or
+#' with an *agent* object (technically, a `ptblank_agent` object). Each
+#' validation step will operate over the number of test units that is equal to
+#' the number of rows in the table (after any `preconditions` have been
+#' applied).
+#' 
+#' If providing multiple column names, the result will be an expansion of
+#' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
+#' will result in the entry of two validation steps). Aside from column names
+#' in quotes and in `vars()`, **tidyselect** helper functions are available for
+#' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
+#' `matches()`, and `everything()`.
+#' 
+#' This validation step function supports special handling of `NA` values. The
+#' `na_pass` argument will determine whether an `NA` value appearing in a test
+#' unit should be counted as a *pass* or a *fail*. The default of
+#' `na_pass = FALSE` means that any `NA`s encountered will accumulate failing
+#' test units. 
+#' 
+#' Having table `preconditions` means **pointblank** will mutate the table just
+#' before interrogation. It's isolated to the validation steps produced by this
+#' validation step function. Using **dplyr** code is suggested here since the
+#' statements can be translated to SQL if necessary. The code is to be supplied
+#' as a one-sided **R** formula (using a leading `~`). In the formula
+#' representation, the obligatory `tbl` variable will serve as the input
+#' data table to be transformed (e.g.,
+#' `~ tbl %>% dplyr::mutate(col_a = col_b + 10)`. A series of expressions can be
+#' used by enclosing the set of statements with `{ }` but note that the `tbl`
+#' variable must be ultimately returned.
+#' 
+#' Often, we will want to specify `actions` for the validation. This argument,
+#' present in every validation step function, takes a specially-crafted list
+#' object that is best produced by the [action_levels()] function. Read that
+#' function's documentation for the lowdown on how to create reactions to
+#' above-threshold failure levels in validation. The basic gist is that you'll
+#' want at least a single threshold level (specified as either the fraction test
+#' units failed, or, an absolute value), often using the `warn_at` argument.
+#' This is especially true when `x` is a table object because, otherwise,
+#' nothing happens. For the `col_vals_*()`-type functions, using 
+#' `action_levels(warn_at = 0.25)` or `action_levels(stop_at = 0.25)` are good
+#' choices depending on the situation (the first produces a warning when a
+#' quarter of the total test units fails, the other `stop()`s at the same
+#' threshold level).
+#' 
+#' Want to describe this validation step in some detail? Keep in mind that this
+#' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
+#' with some text that fits. Don't worry if you don't want to do it. The
+#' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
+#' then be automatically generated.
 #'
 #' @inheritParams col_vals_gt
 #' @param regex A regex pattern to test for matching strings.
 #' 
+#' @return Either a `ptblank_agent` object or a table object, depending on what
+#'   was passed to `x`.
+#' 
 #' @examples
-#' # Create a simple data frame with a column
-#' # containing strings
-#' df <-
-#'   data.frame(
-#'     a = c("s_0131", "s_0231",
-#'           "s_1389", "s_2300"),
-#'     stringsAsFactors = FALSE)
+#' library(dplyr)
+#' 
+#' # Create a simple table with a
+#' # column containing strings
+#' tbl <- tibble(a = c("s_0131", "s_0231"))
 #' 
 #' # Validate that all string values in
 #' # column `a` match a regex statement
 #' agent <-
-#'   create_agent() %>%
-#'   focus_on(tbl_name = "df") %>%
-#'   col_vals_regex(
-#'     column = a,
-#'     regex = "^s_[0-9]{4}$") %>%
+#'   create_agent(tbl = tbl) %>%
+#'   col_vals_regex(vars(a), "^s_[0-9]{4}$") %>%
 #'   interrogate()
 #' 
 #' # Determine if these column
@@ -30,115 +77,70 @@
 #' # by using `all_passed()`
 #' all_passed(agent)
 #' 
-#' @return Either a \pkg{pointblank} agent object or a table object, depending
-#'   on what was passed to `x`.
+#' @family Validation Step Functions
+#' @section Function ID:
+#' 2-13
+#' 
 #' @import rlang
 #' @export
 col_vals_regex <- function(x,
-                           column,
+                           columns,
                            regex,
+                           na_pass = FALSE,
                            preconditions = NULL,
-                           brief = NULL,
-                           warn_count = NULL,
-                           notify_count = NULL,
-                           warn_fraction = NULL,
-                           notify_fraction = NULL,
-                           tbl_name = NULL,
-                           db_type = NULL,
-                           creds_file = NULL,
-                           initial_sql = NULL,
-                           file_path = NULL,
-                           col_types = NULL) {
+                           actions = NULL,
+                           brief = NULL) {
   
-  # Get the column name
-  column <- 
-    rlang::enquo(column) %>%
-    rlang::expr_text() %>%
-    stringr::str_replace_all("~", "") %>%
-    stringr::str_replace_all("\"", "'")
+  # Capture the `columns` expression
+  columns <- rlang::enquo(columns)
   
-  if (inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))) {
+  # Resolve the columns based on the expression
+  columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+  
+  if (is_a_table_object(x)) {
     
-    return(
-      x %>%
-        evaluate_single(
-          type = "col_vals_regex",
-          column = column,
-          regex = regex,
-          warn_count = warn_count,
-          notify_count = notify_count,
-          warn_fraction = warn_fraction,
-          notify_fraction = notify_fraction
-        )
-    )
+    secret_agent <- create_agent(x) %>%
+      col_vals_regex(
+        columns = columns,
+        regex = regex,
+        na_pass = na_pass,
+        preconditions = preconditions,
+        brief = brief,
+        actions = prime_actions(actions)
+      ) %>% interrogate()
+    
+    return(x)
   }
   
   agent <- x
-  
-  # Get the preconditions
-  preconditions <- 
-    rlang::enquo(preconditions) %>%
-    rlang::expr_text() %>%
-    stringr::str_replace_all("~", "") %>%
-    stringr::str_replace_all("\"", "'")
-  
-  if (length(preconditions) == 0) {
-    preconditions <- NULL
-  }
-  
+
   if (is.null(brief)) {
     
     brief <-
       create_autobrief(
         agent = agent,
         assertion_type = "col_vals_regex",
-        column = column,
+        column = columns,
         regex = regex
       )
   }
   
-  # If "*" is provided for `column`, select all
-  # table columns for this verification
-  if (column[1] == "all_cols()") {
-    column <- get_all_cols(agent = agent)
-  }
-  
-  # Add one or more validation steps
-  agent <-
-    create_validation_step(
-      agent = agent,
-      assertion_type = "col_vals_regex",
-      column = column,
-      regex = regex,
-      preconditions = preconditions,
-      brief = brief,
-      warn_count = warn_count,
-      notify_count = notify_count,
-      warn_fraction = warn_fraction,
-      notify_fraction = notify_fraction,
-      tbl_name = ifelse(is.null(tbl_name), as.character(NA), tbl_name),
-      db_type = ifelse(is.null(db_type), as.character(NA), db_type),
-      creds_file = ifelse(is.null(creds_file), as.character(NA), creds_file),
-      init_sql = ifelse(is.null(initial_sql), as.character(NA), initial_sql),
-      file_path = ifelse(is.null(file_path), as.character(NA), file_path),
-      col_types = ifelse(is.null(col_types), as.character(NA), col_types)
-    )
-  
-  # If no `brief` provided, set as NA
-  if (is.null(brief)) {
-    brief <- as.character(NA)
-  }
-  
-  # Place the validation step in the logical plan
-  agent$logical_plan <-
-    dplyr::bind_rows(
-      agent$logical_plan,
-      dplyr::tibble(
-        component_name = "col_vals_regex",
-        parameters = as.character(NA),
+  # Add one or more validation steps based on the
+  # length of the `columns` variable
+  for (column in columns) {
+    
+    agent <-
+      create_validation_step(
+        agent = agent,
+        assertion_type = "col_vals_regex",
+        column = column,
+        regex = regex,
+        na_pass = na_pass,
+        preconditions = preconditions,
+        actions = actions,
         brief = brief
       )
-    )
-  
+  }
+
   agent
 }
