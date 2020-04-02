@@ -3,8 +3,9 @@
 \docType{data}
 \name{small_table}
 \alias{small_table}
-\title{A small table that useful for testing}
-\format{A tibble with 13 rows and 8 variables:
+\title{A small table that is useful for testing}
+\format{
+A tibble with 13 rows and 8 variables:
 \describe{
 \item{date_time}{A date-time column (of the \code{POSIXct} class) with dates that
 correspond exactly to those in the \code{date} column. Time values are somewhat
@@ -16,7 +17,8 @@ randomized but all 'seconds' values are \code{00}.}
 \item{d}{A numeric column with values ranging from \code{108} to \code{10000}.}
 \item{e}{A \code{logical} column.}
 \item{f}{A \code{character} column with \code{"low"}, \code{"mid"}, and \code{"high"} values.}
-}}
+}
+}
 \usage{
 small_table
 }
@@ -27,16 +29,18 @@ exact duplicates. The \code{c} column contains two \code{NA} values.
 }
 \section{Function ID}{
 
-4-1
+6-1
 }
 
 \examples{
-library(dplyr)
-
 # Here is a glimpse at the data
 # available in `small_table`
 dplyr::glimpse(small_table)
 
+}
+\seealso{
+Other Datasets: 
+\code{\link{small_table_sqlite}()}
 }
 \concept{Datasets}
 \keyword{datasets}

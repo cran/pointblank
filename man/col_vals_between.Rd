@@ -2,7 +2,7 @@
 % Please edit documentation in R/col_vals_between.R
 \name{col_vals_between}
 \alias{col_vals_between}
-\title{Are numerical column data between two specified values?}
+\title{Are column data between two specified values?}
 \usage{
 col_vals_between(
   x,
@@ -13,7 +13,8 @@ col_vals_between(
   na_pass = FALSE,
   preconditions = NULL,
   actions = NULL,
-  brief = NULL
+  brief = NULL,
+  active = TRUE
 )
 }
 \arguments{
@@ -23,10 +24,14 @@ col_vals_between(
 vector) to which this validation should be applied.}
 
 \item{left}{The lower bound for the range. The validation includes this bound
-value in addition to values greater than \code{left}.}
+value (if the first element in \code{inclusive} is \code{TRUE}) in addition to values
+greater than \code{left}. This can be a single value or a compatible column
+given in \code{vars()}.}
 
 \item{right}{The upper bound for the range. The validation includes this
-bound value in addition to values lower than \code{right}.}
+bound value (if the second element in \code{inclusive} is \code{TRUE}) in addition to
+values lower than \code{right}. This can be a single value or a compatible
+column given in \code{vars()}.}
 
 \item{inclusive}{A two-element logical value that indicates whether the
 \code{left} and \code{right} bounds should be inclusive. By default, both bounds
@@ -49,6 +54,13 @@ can react accordingly when exceeding the set levels. This is to be created
 with the \code{\link[=action_levels]{action_levels()}} helper function.}
 
 \item{brief}{An optional, text-based description for the validation step.}
+
+\item{active}{A logical value indicating whether the validation step should
+be active. If the step function is working with an agent, \code{FALSE} will make
+the validation step inactive (still reporting its presence and keeping
+indexes for the steps unchanged). If the step function will be operating
+directly on data, then any step with \code{active = FALSE} will simply pass the
+data through with no validation whatsoever. The default for this is \code{TRUE}.}
 }
 \value{
 Either a \code{ptblank_agent} object or a table object, depending on what
@@ -58,7 +70,8 @@ was passed to \code{x}.
 The \code{col_vals_between()} validation step function checks whether column
 values (in any number of specified \code{columns}) fall within a range. The range
 specified with three arguments: \code{left}, \code{right}, and \code{inclusive}. The \code{left}
-and \code{right} values specify the lower and upper numeric bounds. The
+and \code{right} values specify the lower and upper bounds. The bounds can be
+specified as single, literal values or as column names given in \code{vars()}. The
 \code{inclusive} argument, as a vector of two logical values relating to \code{left}
 and \code{right}, states whether each bound is inclusive or not. The default is
 \code{c(TRUE, TRUE)}, where both endpoints are inclusive (i.e., \verb{[left, right]}).
@@ -71,12 +84,12 @@ the number of rows in the table (after any \code{preconditions} have been
 applied).
 }
 \details{
-If providing multiple column names, the result will be an expansion of
-validation steps to that number of column names (e.g., \code{vars(col_a, col_b)}
-will result in the entry of two validation steps). Aside from column names
-in quotes and in \code{vars()}, \strong{tidyselect} helper functions are available for
-specifying columns. They are: \code{starts_with()}, \code{ends_with()}, \code{contains()},
-\code{matches()}, and \code{everything()}.
+If providing multiple column names to \code{columns}, the result will be an
+expansion of validation steps to that number of column names (e.g.,
+\code{vars(col_a, col_b)} will result in the entry of two validation steps). Aside
+from column names in quotes and in \code{vars()}, \strong{tidyselect} helper functions
+are available for specifying columns. They are: \code{starts_with()},
+\code{ends_with()}, \code{contains()}, \code{matches()}, and \code{everything()}.
 
 This validation step function supports special handling of \code{NA} values. The
 \code{na_pass} argument will determine whether an \code{NA} value appearing in a test
@@ -121,11 +134,10 @@ then be automatically generated.
 }
 
 \examples{
-library(dplyr)
-
 # Create a simple table with
 # a column of numerical values
-tbl <- tibble(a = c(5.6, 8.2, 7.8))
+tbl <- 
+  dplyr::tibble(a = c(5.6, 8.2, 7.8))
 
 # Validate that values in
 # column `a` are all between
@@ -153,6 +165,7 @@ Other Validation Step Functions:
 \code{\link{col_is_logical}()},
 \code{\link{col_is_numeric}()},
 \code{\link{col_is_posix}()},
+\code{\link{col_schema_match}()},
 \code{\link{col_vals_equal}()},
 \code{\link{col_vals_gte}()},
 \code{\link{col_vals_gt}()},

@@ -16,8 +16,11 @@ test_that("Creating a valid `agent` object is possible", {
   expect_true(
     all(
       names(agent) ==
-        c("name", "time", "tbl", "tbl_name", "tbl_src",
-          "col_names", "col_types", "validation_set", "extracts")
+        c("name", "time", "tbl", "tbl_name", "db_tbl_name",
+          "tbl_src", "tbl_src_details", "col_names", "col_types", "db_col_types",
+          "actions", "end_fns", "embed_report", "reporting", "reporting_lang",
+          "validation_set", "extracts"
+        )
     )
   )
   
@@ -33,17 +36,25 @@ test_that("Creating a valid `agent` object is possible", {
   expect_is(agent$tbl, class(tbl))
   expect_is(agent$tbl_name, "character")
   expect_is(agent$tbl_src, "character")
+  expect_is(agent$tbl_src_details, "character")
   expect_is(agent$col_names, "character")
   expect_is(agent$col_types, "character")
+  expect_null(agent$actions)
+  expect_is(agent$end_fns, "list")
+  expect_is(agent$embed_report, "logical")
+  expect_is(agent$reporting_lang, "character")
   expect_is(agent$validation_set$i, "integer")
   expect_is(agent$validation_set$assertion_type, "character")
   expect_is(agent$validation_set$column, "list")
-  expect_is(agent$validation_set$value, "numeric")
-  expect_is(agent$validation_set$set, "list")
-  expect_is(agent$validation_set$regex, "character")
+  expect_is(agent$validation_set$values, "list")
+  expect_is(agent$validation_set$na_pass, "logical")
   expect_is(agent$validation_set$preconditions, "list")
   expect_is(agent$validation_set$actions, "list")
   expect_is(agent$validation_set$brief, "character")
+  expect_is(agent$validation_set$active, "logical")
+  expect_is(agent$validation_set$eval_error, "logical")
+  expect_is(agent$validation_set$eval_warning, "logical")
+  expect_is(agent$validation_set$capture_stack, "list")
   expect_is(agent$validation_set$all_passed, "logical")
   expect_is(agent$validation_set$n, "integer")
   expect_is(agent$validation_set$n_passed, "integer")
@@ -52,7 +63,9 @@ test_that("Creating a valid `agent` object is possible", {
   expect_is(agent$validation_set$f_failed, "numeric")
   expect_is(agent$validation_set$warn, "logical")
   expect_is(agent$validation_set$notify, "logical")
+  expect_is(agent$validation_set$stop, "logical")
   expect_is(agent$validation_set$row_sample, "numeric")
+  expect_is(agent$validation_set$tbl_checked, "list")
   expect_is(agent$validation_set$time_processed, "POSIXct")
   expect_is(agent$validation_set$proc_duration_s, "numeric")
   expect_is(agent$extracts, "list")

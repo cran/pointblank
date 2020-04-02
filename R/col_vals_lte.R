@@ -1,20 +1,21 @@
-#' Are numerical column data less than or equal to a specific value?
+#' Are column data less than or equal to a specified value?
 #'
 #' The `col_vals_lte()` validation step function checks whether column values
 #' (in any number of specified `columns`) are *less than or equal to* a
-#' specified `value` (the exact comparison used in this function is
-#' `col_val <= value`). This function can be used directly on a data table or
-#' with an *agent* object (technically, a `ptblank_agent` object). Each
+#' specified `value` (the exact comparison used in this function is `col_val <=
+#' value`). The `value` can be specified as a single, literal value or as a
+#' column name given in `vars()`. This function can be used directly on a data
+#' table or with an *agent* object (technically, a `ptblank_agent` object). Each
 #' validation step will operate over the number of test units that is equal to
 #' the number of rows in the table (after any `preconditions` have been
 #' applied).
 #' 
-#' If providing multiple column names, the result will be an expansion of
-#' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
-#' will result in the entry of two validation steps). Aside from column names
-#' in quotes and in `vars()`, **tidyselect** helper functions are available for
-#' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
-#' `matches()`, and `everything()`.
+#' If providing multiple column names to `columns`, the result will be an
+#' expansion of validation steps to that number of column names (e.g.,
+#' `vars(col_a, col_b)` will result in the entry of two validation steps). Aside
+#' from column names in quotes and in `vars()`, **tidyselect** helper functions
+#' are available for specifying columns. They are: `starts_with()`,
+#' `ends_with()`, `contains()`, `matches()`, and `everything()`.
 #' 
 #' This validation step function supports special handling of `NA` values. The
 #' `na_pass` argument will determine whether an `NA` value appearing in a test
@@ -61,12 +62,10 @@
 #'   was passed to `x`.
 #'   
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with a
 #' # column of numerical values
 #' tbl <-
-#'   tibble(
+#'   dplyr::tibble(
 #'     a = c(5, 4, 1, 2),
 #'     b = c(3, 2, 5, 6)
 #'   )
@@ -103,7 +102,8 @@ col_vals_lte <- function(x,
                          na_pass = FALSE,
                          preconditions = NULL,
                          actions = NULL,
-                         brief = NULL) {
+                         brief = NULL,
+                         active = TRUE) {
   
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
@@ -113,14 +113,15 @@ col_vals_lte <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       col_vals_lte(
         columns = columns,
         value = value,
         na_pass = na_pass,
         preconditions = preconditions,
         brief = brief,
-        actions = prime_actions(actions)
+        actions = prime_actions(actions),
+        active = active
       ) %>% interrogate()
     
     return(x)
@@ -129,31 +130,24 @@ col_vals_lte <- function(x,
   agent <- x
   
   if (is.null(brief)) {
-    
-    brief <-
-      create_autobrief(
-        agent = agent,
-        assertion_type = "col_vals_lte",
-        preconditions = preconditions,
-        column = columns,
-        value = value
-      )
+    brief <- generate_autobriefs(agent, columns, preconditions, values = value, "col_vals_lte")
   }
   
   # Add one or more validation steps based on the
   # length of the `column` variable
-  for (column in columns) {
+  for (i in seq(columns)) {
     
     agent <-
       create_validation_step(
         agent = agent,
         assertion_type = "col_vals_lte",
-        column = column,
-        value = value,
+        column = columns[i],
+        values = value,
         na_pass = na_pass,
         preconditions = preconditions,
         actions = actions,
-        brief = brief
+        brief = brief[i],
+        active = active
       )
   }
 

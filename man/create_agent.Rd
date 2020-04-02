@@ -4,33 +4,70 @@
 \alias{create_agent}
 \title{Create a pointblank agent object}
 \usage{
-create_agent(tbl, name = NULL)
+create_agent(
+  tbl,
+  name = NULL,
+  actions = NULL,
+  end_fns = NULL,
+  embed_report = FALSE,
+  reporting_lang = NULL
+)
 }
 \arguments{
-\item{tbl}{The input table that will be the focus of the validation. This can
-be a data frame, a tibble, or a \code{tbl_dbi} object.}
+\item{tbl}{The input table. This can be a data frame, a tibble, or a
+\code{tbl_dbi} object.}
 
 \item{name}{An optional name for the validation plan that the agent will
 eventually carry out during the interrogation process. If no value is
 provided, a name will be generated based on the current system time.}
+
+\item{actions}{A list containing threshold levels so that all validation
+steps can react accordingly when exceeding the set levels. This is to be
+created with the \code{\link[=action_levels]{action_levels()}} helper function. Should an action levels
+list be used for specific validation step, any default set here will be
+overridden.}
+
+\item{end_fns}{A list of functions that should be performed at the end of an
+interrogation.}
+
+\item{embed_report}{An option to embed a \strong{gt}-based validation report into
+the \code{ptblank_agent} object. If \code{FALSE} (the default) then the table object
+will be not generated and available with the agent upon returning from the
+interrogation.}
+
+\item{reporting_lang}{The language to use for automatic creation of briefs
+(short descriptions for each validation step). By default, \code{NULL} will
+create English (\code{"en"}) text. Other options include French (\code{"fr"}),
+German (\code{"de"}), Italian (\code{"it"}), and Spanish (\code{"es"}).}
 }
 \value{
 A \code{ptblank_agent} object.
 }
 \description{
-Creates an agent object.
+Creates an \emph{agent} object, which is used in a \emph{data quality reporting}
+workflow. The overall aim of this workflow is to generate some reporting on
+the state of data quality for a target table. We can supply as many
+validation step functions as the user wishes to write to get validation
+coverage on that table. We supply a single table to \code{create_agent()}, which
+becomes the sole focus of the data quality analysis. After application of
+one or more validation step functions, we need to use the \code{\link[=interrogate]{interrogate()}}
+function to complete the process; the validation step functions, when called
+on an agent, are merely instructions up to that point. The \emph{agent} then has
+information on how the interrogation went. Reporting of the interrogation can
+be performed with the \code{\link[=get_agent_report]{get_agent_report()}} function. If we just need to know
+whether all validations completely passed (i.e., all steps had no failing
+test units), the \code{\link[=all_passed]{all_passed()}} function should be used.
 }
 \section{Function ID}{
 
-1-1
+1-2
 }
 
 \examples{
-library(dplyr)
-
 # Create a simple table with a
 # column of numerical values
-tbl <- tibble(a = c(5, 7, 8, 7))
+tbl <- 
+  dplyr::tibble(a = c(5, 7, 8, 7))
 
 # Create a pointblank `agent` object
 agent <- create_agent(tbl = tbl)
@@ -48,10 +85,11 @@ agent <-
   col_vals_gt(vars(a), 4) \%>\%
   interrogate()
  
-# Get a tibble-based report from the
-# agent by using `get_agent_report()`
-agent \%>\%
-  get_agent_report(display_table = FALSE)
-
 }
-\concept{Create an Agent}
+\seealso{
+Other Planning and Prep: 
+\code{\link{action_levels}()},
+\code{\link{col_schema}()},
+\code{\link{scan_data}()}
+}
+\concept{Planning and Prep}

@@ -40,11 +40,10 @@
 #'   was passed to `x`.
 #'   
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with a
 #' # column of `integer` values
-#' tbl <- tibble(a = c(5L, 9L, 3L))
+#' tbl <- 
+#'   dplyr::tibble(a = c(5L, 9L, 3L))
 #' 
 #' # Validate that column `a` in the
 #' # table is classed as `integer`
@@ -67,7 +66,11 @@
 col_is_integer <- function(x,
                            columns,
                            actions = NULL,
-                           brief = NULL) {
+                           brief = NULL,
+                           active = TRUE) {
+  
+  preconditions <- NULL
+  values <- NULL
   
   # Capture the `column` expression
   columns <- rlang::enquo(columns)
@@ -77,11 +80,12 @@ col_is_integer <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       col_is_integer(
         columns = columns,
         brief = brief,
-        actions = prime_actions(actions)
+        actions = prime_actions(actions),
+        active = active
       ) %>% interrogate()
     
     return(x)
@@ -90,27 +94,22 @@ col_is_integer <- function(x,
   agent <- x
 
   if (is.null(brief)) {
-    
-    brief <-
-      create_autobrief(
-        agent = agent,
-        assertion_type = "col_is_integer",
-        column = columns
-      )
+    brief <- generate_autobriefs(agent, columns, preconditions, values, "col_is_integer")
   }
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
-  for (column in columns) {
+  for (i in seq(columns)) {
     
     agent <-
       create_validation_step(
         agent = agent,
         assertion_type = "col_is_integer",
-        column = column,
+        column = columns[i],
         preconditions = NULL,
         actions = actions,
-        brief = brief
+        brief = brief[i],
+        active = active
       )
   }
   

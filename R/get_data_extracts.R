@@ -11,17 +11,17 @@
 #'   out and any sample rows from non-passing validations could potentially be
 #'   available in the object.
 #' @param i The validation step number, which is assigned to each validation
-#'   step in the order of definition.
+#'   step in the order of definition. If `NULL` (the default), all data extract
+#'   tables will be provided in a list object.
 #' 
-#' @return A list of tibbles if `i` is not provided, or, a tibble if `i` is
-#'   given.
+#' @return A list of tables if `i` is not provided, or, a standalone table if
+#'   `i` is given.
 #' 
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with a
 #' # column of numerical values
-#' tbl <- tibble(a = c(5, 7, 8, 5))
+#' tbl <- 
+#'   dplyr::tibble(a = c(5, 7, 8, 5))
 #' 
 #' # Create 2 simple validation steps
 #' # that test whether values within
@@ -40,9 +40,9 @@
 #' # validation step (`col_vals_between`)
 #' agent %>% get_data_extracts(i = 1)
 #' 
-#' @family Interrogate and Get Info
+#' @family Post-interrogation
 #' @section Function ID:
-#' 3-4
+#' 5-3
 #' 
 #' @export
 get_data_extracts <- function(agent,

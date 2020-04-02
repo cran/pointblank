@@ -32,23 +32,15 @@ get_assertion_type_at_idx <- function(agent, idx) {
 }
 
 get_column_as_sym_at_idx <- function(agent, idx) {
-  rlang::sym(agent$validation_set[[idx, "column"]] %>% gsub("'", "", .))
+  rlang::sym(agent$validation_set[[idx, "column"]] %>% unlist() %>% gsub("'", "", .))
 }
 
-get_column_value_at_idx <- function(agent, idx) {
-  agent$validation_set[[idx, "value"]]
-}
-
-get_column_set_values_at_idx <- function(agent, idx) {
-  agent$validation_set[[idx, "set"]]
+get_values_at_idx <- function(agent, idx) {
+  agent$validation_set[[idx, "values"]] %>% unlist(recursive = FALSE)
 }
 
 get_column_na_pass_at_idx <- function(agent, idx) {
   agent$validation_set[[idx, "na_pass"]]
-}
-
-get_column_regex_at_idx <- function(agent, idx) {
-  agent$validation_set[[idx, "regex"]]
 }
 
 get_all_cols <- function(agent) {
@@ -81,7 +73,6 @@ resolve_columns <- function(x, var_expr, preconditions) {
     if (inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))) {
       
       column <- resolve_expr_to_cols(tbl = x, var_expr = !!var_expr)
-      column <- column[1]
       
     } else if (inherits(x, ("ptblank_agent"))) {
       
@@ -101,7 +92,6 @@ resolve_columns <- function(x, var_expr, preconditions) {
         rlang::eval_tidy()
       
       column <- resolve_expr_to_cols(tbl = tbl, var_expr = !!var_expr)
-      column <- column[1]
       
     } else if (inherits(x, ("ptblank_agent"))) {
       
@@ -119,7 +109,154 @@ resolve_columns <- function(x, var_expr, preconditions) {
   column
 }
 
-tidy_gsub <- function(x, pattern, replacement, fixed = FALSE) {
+row_based_step_fns_vector <- function() {
   
+  c(
+    "col_vals_gt",
+    "col_vals_gte",
+    "col_vals_lt",
+    "col_vals_lte",
+    "col_vals_equal",
+    "col_vals_not_equal",
+    "col_vals_between",
+    "col_vals_not_between",
+    "col_vals_in_set",
+    "col_vals_not_in_set",
+    "col_vals_null",
+    "col_vals_not_null",
+    "col_vals_regex",
+    "conjointly"
+  )
+}
+
+get_tbl_dbi_src_info <- function(tbl) {
+  utils::capture.output(tbl %>% unclass() %>% .$src)
+}
+
+get_tbl_dbi_src_details <- function(tbl) {
+  tbl_src_info <- get_tbl_dbi_src_info(tbl)
+  tbl_src_info[grepl("^src:", tbl_src_info)] %>% gsub("src:\\s*", "", .)
+}
+
+get_r_column_names_types <- function(tbl) {
+  
+  suppressWarnings(
+    column_names_types <-
+      tbl %>%
+      utils::head(1) %>%
+      dplyr::collect() %>%
+      vapply(
+        FUN.VALUE = character(1),
+        FUN = function(x) class(x)[1]
+      )
+  )
+  
+  list(
+    col_names = names(column_names_types),
+    r_col_types = unname(unlist(column_names_types))
+  )
+}
+
+get_tbl_information <- function(tbl) {
+  
+  if (inherits(tbl, "data.frame")) {
+    
+    r_column_names_types <- get_r_column_names_types(tbl)
+    
+    tbl_src <- "data.frame"
+    if (inherits(tbl, "tbl_df")) {
+      tbl_src <- "tbl_df"
+    } 
+    
+    return(
+      list(
+        tbl_src = tbl_src,
+        tbl_src_details = NA_character_,
+        db_tbl_name = NA_character_,
+        col_names = r_column_names_types$col_names,
+        r_col_types = r_column_names_types$r_col_types,
+        db_col_types = NA_character_
+      )
+    )
+    
+  } else if (inherits(tbl, "tbl_dbi")) {
+
+    tbl_src <- gsub("^([a-z]*).*", "\\1", get_tbl_dbi_src_details(tbl))
+    
+    r_column_names_types <- get_r_column_names_types(tbl)
+    
+    tbl_connection <- tbl %>% .$src %>% .$con
+    
+    db_tbl_name <- dbplyr::remote_name(tbl) %>% as.character()
+    
+    n_cols <- length(r_column_names_types$col_names)
+    
+    q_types <- 
+      glue::glue(
+        "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}' LIMIT {n_cols}"
+      )
+    
+    if (tbl_src != "sqlite") {
+      
+      db_col_types <- 
+        DBI::dbGetQuery(tbl_connection, q_types) %>%
+        dplyr::pull(DATA_TYPE) %>%
+        tolower()
+      
+    } else if (tbl_src == "sqlite") {
+      
+      db_col_types <-
+        vapply(
+          r_column_names_types$col_names,
+          FUN.VALUE = character(1),
+          USE.NAMES = FALSE,
+          FUN = function(x) {
+            
+            DBI::dbDataType(
+              tbl_connection,
+              tbl %>%
+                dplyr::select(x) %>%
+                utils::head(1) %>%
+                dplyr::collect() %>%
+                dplyr::pull(x)
+            )
+          }
+        ) %>%
+        tolower()
+      
+    } else {
+      db_col_types <- NA_character_
+    }
+    
+    return(
+      list(
+        tbl_src = tbl_src,
+        tbl_src_details = get_tbl_dbi_src_details(tbl),
+        db_tbl_name = db_tbl_name,
+        col_names = r_column_names_types$col_names,
+        r_col_types = r_column_names_types$r_col_types,
+        db_col_types = db_col_types
+      )
+    )
+    
+  } else {
+    warning("Information on this table type cannot be obtained at present.",
+            call. = FALSE)
+  } 
+}
+
+normalize_reporting_language <- function(reporting_lang) {
+  
+  if (is.null(reporting_lang)) return("en")
+  
+  if (!(tolower(reporting_lang) %in%  reporting_languages)) {
+    stop("The text ", reporting_lang, " doesn't correspond to a pointblank reporting language",
+         call. = FALSE)
+  }
+  
+  tolower(reporting_lang)
+}
+
+tidy_gsub <- function(x, pattern, replacement, fixed = FALSE) {
   gsub(pattern, replacement, x, fixed = fixed)
 }

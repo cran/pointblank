@@ -1,4 +1,4 @@
-#' Are numerical column data not equal to a specific value?
+#' Are column data not equal to a specified value?
 #' 
 #' The `col_vals_not_equal()` validation step function checks whether column
 #' values (in any number of specified `columns`) *are not* equal to a specified
@@ -58,12 +58,10 @@
 #'   was passed to `x`. 
 #'
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with two
 #' # columns of numerical values
 #' tbl <-
-#'   tibble(
+#'   dplyr::tibble(
 #'     a = c(1, 1, 1, 2, 2, 2),
 #'     b = c(5, 5, 5, 3, 6, 3)
 #'   )
@@ -75,7 +73,8 @@
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
 #'   col_vals_not_equal(vars(b), 5,
-#'     preconditions = ~ tbl %>% dplyr::filter(a == 2)
+#'     preconditions = 
+#'       ~ tbl %>% dplyr::filter(a == 2)
 #'   ) %>%
 #'   interrogate()
 #' 
@@ -98,7 +97,8 @@ col_vals_not_equal <- function(x,
                                na_pass = FALSE,
                                preconditions = NULL,
                                actions = NULL,
-                               brief = NULL) {
+                               brief = NULL,
+                               active = TRUE) {
   
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
@@ -108,47 +108,41 @@ col_vals_not_equal <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       col_vals_not_equal(
         columns = columns,
         value = value,
         na_pass = na_pass,
         preconditions = preconditions,
         brief = brief,
-        actions = prime_actions(actions)
+        actions = prime_actions(actions),
+        active = active
       ) %>% interrogate()
     
     return(x)
   }
   
   agent <- x
-
+  
   if (is.null(brief)) {
-    
-    brief <-
-      create_autobrief(
-        agent = agent,
-        assertion_type = "col_vals_not_equal",
-        preconditions = preconditions,
-        column = columns,
-        value = value
-      )
+    brief <- generate_autobriefs(agent, columns, preconditions, values = value, "col_vals_not_equal")
   }
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
-  for (column in columns) {
+  for (i in seq(columns)) {
     
     agent <-
       create_validation_step(
         agent = agent,
         assertion_type = "col_vals_not_equal",
-        column = column,
-        value = value,
+        column = columns[i],
+        values = value,
         na_pass = na_pass,
         preconditions = preconditions,
         actions = actions,
-        brief = brief
+        brief = brief[i],
+        active = active
       )
   }
 

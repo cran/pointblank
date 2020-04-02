@@ -38,12 +38,10 @@
 #'   was passed to `x`.
 #'   
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with
 #' # two columns of numerical values
 #' tbl <-
-#'   tibble(
+#'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5, 8, 7),
 #'     b = c(7, 1, 0, 0, 0, 3)
 #'   )
@@ -68,46 +66,56 @@
 col_exists <- function(x,
                        columns,
                        actions = NULL,
-                       brief = NULL) {
-  
-  # Capture the `columns` expression
-  columns <- rlang::enquo(columns)
-  
-  # Resolve the columns based on the expression
-  columns <- resolve_columns(x = x, var_expr = columns, preconditions = NULL)
-  
-  if (is_a_table_object(x)) {
+                       brief = NULL,
+                       active = TRUE) {
 
-    warning("The `col_exists()` function is not compatible with a table object",
-            call. = FALSE)
+  preconditions <- NULL
+  values <- NULL
+  
+  # Normalize the `columns` expression
+  if (inherits(columns, "quosures")) {
+    
+    columns <- 
+      vapply(
+        columns,
+        FUN.VALUE = character(1),
+        USE.NAMES = FALSE,
+        FUN = function(x) as.character(rlang::get_expr(x))
+      )
+  }
+
+  if (is_a_table_object(x)) {
+    
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
+      col_exists(
+        columns = columns,
+        actions = prime_actions(actions),
+        brief = brief,
+        active = active
+      ) %>% interrogate()
     
     return(x)
   }
   
   agent <- x
-  
+
   if (is.null(brief)) {
-    
-    brief <-
-      create_autobrief(
-        agent = agent,
-        assertion_type = "col_exists",
-        column = columns
-      )
+    brief <- generate_autobriefs(agent, columns, preconditions, values, "col_exists")
   }
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
-  for (column in columns) {
+  for (i in seq(columns)) {
     
     agent <-
       create_validation_step(
         agent = agent,
         assertion_type = "col_exists",
-        column = column,
+        column = columns[i],
         preconditions = NULL,
         actions = actions,
-        brief = brief
+        brief = brief[i],
+        active = active
       )
   }
 

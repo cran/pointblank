@@ -40,11 +40,10 @@
 #'   was passed to `x`.
 #'   
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with a
 #' # column of `logical` values
-#' tbl <- tibble(a = c(TRUE, FALSE))
+#' tbl <- 
+#'   dplyr::tibble(a = c(TRUE, FALSE))
 #' 
 #' # Validate that column `a` in the
 #' # table is classed as `logical`
@@ -67,7 +66,11 @@
 col_is_logical <- function(x,
                            columns,
                            actions = NULL,
-                           brief = NULL) {
+                           brief = NULL,
+                           active = TRUE) {
+  
+  preconditions <- NULL
+  values <- NULL
   
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
@@ -77,11 +80,12 @@ col_is_logical <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       col_is_logical(
         columns = columns,
         brief = brief,
-        actions = prime_actions(actions)
+        actions = prime_actions(actions),
+        active = active
       ) %>% interrogate()
     
     return(x)
@@ -90,27 +94,22 @@ col_is_logical <- function(x,
   agent <- x
 
   if (is.null(brief)) {
-    
-    brief <-
-      create_autobrief(
-        agent = agent,
-        assertion_type = "col_is_logical",
-        column = columns
-      )
+    brief <- generate_autobriefs(agent, columns, preconditions, values, "col_is_logical")
   }
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
-  for (column in columns) {
+  for (i in seq(columns)) {
     
     agent <-
       create_validation_step(
         agent = agent,
         assertion_type = "col_is_logical",
-        column = column,
+        column = columns[i],
         preconditions = NULL,
         actions = actions,
-        brief = brief
+        brief = brief[i],
+        active = active
       )
   }
 

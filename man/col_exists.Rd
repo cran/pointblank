@@ -4,7 +4,7 @@
 \alias{col_exists}
 \title{Do one or more columns actually exist?}
 \usage{
-col_exists(x, columns, actions = NULL, brief = NULL)
+col_exists(x, columns, actions = NULL, brief = NULL, active = TRUE)
 }
 \arguments{
 \item{x}{A data frame, tibble, or an agent object of class \code{ptblank_agent}.}
@@ -18,6 +18,13 @@ can react accordingly when exceeding the set levels. This is to be created
 with the \code{\link[=action_levels]{action_levels()}} helper function.}
 
 \item{brief}{An optional, text-based description for the validation step.}
+
+\item{active}{A logical value indicating whether the validation step should
+be active. If the step function is working with an agent, \code{FALSE} will make
+the validation step inactive (still reporting its presence and keeping
+indexes for the steps unchanged). If the step function will be operating
+directly on data, then any step with \code{active = FALSE} will simply pass the
+data through with no validation whatsoever. The default for this is \code{TRUE}.}
 }
 \value{
 Either a \code{ptblank_agent} object or a table object, depending on what
@@ -60,12 +67,10 @@ then be automatically generated.
 }
 
 \examples{
-library(dplyr)
-
 # Create a simple table with
 # two columns of numerical values
 tbl <-
-  tibble(
+  dplyr::tibble(
     a = c(5, 7, 6, 5, 8, 7),
     b = c(7, 1, 0, 0, 0, 3)
   )
@@ -91,6 +96,7 @@ Other Validation Step Functions:
 \code{\link{col_is_logical}()},
 \code{\link{col_is_numeric}()},
 \code{\link{col_is_posix}()},
+\code{\link{col_schema_match}()},
 \code{\link{col_vals_between}()},
 \code{\link{col_vals_equal}()},
 \code{\link{col_vals_gte}()},

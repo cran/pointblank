@@ -59,11 +59,10 @@
 #'   was passed to `x`.
 #' 
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with a
 #' # column containing strings
-#' tbl <- tibble(a = c("s_0131", "s_0231"))
+#' tbl <- 
+#'   dplyr::tibble(a = c("s_0131", "s_0231"))
 #' 
 #' # Validate that all string values in
 #' # column `a` match a regex statement
@@ -89,7 +88,16 @@ col_vals_regex <- function(x,
                            na_pass = FALSE,
                            preconditions = NULL,
                            actions = NULL,
-                           brief = NULL) {
+                           brief = NULL,
+                           active = TRUE) {
+  
+  # Stop function if `col_vals_regex()` is to be used with a database table
+  if (is_ptblank_agent(x)) {
+    if (inherits(x$tbl, "tbl_dbi")) {
+      stop("The `col_vals_regex()` step function cannot be used with `tbl_dbi` objects.",
+           call. = FALSE)
+    }
+  }
   
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
@@ -99,14 +107,15 @@ col_vals_regex <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       col_vals_regex(
         columns = columns,
         regex = regex,
         na_pass = na_pass,
         preconditions = preconditions,
         brief = brief,
-        actions = prime_actions(actions)
+        actions = prime_actions(actions),
+        active = active
       ) %>% interrogate()
     
     return(x)
@@ -115,30 +124,24 @@ col_vals_regex <- function(x,
   agent <- x
 
   if (is.null(brief)) {
-    
-    brief <-
-      create_autobrief(
-        agent = agent,
-        assertion_type = "col_vals_regex",
-        column = columns,
-        regex = regex
-      )
+    brief <- generate_autobriefs(agent, columns, preconditions, values = regex, "col_vals_regex")
   }
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
-  for (column in columns) {
+  for (i in seq(columns)) {
     
     agent <-
       create_validation_step(
         agent = agent,
         assertion_type = "col_vals_regex",
-        column = column,
-        regex = regex,
+        column = columns[i],
+        values = regex,
         na_pass = na_pass,
         preconditions = preconditions,
         actions = actions,
-        brief = brief
+        brief = brief[i],
+        active = active
       )
   }
 

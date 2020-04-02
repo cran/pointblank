@@ -13,11 +13,12 @@ out and any sample rows from non-passing validations could potentially be
 available in the object.}
 
 \item{i}{The validation step number, which is assigned to each validation
-step in the order of definition.}
+step in the order of definition. If \code{NULL} (the default), all data extract
+tables will be provided in a list object.}
 }
 \value{
-A list of tibbles if \code{i} is not provided, or, a tibble if \code{i} is
-given.
+A list of tables if \code{i} is not provided, or, a standalone table if
+\code{i} is given.
 }
 \description{
 Get data that didn't pass a validation step. The amount of data available in
@@ -28,15 +29,14 @@ call).
 }
 \section{Function ID}{
 
-3-4
+5-3
 }
 
 \examples{
-library(dplyr)
-
 # Create a simple table with a
 # column of numerical values
-tbl <- tibble(a = c(5, 7, 8, 5))
+tbl <- 
+  dplyr::tibble(a = c(5, 7, 8, 5))
 
 # Create 2 simple validation steps
 # that test whether values within
@@ -57,9 +57,10 @@ agent \%>\% get_data_extracts(i = 1)
 
 }
 \seealso{
-Other Interrogate and Get Info: 
+Other Post-interrogation: 
 \code{\link{all_passed}()},
 \code{\link{get_agent_report}()},
-\code{\link{interrogate}()}
+\code{\link{get_agent_x_list}()},
+\code{\link{get_sundered_data}()}
 }
-\concept{Interrogate and Get Info}
+\concept{Post-interrogation}

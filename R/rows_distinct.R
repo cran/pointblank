@@ -49,12 +49,10 @@
 #'   was passed to `x`.
 #'   
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with three
 #' # columns of numerical values
 #' tbl <-
-#'   tibble(
+#'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5, 8, 7),
 #'     b = c(7, 1, 0, 0, 8, 3),
 #'     c = c(1, 1, 1, 3, 3, 3)
@@ -80,26 +78,43 @@
 #' 
 #' @import rlang
 #' @export
+
 rows_distinct <- function(x,
                           columns = NULL,
                           preconditions = NULL,
                           actions = NULL,
-                          brief = NULL) {
+                          brief = NULL,
+                          active = TRUE) {
 
   # Capture the `columns` expression
-  columns <- rlang::enquo(columns)
+  #columns <- rlang::enquo(columns)
   
+  # Normalize the `columns` expression
+  if (inherits(columns, "quosures")) {
+    
+    columns <- 
+      vapply(
+        columns,
+        FUN.VALUE = character(1),
+        USE.NAMES = FALSE,
+        FUN = function(x) as.character(rlang::get_expr(x))
+      )
+  }
+
   # Resolve the columns based on the expression
-  columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+  if (!is.null(columns)) {
+    columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+  }
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       rows_distinct(
         columns = columns,
         preconditions = preconditions,
         brief = brief,
-        actions = prime_actions(actions)
+        actions = prime_actions(actions),
+        active = active
       ) %>% interrogate()
     
     return(x)
@@ -108,11 +123,10 @@ rows_distinct <- function(x,
   agent <- x
   
   if (length(columns) > 0) {
-    
     columns <- paste(columns, collapse = ", ")
-    
+  } else if (length(columns) == 1) {
+    columns <- columns
   } else {
-    
     columns <- NULL
   }
   
@@ -125,17 +139,18 @@ rows_distinct <- function(x,
         column = columns
       )
   }
-  
+
   # Add one or more validation steps
   agent <-
     create_validation_step(
       agent = agent,
       assertion_type = "rows_distinct",
-      column = list(ifelse(is.null(columns), as.character(NA), columns)),
-      value = NULL,
+      column = list(ifelse(is.null(columns), NA_character_, columns)),
+      values = NULL,
       preconditions = preconditions,
       actions = actions,
-      brief = brief
+      brief = brief,
+      active = active
     )
 
   agent
@@ -153,7 +168,8 @@ rows_not_duplicated <- function(x,
                                 columns = NULL,
                                 preconditions = NULL,
                                 brief = NULL,
-                                actions = NULL) {
+                                actions = NULL,
+                                active = TRUE) {
   
   # nocov start
 
@@ -165,8 +181,9 @@ rows_not_duplicated <- function(x,
     x = x,
     columns = {{ columns }},
     preconditions = preconditions,
+    actions = actions,
     brief = brief,
-    actions = actions
+    active = active
   )
 
   # nocov end

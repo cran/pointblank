@@ -52,16 +52,14 @@ how the interrogation went down.
 }
 \section{Function ID}{
 
-3-1
+4-1
 }
 
 \examples{
-library(dplyr)
-
 # Create a simple table with two
 # columns of numerical values
 tbl <-
-  tibble(
+  dplyr::tibble(
     a = c(5, 7, 6, 5, 8, 7),
     b = c(7, 1, 0, 0, 0, 3)
   )
@@ -75,17 +73,6 @@ agent <-
   create_agent(tbl = tbl) \%>\%
   col_vals_gt(vars(a), 5) \%>\%
   interrogate()
-  
-# Get a tibble-based report from the
-# agent by using `get_agent_report()`
-agent \%>\%
-  get_agent_report(display_table = FALSE)
 
 }
-\seealso{
-Other Interrogate and Get Info: 
-\code{\link{all_passed}()},
-\code{\link{get_agent_report}()},
-\code{\link{get_data_extracts}()}
-}
-\concept{Interrogate and Get Info}
+\concept{Interrogate}

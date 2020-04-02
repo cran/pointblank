@@ -4,15 +4,31 @@
 \alias{get_agent_report}
 \title{Get a simple report from an agent}
 \usage{
-get_agent_report(agent, display_table = TRUE)
+get_agent_report(
+  agent,
+  arrange_by = c("i", "severity"),
+  keep = c("all", "fail_states"),
+  display_table = TRUE,
+  ...
+)
 }
 \arguments{
 \item{agent}{An agent object of class \code{ptblank_agent}.}
 
-\item{display_table}{Should a display table be generated? If \code{TRUE}, and if
-the \strong{gt} package is installed, a display table for the report will be
-shown in the Viewer. If \code{FALSE}, or if \strong{gt} is not available, then a
-tibble will be returned.}
+\item{arrange_by}{A choice to arrange the report table rows by the validation
+step number (\code{"i"}, the default), or, to arrange in descending order by
+severity of the failure state (with \code{"severity"}).}
+
+\item{keep}{An option to keep \code{"all"} of the report's table rows (the
+default), or, keep only those rows that reflect one or more
+\code{"fail_states"}.}
+
+\item{display_table}{Should a display table be generated? If \code{TRUE} (the
+default), and if the \strong{gt} package is installed, a display table for the
+report will be shown in the Viewer. If \code{FALSE}, or if \strong{gt} is not
+available, then a tibble will be returned.}
+
+\item{...}{Additional options passed to downstream functions.}
 }
 \value{
 A tibble.
@@ -27,12 +43,14 @@ depending on whether or not the agent performed an interrogation (with
 \item type: the validation type, which mirrors the name of the validation
 step function
 \item columns: the names of the columns used in the validation step
-\item value: the numeric value used in the validation step, where applicable
-\item set: the set values used in the validation step; for a \code{conjointly()}
-validation step, this is a listing of all sub-validations
-\item regex: the regex used for a \code{col_vals_regex()} validation step
-\item preconds: a logical value indicating whether any preconditions where
-applied before interrogation
+\item values: the values used in the validation step, where applicable; for
+a \code{conjointly()} validation step, this is a listing of all sub-validations
+\item precon: indicates whether any there are any preconditions to apply
+before interrogation and, if so, the number of statements used
+\item active: a logical value that indicates whether a validation step is
+set to 'active' during an interrogation
+\item eval: a character value that denotes the result of each validation
+step functions' evaluation during interrogation
 \item units: the total number of validation units for the validation step
 \item n_pass: the number of validation units that received a \emph{pass}
 \item f_pass: the fraction of validation units that received a \emph{pass}
@@ -42,20 +60,19 @@ applied before interrogation
 \item extract: a logical value that indicates whether a data extract is
 available for the validation step
 }
-If the \strong{gt} package is installed (and if \code{display_table = TRUE}) then a
-\strong{gt} table will be displayed with the same information.
+If the \strong{gt} package is installed (and if \code{display_table = TRUE}, which is
+the default) then a \strong{gt} table will be displayed with the same information.
 }
 \section{Function ID}{
 
-3-3
+5-1
 }
 
 \examples{
-library(dplyr)
-
 # Create a simple table with a
 # column of numerical values
-tbl <- tibble(a = c(5, 7, 8, 5))
+tbl <- 
+  dplyr::tibble(a = c(5, 7, 8, 5))
 
 # Validate that values in column
 # `a` are always greater than 4
@@ -71,9 +88,10 @@ agent \%>\%
 
 }
 \seealso{
-Other Interrogate and Get Info: 
+Other Post-interrogation: 
 \code{\link{all_passed}()},
+\code{\link{get_agent_x_list}()},
 \code{\link{get_data_extracts}()},
-\code{\link{interrogate}()}
+\code{\link{get_sundered_data}()}
 }
-\concept{Interrogate and Get Info}
+\concept{Post-interrogation}

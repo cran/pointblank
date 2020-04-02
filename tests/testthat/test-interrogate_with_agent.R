@@ -1,20 +1,22 @@
 context("Performing interrogations with an agent")
 
+library(lubridate)
+
 test_that("Interrogating with an agent yields the correct results", {
   
-  # Use the `col_exists()` function to create
+  # Use the `col_schema_match()` function to create
   # a validation step, then, `interrogate()`
   validation <-
     create_agent(tbl = small_table) %>%
-    col_exists(columns = vars(b)) %>%
+    col_schema_match(schema = col_schema(.tbl = small_table)) %>%
     interrogate()
   
   # Expect certain values in `validation$validation_set`
   expect_equivalent(validation$tbl_name, "small_table")
-  expect_equivalent(validation$validation_set$assertion_type, "col_exists")
-  expect_equivalent(validation$validation_set$column, "b")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_equivalent(validation$validation_set$assertion_type, "col_schema_match")
+  expect_true(is.na(validation$validation_set$column %>% unlist()))
+  expect_is(validation$validation_set[["values"]][[1]], "col_schema")
+  expect_is(validation$validation_set[["values"]][[1]], "r_type")
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -22,6 +24,36 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$validation_set$f_passed, 1)
   expect_equivalent(validation$validation_set$f_failed, 0)
 
+  # Expect a single row in `validation$validation_set`
+  expect_equivalent(nrow(validation$validation_set), 1)
+  
+  # Use the `col_schema_match()` function with a `col_schema` object
+  # to create a validation step, then, `interrogate()`
+  schema <- 
+    col_schema(
+      date_time = c("POSIXct", "POSIXt"), date = "Date", 
+      a = "integer", b = "character", c = "numeric", d = "numeric", 
+      e = "logical", f = "character"
+    )
+  
+  validation <-
+    create_agent(tbl = small_table) %>%
+    col_schema_match(schema = schema) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "col_schema_match")
+  expect_true(is.na(validation$validation_set$column %>% unlist()))
+  expect_is(validation$validation_set[["values"]][[1]], "col_schema")
+  expect_is(validation$validation_set[["values"]][[1]], "r_type")
+  expect_true(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 1)
+  expect_equivalent(validation$validation_set$n_passed, 1)
+  expect_equivalent(validation$validation_set$n_failed, 0)
+  expect_equivalent(validation$validation_set$f_passed, 1)
+  expect_equivalent(validation$validation_set$f_failed, 0)
+  
   # Expect a single row in `validation$validation_set`
   expect_equivalent(nrow(validation$validation_set), 1)
   
@@ -37,8 +69,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_exists")
   expect_equivalent(validation$validation_set$column, "g")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 0)
@@ -60,8 +91,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_is_character")
   expect_equivalent(validation$validation_set$column, "b")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -83,8 +113,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_is_numeric")
   expect_equivalent(validation$validation_set$column, "a")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 0)
@@ -106,8 +135,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_is_posix")
   expect_equivalent(validation$validation_set$column, "date_time")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -129,8 +157,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_is_date")
   expect_equivalent(validation$validation_set$column, "date")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -152,8 +179,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_is_integer")
   expect_equivalent(validation$validation_set$column, "a")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -175,8 +201,7 @@ test_that("Interrogating with an agent yields the correct results", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_is_logical")
   expect_equivalent(validation$validation_set$column, "e")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 1)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -204,8 +229,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_between")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 12)
@@ -232,14 +256,65 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_between")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 11)
   expect_equivalent(validation$validation_set$n_passed, 11)
   expect_equivalent(validation$validation_set$n_failed, 0)
   expect_equivalent(validation$validation_set$f_passed, 1)
   expect_equivalent(validation$validation_set$f_failed, 0)
+  
+  # Use the `col_vals_between()` function to create
+  # a validation step, then, `interrogate()`; using
+  # column names for `left` and `right`
+  validation <-
+    create_agent(tbl = small_table) %>%
+    col_vals_between(
+      columns = vars(c),
+      left = vars(a), right = vars(d)
+    ) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "col_vals_between")
+  expect_equivalent(validation$validation_set$column, "c")
+  expect_true(is.list(validation$validation_set[["values"]]))
+  expect_false(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 13)
+  expect_equivalent(validation$validation_set$n_passed, 7)
+  expect_equivalent(validation$validation_set$n_failed, 6)
+  expect_equivalent(validation$validation_set$f_passed, 0.53846)
+  expect_equivalent(validation$validation_set$f_failed, 0.46154)
+  
+  # Expect a single row in `validation$validation_set`
+  expect_equivalent(nrow(validation$validation_set), 1)
+  
+  # Use the `col_vals_between()` function to create
+  # a validation step, then, `interrogate()`; using
+  # a column name for `right`
+  validation <-
+    create_agent(tbl = small_table) %>%
+    col_vals_between(
+      columns = vars(c),
+      left = 0, right = vars(d)
+    ) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "col_vals_between")
+  expect_equivalent(validation$validation_set$column, "c")
+  expect_true(is.list(validation$validation_set[["values"]]))
+  expect_false(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 13)
+  expect_equivalent(validation$validation_set$n_passed, 11)
+  expect_equivalent(validation$validation_set$n_failed, 2)
+  expect_equivalent(validation$validation_set$f_passed, 0.84615)
+  expect_equivalent(validation$validation_set$f_failed, 0.15385)
+  
+  # Expect a single row in `validation$validation_set`
+  expect_equivalent(nrow(validation$validation_set), 1)
   
   # Use the `col_vals_not_between()` function to create
   # a validation step, then, `interrogate()`
@@ -255,8 +330,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_between")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 9)
@@ -283,8 +357,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_between")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 11)
   expect_equivalent(validation$validation_set$n_passed, 7)
@@ -303,8 +376,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_equal")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_equivalent(validation$validation_set$value, 283.94)
-  expect_true(is.na(validation$validation_set$regex))
+  expect_equivalent(validation$validation_set[["values"]] %>% unlist(), 283.94)
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -331,8 +403,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_equal")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_equivalent(validation$validation_set$value, 283.94)
-  expect_true(is.na(validation$validation_set$regex))
+  expect_equivalent(validation$validation_set[["values"]] %>% unlist(), 283.94)
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 11)
   expect_equivalent(validation$validation_set$n_passed, 1)
@@ -351,8 +422,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_equal")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_equivalent(validation$validation_set$value, 283.94)
-  expect_true(is.na(validation$validation_set$regex))
+  expect_equivalent(validation$validation_set[["values"]] %>% unlist(), 283.94)
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 12)
@@ -363,7 +433,30 @@ test_that("Interrogating for valid row values", {
   # Expect a single row in `validation$validation_set`
   expect_equivalent(nrow(validation$validation_set), 1)
   
-  # Use the `col_vals_equal()` function to create
+  # Use the `col_vals_not_equal()` function to create
+  # a validation step, then, `interrogate()`; using
+  # a column name for `value`
+  validation <-
+    create_agent(tbl = small_table) %>%
+    col_vals_not_equal(columns = vars(a), value = vars(d)) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_equal")
+  expect_equivalent(validation$validation_set$column, "a")
+  expect_true(is.list(validation$validation_set[["values"]]))
+  expect_true(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 13)
+  expect_equivalent(validation$validation_set$n_passed, 13)
+  expect_equivalent(validation$validation_set$n_failed, 0)
+  expect_equivalent(validation$validation_set$f_passed, 1)
+  expect_equivalent(validation$validation_set$f_failed, 0)
+  
+  # Expect a single row in `validation$validation_set`
+  expect_equivalent(nrow(validation$validation_set), 1)
+  
+  # Use the `col_vals_not_equal()` function to create
   # a validation step (with a precondition), then,
   # `interrogate()`
   validation <-
@@ -379,14 +472,63 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_equal")
   expect_equivalent(validation$validation_set$column, "d")
-  expect_equivalent(validation$validation_set$value, 283.94)
-  expect_true(is.na(validation$validation_set$regex))
+  expect_equivalent(validation$validation_set[["values"]] %>% unlist(), 283.94)
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 11)
   expect_equivalent(validation$validation_set$n_passed, 10)
   expect_equivalent(validation$validation_set$n_failed, 1)
   expect_equivalent(validation$validation_set$f_passed, 0.90909)
   expect_equivalent(validation$validation_set$f_failed, 0.09091)
+  
+  # Use the `col_vals_gt()` function to create
+  # a validation step, then, `interrogate()`; using
+  # a column name for `value`
+  validation <-
+    create_agent(tbl = small_table) %>%
+    col_vals_gt(columns = vars(date_time), value = vars(date)) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "col_vals_gt")
+  expect_equivalent(validation$validation_set$column, "date_time")
+  expect_true(is.list(validation$validation_set[["values"]]))
+  expect_true(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 13)
+  expect_equivalent(validation$validation_set$n_passed, 13)
+  expect_equivalent(validation$validation_set$n_failed, 0)
+  expect_equivalent(validation$validation_set$f_passed, 1)
+  expect_equivalent(validation$validation_set$f_failed, 0)
+  
+  # Expect a single row in `validation$validation_set`
+  expect_equivalent(nrow(validation$validation_set), 1)
+  
+  # Use the `col_vals_gt()` function to create
+  # a validation step, then, `interrogate()`; using
+  # a column name for `value`
+  expect_warning(regexp = NA,
+    validation <-
+      create_agent(tbl = small_table) %>%
+      col_vals_gt(
+        columns = vars(date_time), value = vars(date),
+        preconditions = ~ tbl %>% dplyr::mutate(date = lubridate::as_datetime(date))) %>%
+      interrogate()
+  )
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "col_vals_gt")
+  expect_equivalent(validation$validation_set$column, "date_time")
+  expect_true(is.list(validation$validation_set[["values"]]))
+  expect_true(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 13)
+  expect_equivalent(validation$validation_set$n_passed, 13)
+  expect_equivalent(validation$validation_set$n_failed, 0)
+  expect_equivalent(validation$validation_set$f_passed, 1)
+  expect_equivalent(validation$validation_set$f_failed, 0)
+  
+  # Expect a single row in `validation$validation_set`
+  expect_equivalent(nrow(validation$validation_set), 1)
   
   # Use the `rows_distinct()` function to create
   # a validation step, then, `interrogate()`
@@ -399,8 +541,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "rows_distinct")
   expect_true(is.na(validation$validation_set$column %>% unlist()))
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 11)
@@ -411,7 +552,7 @@ test_that("Interrogating for valid row values", {
   # Expect a single row in `validation$validation_set`
   expect_equivalent(nrow(validation$validation_set), 1)
   
-  # Use the `col_vals_equal()` function to create
+  # Use the `rows_distinct()` function to create
   # a validation step (with a precondition), then,
   # `interrogate()`
   validation <-
@@ -425,8 +566,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "rows_distinct")
   expect_true(is.na(validation$validation_set$column %>% unlist()))
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 11)
   expect_equivalent(validation$validation_set$n_passed, 11)
@@ -434,7 +574,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$validation_set$f_passed, 1)
   expect_equivalent(validation$validation_set$f_failed, 0)
   
-  # Use the `col_vals_equal()` function to create
+  # Use the `rows_distinct()` function to create
   # a validation step for selected columns, then,
   # `interrogate()`
   validation <-
@@ -446,8 +586,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "rows_distinct")
   expect_equivalent(validation$validation_set$column %>% unlist(), "date_time, a")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 11)
@@ -466,8 +605,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_in_set")
   expect_equivalent(validation$validation_set$column, "f")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 13)
@@ -489,8 +627,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_in_set")
   expect_equivalent(validation$validation_set$column, "f")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 13)
@@ -513,8 +650,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_in_set")
   expect_equivalent(validation$validation_set$column, "f")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.list(validation$validation_set[["values"]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 13)
@@ -536,8 +672,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_null")
   expect_equivalent(validation$validation_set$column, "c")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 11)
@@ -564,8 +699,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_not_null")
   expect_equivalent(validation$validation_set$column, "c")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 8)
   expect_equivalent(validation$validation_set$n_passed, 8)
@@ -584,8 +718,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_null")
   expect_equivalent(validation$validation_set$column, "c")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_false(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 2)
@@ -612,8 +745,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_null")
   expect_equivalent(validation$validation_set$column, "c")
-  expect_true(is.na(validation$validation_set$value))
-  expect_true(is.na(validation$validation_set$regex))
+  expect_true(is.null(validation$validation_set[["values"]][[1]]))
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 2)
   expect_equivalent(validation$validation_set$n_passed, 2)
@@ -635,8 +767,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_regex")
   expect_equivalent(validation$validation_set$column, "b")
-  expect_true(is.na(validation$validation_set$value))
-  expect_equivalent(validation$validation_set$regex, "[0-9]-[a-z]{3}-[0-9]{3}")
+  expect_equivalent(validation$validation_set[["values"]] %>% unlist(), "[0-9]-[a-z]{3}-[0-9]{3}")
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 13)
   expect_equivalent(validation$validation_set$n_passed, 13)
@@ -663,8 +794,7 @@ test_that("Interrogating for valid row values", {
   expect_equivalent(validation$tbl_name, "small_table")
   expect_equivalent(validation$validation_set$assertion_type, "col_vals_regex")
   expect_equivalent(validation$validation_set$column, "f")
-  expect_true(is.na(validation$validation_set$value))
-  expect_equivalent(validation$validation_set$regex, "[a-z]{3}")
+  expect_equivalent(validation$validation_set[["values"]] %>% unlist(), "[a-z]{3}")
   expect_true(validation$validation_set$all_passed)
   expect_equivalent(validation$validation_set$n, 7)
   expect_equivalent(validation$validation_set$n_passed, 7)
@@ -968,4 +1098,177 @@ test_that("The validations with sets can include NA values", {
     interrogate() %>%
     all_passed() %>%
     expect_true()
+})
+
+test_that("Select validation steps can be `active` or not", {
+  
+  # Perform validation with default of `active = TRUE` in
+  # each validation step
+  validation_all_active <-
+    create_agent(tbl = small_table) %>%
+    col_exists(columns = vars(b)) %>%
+    col_is_character(columns = vars(b)) %>%
+    col_is_numeric(columns = vars(a)) %>%
+    col_is_posix(columns = vars(date_time)) %>%
+    col_is_date(columns = vars(date)) %>%
+    col_is_integer(columns = vars(a)) %>%
+    col_is_logical(columns = vars(e)) %>%
+    col_vals_between(columns = vars(d), left = 0, right = 5000) %>%
+    col_vals_equal(columns = vars(d), value = 283.94) %>%
+    col_vals_gt(columns = vars(date_time), value = vars(date)) %>%
+    col_vals_gte(columns = vars(date_time), value = vars(date)) %>%
+    col_vals_lt(columns = vars(date_time), value = vars(date)) %>%
+    col_vals_lte(columns = vars(date_time), value = vars(date)) %>%
+    col_vals_in_set(columns = vars(f), set = c("low", "mid", "high")) %>%
+    col_vals_not_between(columns = vars(d), left = 500, right = 1000) %>%
+    col_vals_not_equal(columns = vars(d), value = 283.94) %>%
+    col_vals_not_in_set(columns = vars(f), set = c("lower", "middle", "higher")) %>%
+    col_vals_not_null(columns = vars(c)) %>%
+    col_vals_null(columns = vars(b)) %>%
+    col_vals_regex(columns = vars(f), regex = "[a-z]{3}") %>%
+    rows_distinct() %>%
+    conjointly(
+      ~ col_vals_gt(., columns = vars(a), value = 1),
+      ~ col_vals_lt(., columns = vars(c), value = 10, na_pass = TRUE),
+      ~ col_vals_not_null(., columns = vars(d))
+    ) %>%
+    interrogate()
+  
+  # Expect the `active` parameter in each validation step
+  # to be set as `TRUE`
+  expect_true(all(validation_all_active$validation_set$active))
+  
+  # Expect validation results to be available in all of the columns
+  # where those values are reported
+  expect_true(all(!is.na(validation_all_active$validation_set$eval_error)))
+  expect_true(all(!is.na(validation_all_active$validation_set$eval_warning)))
+  expect_true(all(!is.na(validation_all_active$validation_set$all_passed)))
+  expect_true(all(!is.na(validation_all_active$validation_set$n)))
+  expect_true(all(!is.na(validation_all_active$validation_set$n_passed)))
+  expect_true(all(!is.na(validation_all_active$validation_set$n_failed)))
+  expect_true(all(!is.na(validation_all_active$validation_set$f_passed)))
+  expect_true(all(!is.na(validation_all_active$validation_set$f_failed)))
+  expect_true(all(!is.na(validation_all_active$validation_set$time_processed)))
+  expect_true(all(!is.na(validation_all_active$validation_set$proc_duration_s)))
+  
+  # Perform validation with `active = FALSE` for all of the
+  # validation steps
+  validation_all_not_active <-
+    create_agent(tbl = small_table) %>%
+    col_exists(columns = vars(b), active = FALSE) %>%
+    col_is_character(columns = vars(b), active = FALSE) %>%
+    col_is_numeric(columns = vars(a), active = FALSE) %>%
+    col_is_posix(columns = vars(date_time), active = FALSE) %>%
+    col_is_date(columns = vars(date), active = FALSE) %>%
+    col_is_integer(columns = vars(a), active = FALSE) %>%
+    col_is_logical(columns = vars(e), active = FALSE) %>%
+    col_vals_between(columns = vars(d), left = 0, right = 5000, active = FALSE) %>%
+    col_vals_equal(columns = vars(d), value = 283.94, active = FALSE) %>%
+    col_vals_gt(columns = vars(date_time), value = vars(date), active = FALSE) %>%
+    col_vals_gte(columns = vars(date_time), value = vars(date), active = FALSE) %>%
+    col_vals_lt(columns = vars(date_time), value = vars(date), active = FALSE) %>%
+    col_vals_lte(columns = vars(date_time), value = vars(date), active = FALSE) %>%
+    col_vals_in_set(columns = vars(f), set = c("low", "mid", "high"), active = FALSE) %>%
+    col_vals_not_between(columns = vars(d), left = 500, right = 1000, active = FALSE) %>%
+    col_vals_not_equal(columns = vars(d), value = 283.94, active = FALSE) %>%
+    col_vals_not_in_set(columns = vars(f), set = c("lower", "middle", "higher"), active = FALSE) %>%
+    col_vals_not_null(columns = vars(c), active = FALSE) %>%
+    col_vals_null(columns = vars(b), active = FALSE) %>%
+    col_vals_regex(columns = vars(f), regex = "[a-z]{3}", active = FALSE) %>%
+    rows_distinct(active = FALSE) %>%
+    conjointly(
+      ~ col_vals_gt(., columns = vars(a), value = 1),
+      ~ col_vals_lt(., columns = vars(c), value = 10, na_pass = TRUE),
+      ~ col_vals_not_null(., columns = vars(d)),
+      active = FALSE
+    ) %>%
+    interrogate()
+  
+  # Expect the `active` parameter in each validation step
+  # to be set as `FALSE`
+  expect_true(!all(validation_all_not_active$validation_set$active))
+  
+  # Expect no validation results to be available in any of the columns
+  # where those values are normally reported (this is because no interrogations
+  # had occurred at any of the validation steps)
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$eval_error)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$eval_warning)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$all_passed)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$n)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$n_passed)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$n_failed)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$f_passed)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$f_failed)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$time_processed)))
+  expect_true(!all(!is.na(validation_all_not_active$validation_set$proc_duration_s)))
+  
+  # Perform validation directly on data with `active = TRUE`
+  # for all of the validation steps; set action levels to
+  # warn when there is a single unit failing in each step
+  al <- action_levels(warn_at = 1)
+  
+  expect_warning(
+    small_table %>%
+      col_is_character(columns = vars(b), actions = al) %>%
+      col_is_numeric(columns = vars(a), actions = al) %>%
+      col_is_posix(columns = vars(date_time), actions = al) %>%
+      col_is_date(columns = vars(date), actions = al) %>%
+      col_is_integer(columns = vars(a), actions = al) %>%
+      col_is_logical(columns = vars(e), actions = al) %>%
+      col_vals_between(columns = vars(d), left = 0, right = 5000, actions = al) %>%
+      col_vals_equal(columns = vars(d), value = 283.94, actions = al) %>%
+      col_vals_gt(columns = vars(date_time), value = vars(date), actions = al) %>%
+      col_vals_gte(columns = vars(date_time), value = vars(date), actions = al) %>%
+      col_vals_lt(columns = vars(date_time), value = vars(date), actions = al) %>%
+      col_vals_lte(columns = vars(date_time), value = vars(date), actions = al) %>%
+      col_vals_in_set(columns = vars(f), set = c("low", "mid", "high"), actions = al) %>%
+      col_vals_not_between(columns = vars(d), left = 500, right = 1000, actions = al) %>%
+      col_vals_not_equal(columns = vars(d), value = 283.94, actions = al) %>%
+      col_vals_not_in_set(columns = vars(f), set = c("lower", "middle", "higher"), actions = al) %>%
+      col_vals_not_null(columns = vars(c), actions = al) %>%
+      col_vals_null(columns = vars(b), actions = al) %>%
+      col_vals_regex(columns = vars(f), regex = "[a-z]{3}", actions = al) %>%
+      rows_distinct(actions = al) %>%
+      conjointly(
+        ~ col_vals_gt(., columns = vars(a), value = 1),
+        ~ col_vals_lt(., columns = vars(c), value = 10, na_pass = TRUE),
+        ~ col_vals_not_null(., columns = vars(d)),
+        actions = al
+      )
+  )
+  
+  # Perform validation directly on data with `active = FALSE`
+  # for all of the validation steps; using the same action levels
+  # to potentially warn when there is a single unit failing in each step
+  # (however this won't happen because `active = FALSE` means that an
+  # interrogation isn't even performed)
+  expect_warning(regexp = NA,
+    small_table %>%
+      col_is_character(columns = vars(b), actions = al, active = FALSE) %>%
+      col_is_numeric(columns = vars(a), actions = al, active = FALSE) %>%
+      col_is_posix(columns = vars(date_time), actions = al, active = FALSE) %>%
+      col_is_date(columns = vars(date), actions = al, active = FALSE) %>%
+      col_is_integer(columns = vars(a), actions = al, active = FALSE) %>%
+      col_is_logical(columns = vars(e), actions = al, active = FALSE) %>%
+      col_vals_between(columns = vars(d), left = 0, right = 5000, actions = al, active = FALSE) %>%
+      col_vals_equal(columns = vars(d), value = 283.94, actions = al, active = FALSE) %>%
+      col_vals_gt(columns = vars(date_time), value = vars(date), actions = al, active = FALSE) %>%
+      col_vals_gte(columns = vars(date_time), value = vars(date), actions = al, active = FALSE) %>%
+      col_vals_lt(columns = vars(date_time), value = vars(date), actions = al, active = FALSE) %>%
+      col_vals_lte(columns = vars(date_time), value = vars(date), actions = al, active = FALSE) %>%
+      col_vals_in_set(columns = vars(f), set = c("low", "mid", "high"), actions = al, active = FALSE) %>%
+      col_vals_not_between(columns = vars(d), left = 500, right = 1000, actions = al, active = FALSE) %>%
+      col_vals_not_equal(columns = vars(d), value = 283.94, actions = al, active = FALSE) %>%
+      col_vals_not_in_set(columns = vars(f), set = c("lower", "middle", "higher"), actions = al, active = FALSE) %>%
+      col_vals_not_null(columns = vars(c), actions = al, active = FALSE) %>%
+      col_vals_null(columns = vars(b), actions = al, active = FALSE) %>%
+      col_vals_regex(columns = vars(f), regex = "[a-z]{3}", actions = al, active = FALSE) %>%
+      rows_distinct(actions = al, active = FALSE) %>%
+      conjointly(
+        ~ col_vals_gt(., columns = vars(a), value = 1),
+        ~ col_vals_lt(., columns = vars(c), value = 10, na_pass = TRUE),
+        ~ col_vals_not_null(., columns = vars(d)),
+        actions = al, active = FALSE
+      )
+  )
 })

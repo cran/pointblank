@@ -1,8 +1,9 @@
 #' Print the agent information to the console
 #'
-#' This function will allow the agent to provide a short message in the console.
+#' This function will allow the agent to print a useful report.
 #' 
 #' @param x An agent object of class `ptblank_agent`.
+#' @param ... Any additional parameters.
 #' 
 #' @keywords internal
 #' @export
@@ -10,54 +11,101 @@ print.ptblank_agent <- function(x, ...) {
   
   # nocov start 
   
-  args <- list(...)
-  args <- NULL
+  print(get_agent_report(x))
   
-  # Get the console width
-  console_width <- getOption("width")
+  # nocov end 
+}
 
-  # Generate the complete statement for printing
-  if (is_agent_empty(x)) {
-    
-    print_stmt <- paste0("pointblank agent // <", x$name, ">")
-    
-  } else {
-    
-    print_stmt <-
-      paste0(
-        "pointblank agent // <", x$name, ">", "\n", "\n",
-        "number of validation steps: ", number_of_validation_steps(x), "\n"
-      )
-    
-    if (has_agent_intel(x)) {
-      
-      passing_steps <-
-        length(which(x$validation_set$all_passed == TRUE))
-      
-      failing_steps <-
-        length(which(x$validation_set$all_passed == FALSE))
-      
-      print_stmt <-
-        paste0(
-          print_stmt, "\n",
-          "interrogation (",
-          interrogation_time(x), ") resulted in:", "\n",
-          "  - ", 
-          ifelse(passing_steps > 0, as.character(passing_steps), "no"),
-          " passing validation",
-          ifelse(passing_steps == 1, "", "s"),
-          "\n",
-          "  - ", 
-          ifelse(failing_steps > 0, as.character(failing_steps), "no"),
-          " failing validation",
-          ifelse(failing_steps == 1, "", "s"),
-          "   ",
-          "more info: `get_agent_report()`\n"
-        )
-    }
-  }
+
+#' Print a single-step x-list to the console
+#'
+#' This function will print an x-list object, for a single step, to the console.
+#' 
+#' @param x An x-list object of class `x_list_i`.
+#' @param ... Any additional parameters.
+#' 
+#' @keywords internal
+#' @export
+print.x_list_i <- function(x, ...) {
   
-  cat(print_stmt)
+  # nocov start
   
+  cli::cli_div(
+    theme = list(
+      span.cyan = list(color = "cyan"),
+      span.red = list(color = "red"),
+      span.blue = list(color = "blue"),
+      span.green = list(color = "green"),
+      span.yellow = list(color = "yellow"),
+      span.orange = list(color = "orange")
+    )
+  )
+  
+  length_rows <- length(x$warn)
+
+  cli::cli_rule(left = "The x-list for `{x$name}`", right = "STEP {x$i}")
+  cli::cli_text("{.cyan $time} ({.red POSIXct [{length(x$time)}]})")
+  cli::cli_text("{.cyan $name $tbl_name $tbl_src $tbl_src_details} ({.red chr [1]})")
+  cli::cli_text("{.cyan $tbl} ({.blue {class(x$tbl)}})")
+  cli::cli_text("{.cyan $col_names $col_types} ({.red chr [{length(x$col_names)}]})")
+  cli::cli_text("{.cyan $i $type $columns $values $briefs} ({.green mixed [{length(x$i)}]})")
+  cli::cli_text("{.cyan $eval_error $eval_warning} ({.yellow lgl [{length(x$i)}]})")
+  cli::cli_text("{.cyan $capture_stack} ({.orange list [{length(x$capture_stack)}]})")
+  cli::cli_text("{.cyan $n $n_passed $n_failed $f_passed $f_failed} ({.green num [{length_rows}]})")
+  cli::cli_text("{.cyan $warn $stop $notify} ({.yellow lgl [{length_rows}]})")
+  cli::cli_text("{.cyan $reporting_lang} ({.red chr [1]})")
+  cli::cli_rule(right = ifelse(length(x$time) == 0, "NO INTERROGATION PERFORMED", ""))
+
+  # nocov end 
+}
+
+#' Print an x-list comprising all validation steps to the console
+#'
+#' This function will print a x-list object, with all validation steps included,
+#' to the console.
+#' 
+#' @param x An x-list object of class `x_list_n`.
+#' @param ... Any additional parameters.
+#' 
+#' @keywords internal
+#' @export
+print.x_list_n <- function(x, ...) {
+  
+  # nocov start
+  
+  cli::cli_div(
+    theme = list(
+      span.cyan = list(color = "cyan"),
+      span.red = list(color = "red"),
+      span.blue = list(color = "blue"),
+      span.green = list(color = "green"),
+      span.yellow = list(color = "yellow"),
+      span.orange = list(color = "orange"),
+      span.pink = list(color = "pink"),
+      span.brown = list(color = "brown")
+    )
+  )
+
+  length_rows <- length(x$warn)
+  validation_set_rows <- nrow(x$validation_set)
+  validation_set_cols <- ncol(x$validation_set)
+  
+  cli::cli_rule(left = "The x-list for `{x$name}`", right = "ALL STEPS")
+  cli::cli_text("{.cyan $time} ({.red POSIXct [{length(x$time)}]})")
+  cli::cli_text("{.cyan $name $tbl_name $tbl_src $tbl_src_details} ({.red chr [1]})")
+  cli::cli_text("{.cyan $tbl} ({.blue {class(x$tbl)}})")
+  cli::cli_text("{.cyan $col_names $col_types} ({.red chr [{length(x$col_names)}]})")
+  cli::cli_text("{.cyan $i $type $columns $values $briefs} ({.green mixed [{length(x$i)}]})")
+  cli::cli_text("{.cyan $eval_error $eval_warning} ({.yellow lgl [{length(x$i)}]})")
+  cli::cli_text("{.cyan $capture_stack} ({.orange list [{length(x$capture_stack)}]})")
+  cli::cli_text("{.cyan $n $n_passed $n_failed $f_passed $f_failed} ({.green num [{length_rows}]})")
+  cli::cli_text("{.cyan $warn $stop $notify} ({.yellow lgl [{length_rows}]})")
+  cli::cli_text("{.cyan $validation_set} ({.blue tbl_df [{validation_set_rows}, {validation_set_cols}]})")
+  cli::cli_text("{.cyan $reporting_lang} ({.red chr [1]})")
+  cli::cli_text("{.cyan $report_object} ({.pink gt_tbl})")
+  cli::cli_text("{.cyan $email_object} ({.pink blastula_message})")
+  cli::cli_text("{.cyan $report_html $report_html_small} ({.red chr [1]})")
+  cli::cli_rule(right = ifelse(length(x$time) == 0, "NO INTERROGATION PERFORMED", ""))
+    
   # nocov end 
 }

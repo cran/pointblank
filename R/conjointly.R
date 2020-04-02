@@ -60,12 +60,10 @@
 #' @param .list Allows for the use of a list as an input alternative to `...`.
 #'
 #' @examples
-#' library(dplyr)
-#' 
 #' # Create a simple table with three
 #' # columns of numerical values
 #' tbl <-
-#'   tibble(
+#'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5, 8, 7),
 #'     b = c(3, 4, 6, 8, 9, 11),
 #'     c = c(2, 6, 8, NA, 3, 8)
@@ -93,7 +91,8 @@ conjointly <- function(x,
                        .list = list2(...),
                        preconditions = NULL,
                        actions = NULL,
-                       brief = NULL) {
+                       brief = NULL,
+                       active = TRUE) {
 
   # Obtain all of the group's elements
   list_elements <- .list
@@ -112,12 +111,13 @@ conjointly <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x) %>%
+    secret_agent <- create_agent(x, name = "::QUIET::") %>%
       conjointly(
         .list = .list,
         preconditions = preconditions,
         actions = prime_actions(actions),
-        brief = brief
+        brief = brief,
+        active = active
       ) %>% interrogate()
     
     return(x)
@@ -125,18 +125,28 @@ conjointly <- function(x,
   
   agent <- x
   
+  if (is.null(brief)) {
+    
+    brief <-
+      create_autobrief(
+        agent = agent,
+        assertion_type = "conjointly",
+        preconditions = preconditions,
+        values = validation_formulas
+      )
+  }
+
   agent <-
     create_validation_step(
       agent = agent,
       assertion_type = "conjointly",
       column = NULL,
-      value = NULL,
-      set = validation_formulas,
-      regex = NULL,
+      values = validation_formulas,
       na_pass = NULL,
       preconditions = preconditions,
       actions = actions,
-      brief = brief
+      brief = brief,
+      active = active
     )
   
   agent
