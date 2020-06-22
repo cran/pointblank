@@ -63,12 +63,13 @@ interrogate <- function(agent,
   # Add the starting time to the `agent` object
   agent$time <- Sys.time()
   
-  if (agent$name == "::QUIET::") {
+  if (agent$name == "::QUIET::" || !interactive()) {
     quiet <- TRUE
   } else {
     quiet <- FALSE
   }
   
+  # Get the agent's validation step indices
   validation_steps <- unique(agent$validation_set$i)
   
   # Add start of interrogation console status
@@ -87,12 +88,6 @@ interrogate <- function(agent,
     
     # Get the table object for interrogation 
     table <- get_tbl_object(agent)
-    
-    # Use the default `action_levels` list if it exists and
-    # only if it isn't set for this validation step
-    if (!is.null(agent$actions) && is.null(agent$validation_set$actions[i][[1]])) {
-      agent$validation_set[[i, "actions"]] <- list(agent$actions)
-    }
     
     # Use preconditions to modify the table
     table <- apply_preconditions_to_tbl(agent, idx = i, tbl = table)
@@ -134,8 +129,7 @@ interrogate <- function(agent,
       for (j in seq(nrow(double_agent$validation_set))) {
         
         # Get the assertion type for this verification step
-        assertion_type <- 
-          get_assertion_type_at_idx(agent = double_agent, idx = j)
+        assertion_type <- get_assertion_type_at_idx(agent = double_agent, idx = j)
         
         new_col <- paste0("pb_is_good_", j)
 
@@ -189,24 +183,31 @@ interrogate <- function(agent,
     perform_action(agent, idx = i, type = "notify")
     perform_action(agent, idx = i, type = "stop")
 
-    # Add extracts of failed rows if `extract_failed` is TRUE
-    agent <- 
-      add_table_extract(
-        agent = agent,
-        idx = i,
-        tbl_checked = tbl_checked,
-        extract_failed = extract_failed,
-        get_first_n = get_first_n,
-        sample_n = sample_n,
-        sample_frac = sample_frac,
-        sample_limit = sample_limit
-      )
+    # Add extracts of failed rows if validation function operates on
+    # values in rows and `extract_failed` is TRUE
+    if (assertion_type %in% row_based_step_fns_vector()) {
+      
+      agent <- 
+        add_table_extract(
+          agent = agent,
+          idx = i,
+          tbl_checked = tbl_checked,
+          extract_failed = extract_failed,
+          get_first_n = get_first_n,
+          sample_n = sample_n,
+          sample_frac = sample_frac,
+          sample_limit = sample_limit
+        )
+    }
     
     # Get the ending time for the validation step
     validation_end_time <- Sys.time()
     
     # Get the duration for the validation step    
-    time_diff_s <- (validation_end_time - validation_start_time)[[1]] %>% round(4)
+    time_diff_s <- 
+      difftime(validation_end_time, validation_start_time, units = "secs") %>%
+      as.numeric() %>%
+      round(4)
     
     # Add the timing information to the `agent` object
     agent$validation_set$time_processed[i] <- validation_start_time
@@ -390,6 +391,7 @@ check_table_with_assertion <- function(agent, idx, table, assertion_type) {
       "col_vals_null" = interrogate_null(agent, idx, table),
       "col_vals_not_null" = interrogate_not_null(agent, idx, table),
       "col_vals_regex" = interrogate_regex(agent, idx, table),
+      "col_vals_expr" = interrogate_expr(agent, idx, table),
       "col_exists" = interrogate_col_exists(agent, idx, table),
       "col_is_numeric" =,
       "col_is_integer" =,
@@ -434,34 +436,23 @@ interrogate_comparison <- function(agent, idx, table, assertion_type) {
   # Determine whether NAs should be allowed
   na_pass <- get_column_na_pass_at_idx(agent = agent, idx = idx)
   
-  # Create function for validating comparison step functions
-  tbl_val_comparison <- function(table, column, operator, value, na_pass) {
-
-    table_colnames <- colnames(table)
-
-    if (!(column %in% table_colnames)) {
-      stop("The value for `column` doesn't correspond to a column name.")
-    }
-    
-    if (inherits(value, "name")) {
-      if (!(as.character(value) %in% table_colnames)) {
-        stop("The column supplied as the `value` doesn't correspond to a column name.")
-      }
-    }
-
-    # Construct a string-based expression for the validation
-    expression <- paste(column, operator, value)
-    
-    table %>%
-      dplyr::mutate(pb_is_good_ = !!rlang::parse_expr(expression)) %>%
-      dplyr::mutate(pb_is_good_ = dplyr::case_when(
-        is.na(pb_is_good_) ~ na_pass,
-        TRUE ~ pb_is_good_
-      ))
-  }
-  
   # Perform rowwise validations for the column
   pointblank_try_catch(tbl_val_comparison(table, column, operator, value, na_pass))
+}
+# Function for validating comparison step functions
+tbl_val_comparison <- function(table, column, operator, value, na_pass) {
+  
+  column_validity_checks_column_value(table = table, column = {{ column }}, value = {{ value }})
+  
+  # Construct a string-based expression for the validation
+  expression <- paste(column, operator, value)
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = !!rlang::parse_expr(expression)) %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      is.na(pb_is_good_) ~ na_pass,
+      TRUE ~ pb_is_good_
+    ))
 }
 
 interrogate_between <- function(agent, idx, table, assertion_type) {
@@ -490,7 +481,7 @@ interrogate_between <- function(agent, idx, table, assertion_type) {
   } else {
     right <- unname(right)
   }
-  
+
   incl_str <- paste(ifelse(names(set) %>% as.logical(), "incl", "excl"), collapse = "_")
 
   if (assertion_type == "col_vals_between") {
@@ -500,13 +491,13 @@ interrogate_between <- function(agent, idx, table, assertion_type) {
       switch(
         incl_str,
         "incl_incl" = 
-          pointblank_try_catch(ib_incl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
+          pointblank_try_catch(tbl_val_ib_incl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
         "excl_incl" = 
-          pointblank_try_catch(ib_excl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
+          pointblank_try_catch(tbl_val_ib_excl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
         "incl_excl" = 
-          pointblank_try_catch(ib_incl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
+          pointblank_try_catch(tbl_val_ib_incl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
         "excl_excl" = 
-          pointblank_try_catch(ib_excl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass))
+          pointblank_try_catch(tbl_val_ib_excl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass))
       )
   }
   
@@ -517,17 +508,113 @@ interrogate_between <- function(agent, idx, table, assertion_type) {
       switch(
         incl_str,
         "incl_incl" = 
-          pointblank_try_catch(nb_incl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
+          pointblank_try_catch(tbl_val_nb_incl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
         "excl_incl" = 
-          pointblank_try_catch(nb_excl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
+          pointblank_try_catch(tbl_val_nb_excl_incl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
         "incl_excl" = 
-          pointblank_try_catch(nb_incl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
+          pointblank_try_catch(tbl_val_nb_incl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass)),
         "excl_excl" = 
-          pointblank_try_catch(nb_excl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass))
+          pointblank_try_catch(tbl_val_nb_excl_excl(table, {{ column }}, {{ left }}, {{ right }}, na_pass))
       )
   }
   
   tbl_evaled
+}
+tbl_val_ib_incl_incl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} >= {{ left }} & {{ column }} <= {{ right }} ~ TRUE,
+      {{ column }} < {{ left }} | {{ column }} > {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_ib_excl_incl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} > {{ left }} & {{ column }} <= {{ right }} ~ TRUE,
+      {{ column }} <= {{ left }} | {{ column }} > {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_ib_incl_excl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} >= {{ left }} & {{ column }} < {{ right }} ~ TRUE,
+      {{ column }} < {{ left }} | {{ column }} >= {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_ib_excl_excl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} > {{ left }} & {{ column }} < {{ right }} ~ TRUE,
+      {{ column }} <= {{ left }} | {{ column }} >= {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_nb_incl_incl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} < {{ left }} | {{ column }} > {{ right }} ~ TRUE,
+      {{ column }} >= {{ left }} & {{ column }} <= {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_nb_excl_incl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} <= {{ left }} | {{ column }} > {{ right }} ~ TRUE,
+      {{ column }} > {{ left }} & {{ column }} <= {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_nb_incl_excl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} < {{ left }} | {{ column }} >= {{ right }} ~ TRUE,
+      {{ column }} >= {{ left }} & {{ column }} < {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
+}
+tbl_val_nb_excl_excl <- function(table, column, left, right, na_pass) {
+  
+  column_validity_checks_ib_nb(table = table, column = {{ column }}, left = {{ left }}, right = {{ right }})
+  
+  table %>%
+    dplyr::mutate(pb_is_good_ = dplyr::case_when(
+      {{ column }} <= {{ left }} | {{ column }} >= {{ right }} ~ TRUE,
+      {{ column }} > {{ left }} & {{ column }} < {{ right }} ~ FALSE,
+      is.na({{ column }}) & na_pass ~ TRUE,
+      is.na({{ column }}) & na_pass == FALSE ~ FALSE
+    ))
 }
 
 interrogate_set <- function(agent, idx, table, assertion_type) {
@@ -545,6 +632,8 @@ interrogate_set <- function(agent, idx, table, assertion_type) {
     
     # Create function for validating the `col_vals_in_set()` step function
     tbl_val_in_set <- function(table, column, na_pass) {
+      
+      column_validity_checks_column(table = table, column = {{ column }})
       
       table %>%
         dplyr::mutate(pb_is_good_ = dplyr::case_when(
@@ -565,6 +654,8 @@ interrogate_set <- function(agent, idx, table, assertion_type) {
     
     # Create function for validating the `col_vals_not_in_set()` step function
     tbl_val_not_in_set <- function(table, column, na_pass) {
+      
+      column_validity_checks_column(table = table, column = {{ column }})
       
       table %>%
         dplyr::mutate(pb_is_good_ = dplyr::case_when(
@@ -595,19 +686,63 @@ interrogate_regex <- function(agent, idx, table) {
   # Obtain the target column as a symbol
   column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
   
+  tbl_type <- agent$tbl_src
+  
   # Create function for validating the `col_vals_regex()` step function
-  tbl_val_regex <- function(table, column, regex, na_pass) {
+  tbl_val_regex <- function(table, tbl_type, column, regex, na_pass) {
     
-    table %>% 
-      dplyr::mutate(pb_is_good_ = ifelse(!is.na({{ column }}), grepl(regex, {{ column }}), NA)) %>%
-      dplyr::mutate(pb_is_good_ = dplyr::case_when(
-        is.na(pb_is_good_) ~ na_pass,
-        TRUE ~ pb_is_good_
-      ))
+    column_validity_checks_column(table = table, column = {{ column }})
+    
+    if (tbl_type == "sqlite") { 
+      stop("Regex-based validations are currently not supported on SQLite database tables", call. = FALSE)
+    }
+    
+    if (tbl_type == "mysql") {
+
+      tbl <- 
+        table %>%
+        dplyr::mutate(pb_is_good_ = ifelse(!is.na({{ column }}), {{ column }} %REGEXP% regex, NA)) %>%
+        dplyr::mutate(pb_is_good_ = dplyr::case_when(
+          is.na(pb_is_good_) ~ na_pass,
+          TRUE ~ pb_is_good_
+        ))
+      
+    } else {
+      
+      # This works for postgres and local tables; untested so far in other DBs
+      tbl <- 
+        table %>% 
+        dplyr::mutate(pb_is_good_ = ifelse(!is.na({{ column }}), grepl(regex, {{ column }}), NA)) %>%
+        dplyr::mutate(pb_is_good_ = dplyr::case_when(
+          is.na(pb_is_good_) ~ na_pass,
+          TRUE ~ pb_is_good_
+        ))
+    }
+    
+    tbl
   }
   
   # Perform rowwise validations for the column
-  pointblank_try_catch(tbl_val_regex(table, {{ column }}, regex, na_pass))
+  pointblank_try_catch(tbl_val_regex(table, tbl_type, {{ column }}, regex, na_pass))
+}
+
+interrogate_expr <- function(agent, idx, table) {
+  
+  # Get the expression
+  expr <- get_values_at_idx(agent = agent, idx = idx)
+  
+  # Create function for validating the `col_vals_expr()` step function
+  tbl_val_expr <- function(table, expr) {
+    
+    expr <- expr[[1]]
+
+    table %>% 
+      dplyr::mutate(pb_is_good_ = !!expr) %>%
+      dplyr::filter(!is.na(pb_is_good_))
+  }
+  
+  # Perform rowwise validations for the column
+  pointblank_try_catch(tbl_val_expr(table, expr))
 }
 
 interrogate_null <- function(agent, idx, table) {
@@ -617,6 +752,9 @@ interrogate_null <- function(agent, idx, table) {
   
   # Create function for validating the `col_vals_null()` step function
   tbl_val_null <- function(table, column) {
+    
+    column_validity_checks_column(table = table, column = {{ column }})
+    
     table %>% dplyr::mutate(pb_is_good_ = is.na({{ column }}))
   }
   
@@ -628,9 +766,12 @@ interrogate_not_null <- function(agent, idx, table) {
 
   # Obtain the target column as a symbol
   column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
-
+  
   # Create function for validating the `col_vals_null()` step function
   tbl_val_not_null <- function(table, column) {
+    
+    column_validity_checks_column(table = table, column = {{ column }})
+    
     table %>% dplyr::mutate(pb_is_good_ = !is.na({{ column }}))
   }
   
@@ -662,6 +803,8 @@ interrogate_col_type <- function(agent, idx, table, assertion_type) {
   
   # Create function for validating the `col_is_*()` step functions
   tbl_col_is <- function(table, column, assertion_type) {
+    
+    column_validity_checks_column(table = table, column = {{ column }})
     
     column_class <-
       table %>%
@@ -751,10 +894,10 @@ interrogate_distinct <- function(agent, idx, table) {
 
 interrogate_col_schema_match <- function(agent, idx, table) {
 
-  # Get the reference `col_schema` object
+  # Get the reference `col_schema` object (this is user-supplied)
   table_schema_y <- agent$validation_set$values[[idx]]
   
-  # Get the `table` `col_schema` object
+  # Get the `table` `col_schema` object (this is constructed from the table)
   if (inherits(table, "tbl_dbi")) {
     
     if (inherits(table_schema_y, "sql_type")) {
@@ -782,7 +925,48 @@ interrogate_col_schema_match <- function(agent, idx, table) {
   
   # Create function for validating the `col_schema_match()` step function
   tbl_col_schema_match <- function(table, table_schema_x, table_schema_y) {
+
+    # Extract options from `table_schema_y`
+    complete <- table_schema_y$`__complete__`
+    in_order <- table_schema_y$`__in_order__`
+
+    table_schema_y$`__complete__` <- NULL
+    table_schema_y$`__in_order__` <- NULL
+    class(table_schema_y) <- class(table_schema_x)
     
+    if (complete && length(table_schema_y) < length(table_schema_x)) {
+      return(dplyr::tibble(pb_is_good_ = FALSE))
+    }
+
+    if (!in_order) {
+      
+      table_schema_x <- 
+        structure(
+          table_schema_x[order(names(table_schema_x))],
+          class = class(table_schema_x)
+        )
+      
+      table_schema_y <- 
+        structure(
+          table_schema_y[order(names(table_schema_y))],
+          class = class(table_schema_y)
+        )
+    }
+    
+    # If there is no requirement for completeness in the user-defined
+    # schema, use only the intersecting names across the schemas in the
+    # reference schema
+    if (!complete) {
+
+      table_schema_x <-
+        structure(
+          table_schema_x[base::intersect(names(table_schema_x), names(table_schema_y))],
+          class = class(table_schema_x)
+        )
+    }
+    
+    # Check for exact matching between the reference schema and
+    # the user-defined schema
     if (identical(table_schema_x, table_schema_y)) {
       dplyr::tibble(pb_is_good_ = TRUE)
     } else {
@@ -792,6 +976,49 @@ interrogate_col_schema_match <- function(agent, idx, table) {
 
   # Perform the validation of the table 
   pointblank_try_catch(tbl_col_schema_match(table, table_schema_x, table_schema_y))
+}
+
+# Validity checks for the column and value 
+column_validity_checks_column_value <- function(table, column, value) {
+  
+  table_colnames <- colnames(table)
+  if (!(as.character(column) %in% table_colnames)) {
+    stop("The value for `column` doesn't correspond to a column name.")
+  }
+  if (inherits(value, "name")) {
+    if (!(as.character(value) %in% table_colnames)) {
+      stop("The column supplied as the `value` doesn't correspond to a column name.")
+    }
+  }
+}
+
+# Validity check for the column
+column_validity_checks_column <- function(table, column) {
+  
+  table_colnames <- colnames(table)
+  if (!(as.character(column) %in% table_colnames)) {
+    stop("The value for `column` doesn't correspond to a column name.")
+  }
+}
+
+# Validity checks for `tbl_val_ib_*()` functions
+column_validity_checks_ib_nb <- function(table, column, left, right) {
+  
+  table_colnames <- colnames(table)
+  
+  if (!(as.character(column) %in% table_colnames)) {
+    stop("The value for `column` doesn't correspond to a column name.")
+  }
+  if (inherits(left, "name")) {
+    if (!(as.character(left) %in% table_colnames)) {
+      stop("The column supplied as the `left` value doesn't correspond to a column name.")
+    }
+  }
+  if (inherits(right, "name")) {
+    if (!(as.character(right) %in% table_colnames)) {
+      stop("The column supplied as the `right` value doesn't correspond to a column name.")
+    }
+  }
 }
 
 pointblank_try_catch <- function(expr) {
@@ -877,79 +1104,6 @@ add_reporting_data <- function(agent, idx, tbl_checked) {
   determine_action(agent, idx, false_count = n_failed)
 }
 
-ib_incl_incl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} >= {{ left }} & {{ column }} <= {{ right }} ~ TRUE,
-      {{ column }} < {{ left }} | {{ column }} > {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-ib_excl_incl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} > {{ left }} & {{ column }} <= {{ right }} ~ TRUE,
-      {{ column }} <= {{ left }} | {{ column }} > {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-ib_incl_excl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} >= {{ left }} & {{ column }} < {{ right }} ~ TRUE,
-      {{ column }} < {{ left }} | {{ column }} >= {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-ib_excl_excl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} > {{ left }} & {{ column }} < {{ right }} ~ TRUE,
-      {{ column }} <= {{ left }} | {{ column }} >= {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-nb_incl_incl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} < {{ left }} | {{ column }} > {{ right }} ~ TRUE,
-      {{ column }} >= {{ left }} & {{ column }} <= {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-nb_excl_incl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} <= {{ left }} | {{ column }} > {{ right }} ~ TRUE,
-      {{ column }} > {{ left }} & {{ column }} <= {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-nb_incl_excl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} < {{ left }} | {{ column }} >= {{ right }} ~ TRUE,
-      {{ column }} >= {{ left }} & {{ column }} < {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-nb_excl_excl <- function(table, column, left, right, na_pass) {
-  table %>%
-    dplyr::mutate(pb_is_good_ = dplyr::case_when(
-      {{ column }} <= {{ left }} | {{ column }} >= {{ right }} ~ TRUE,
-      {{ column }} > {{ left }} & {{ column }} < {{ right }} ~ FALSE,
-      is.na({{ column }}) & na_pass ~ TRUE,
-      is.na({{ column }}) & na_pass == FALSE ~ FALSE
-    ))
-}
-
 perform_action <- function(agent, idx, type) {
 
   actions <- agent$validation_set[[idx, "actions"]] %>% unlist(recursive = FALSE)
@@ -971,6 +1125,7 @@ perform_action <- function(agent, idx, type) {
   .type <- agent$validation_set[[idx, "assertion_type"]]
   .column <- agent$validation_set[[idx, "column"]] %>% unlist()
   .values <- agent$validation_set[[idx, "values"]] %>% unlist()
+  .actions <- agent$validation_set[[idx, "actions"]] %>% unlist()
   .brief <- agent$validation_set[[idx, "brief"]]
   
   .eval_error <- agent$validation_set[[idx, "eval_error"]]
@@ -1002,6 +1157,7 @@ perform_action <- function(agent, idx, type) {
       type = .type,
       column = .column,
       values = .values,
+      actions = .actions,
       brief = .brief,
       eval_error = .eval_error,
       eval_warning = .eval_warning,
@@ -1057,6 +1213,7 @@ perform_end_action <- function(agent) {
   .type <- agent$validation_set$assertion_type
   .column <- agent$validation_set$column
   .values <- agent$validation_set$values
+  .actions <- agent$validation_set$actions
   .brief <- agent$validation_set$brief
   
   .eval_error <- agent$validation_set$eval_error
@@ -1105,6 +1262,7 @@ perform_end_action <- function(agent) {
       type = .type,
       column = .column,
       values = .values,
+      actions = .actions,
       brief = .brief,
       eval_error = .eval_error,
       eval_warning = .eval_warning,

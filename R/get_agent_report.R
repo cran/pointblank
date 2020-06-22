@@ -1,33 +1,71 @@
-#' Get a simple report from an agent
-#'
-#' We can get the essential information from an agent by using the
-#' `get_agent_report()` function. The amount of fields with intel is different
-#' depending on whether or not the agent performed an interrogation (with
-#' `interrogate()`). The tibble that is returned has the following columns:
+#' Get a summary report from an agent
+#' 
+#' @description 
+#' We can get an informative summary table from an agent by using the
+#' `get_agent_report()` function. The table can be provided in two substantially
+#' different forms: as a **gt** based display table (the default), or, as a
+#' tibble. The amount of fields with intel is different depending on whether or
+#' not the agent performed an interrogation (with the [interrogate()] function).
+#' Basically, before [interrogate()] is called, the agent will contain just the
+#' validation plan (however many rows it has depends on how many validation
+#' functions were supplied a part of that plan). Post-interrogation, information
+#' on the passing and failing test units is provided, along with indicators on
+#' whether certain failure states were entered (provided they were set through
+#' `actions`). The display table variant of the agent report, the default form,
+#' will have the following columns:
+#' 
+#' \itemize{
+#' \item i (unlabeled): the validation step number
+#' \item STEP: the name of the validation function used for the validation step
+#' \item COLUMNS: the names of the target columns used in the validation step
+#' (if applicable)
+#' \item VALUES: the values used in the validation step, where applicable; this
+#' could be as literal values, as column names, an expression, a set of
+#' sub-validations (for a [conjointly()] validation step), etc.
+#' \item TBL: indicates whether any there were any preconditions to apply
+#' before interrogation; if not, a script 'I' stands for 'identity' but, if so,
+#' a right-facing arrow appears
+#' \item EVAL: a character value that denotes the result of each validation
+#' step functions' evaluation during interrogation
+#' \item UNITS: the total number of test units for the validation step
+#' \item PASS: the number of test units that received a *pass*
+#' \item FAIL: the fraction of test units that received a *pass*
+#' \item W, S, N: indicators that show whether the `warn`, `stop`, or `notify`
+#' states were entered; unset states appear as dashes, states that are set with
+#' thresholds appear as unfilled circles when not entered and filled when
+#' thresholds are exceeded (colors for W, S, and N are amber, red, and blue)
+#' \item EXT: a column that provides buttons with data extracts for each
+#' validation step where failed rows are available (as CSV files)
+#' }
+#' 
+#' The small version of the display table (obtained using `size = "small"`)
+#' omits the `COLUMNS`, `TBL`, and `EXT` columns. The width of the small table
+#' is 575px; the standard table is 875px wide.
+#' 
+#' If choosing to get a tibble (with `display_table = FALSE`), it will have the
+#' following columns:
+#' 
 #' \itemize{
 #' \item i: the validation step number
-#' \item type: the validation type, which mirrors the name of the validation
-#' step function
-#' \item columns: the names of the columns used in the validation step
+#' \item type: the name of the validation function used for the validation step
+#' \item columns: the names of the target columns used in the validation step
+#' (if applicable)
 #' \item values: the values used in the validation step, where applicable; for
-#' a `conjointly()` validation step, this is a listing of all sub-validations
+#' a [conjointly()] validation step, this is a listing of all sub-validations
 #' \item precon: indicates whether any there are any preconditions to apply
 #' before interrogation and, if so, the number of statements used
 #' \item active: a logical value that indicates whether a validation step is
-#' set to 'active' during an interrogation
+#' set to `"active"` during an interrogation
 #' \item eval: a character value that denotes the result of each validation
 #' step functions' evaluation during interrogation
-#' \item units: the total number of validation units for the validation step
-#' \item n_pass: the number of validation units that received a *pass*
-#' \item f_pass: the fraction of validation units that received a *pass*
-#' \item W: a logical value stating whether the `warn` state was entered
-#' \item S: a logical value stating whether the `stop` state was entered
-#' \item N: a logical value stating whether the `notify` state was entered
+#' \item units: the total number of test units for the validation step
+#' \item n_pass: the number of test units that received a *pass*
+#' \item f_pass: the fraction of test units that received a *pass*
+#' \item W, S, N: logical value stating whether the `warn`, `stop`, or `notify`
+#' states were entered
 #' \item extract: a logical value that indicates whether a data extract is
 #' available for the validation step
 #' }
-#' If the **gt** package is installed (and if `display_table = TRUE`, which is
-#' the default) then a **gt** table will be displayed with the same information.
 #' 
 #' @param agent An agent object of class `ptblank_agent`.
 #' @param arrange_by A choice to arrange the report table rows by the validation
@@ -40,9 +78,12 @@
 #'   default), and if the **gt** package is installed, a display table for the
 #'   report will be shown in the Viewer. If `FALSE`, or if **gt** is not
 #'   available, then a tibble will be returned.
-#' @param ... Additional options passed to downstream functions.
+#' @param size The size of the display table, which can be either `"standard"`
+#'   (the default) or `"small"`. This only applies to a display table (where
+#'   `display_table = TRUE`).
 #' 
-#' @return A tibble.
+#' @return A **gt** table object if `display_table = TRUE` or a tibble if
+#'   `display_table = FALSE`.
 #' 
 #' @examples
 #' # Create a simple table with a
@@ -59,8 +100,32 @@
 #' 
 #' # Get a tibble-based report from the
 #' # agent by using `get_agent_report()`
+#' # with `display_table = FALSE`
 #' agent %>%
 #'   get_agent_report(display_table = FALSE)
+#'   
+#' # View a the report by printing the
+#' # `agent` object anytime, but, return a
+#' # gt table object by using this with
+#' # `display_table = TRUE` (the default)
+#' report <- get_agent_report(agent)
+#' class(report)
+#' 
+#' # What can you do with the report?
+#' # Print it from an R Markdown code,
+#' # use it in an email, put it in a
+#' # webpage, or further modify it with
+#' # the **gt** package
+#' 
+#' # The agent report as a **gt** display
+#' # table comes in two sizes: "standard"
+#' # (the default) and "small"
+#' small_report <- 
+#'   get_agent_report(agent, size = "small")
+#' class(small_report)
+#' 
+#' # The standard report is 875px wide
+#' # the small one is 575px wide
 #' 
 #' @family Post-interrogation
 #' @section Function ID:
@@ -71,7 +136,7 @@ get_agent_report <- function(agent,
                              arrange_by = c("i", "severity"),
                              keep = c("all", "fail_states"),
                              display_table = TRUE,
-                             ...) {
+                             size = "standard") {
 
   arrange_by <- match.arg(arrange_by)
   keep <- match.arg(keep)
@@ -192,39 +257,62 @@ get_agent_report <- function(agent,
   if (keep == "fail_states") {
     report_tbl <- report_tbl %>% dplyr::filter(total_pts > 0)
   }
-
+  
   report_tbl <-
     report_tbl %>%
     dplyr::select(-dplyr::ends_with("pts"))
   
+  
+  validation_set <- validation_set[report_tbl$i, ]
+  eval <- eval[report_tbl$i]
+  
+  extracts <- 
+    agent$extracts[as.character(base::intersect(as.numeric(names(agent$extracts)), report_tbl$i))]
+  
   # nocov start
   
   if (display_table) {
-    
-    x_list <- list(...)
 
-    if (length(x_list) > 0) {
-      if (x_list$size == "small") {
-        scale <- 1.0
-        email_table <- TRUE
-      }
+    if (size == "small") {
+      scale <- 1.0
+      email_table <- TRUE
     } else {
       scale <- 1.0
       email_table <- FALSE
     }
     
-    make_button <- function(x, scale, color, background) {
+    make_button <- function(x, scale, color, background, text = NULL, border_radius = NULL) {
       
       paste0(
-        "<button style=\"background: ", background, "; padding: ",
-        5 * scale, "px ", 5 * scale, "px; ",
-        "color: ", color, "; font-size: ", 15 * scale, "px; border: none;\">",
+        "<button title=\"", text, "\" style=\"background: ", background,
+        "; padding: ", 5 * scale, "px ", 5 * scale, "px; ",
+        "color: ", color, "; font-size: ", 15 * scale,
+        "px; border: none; border-radius: ", border_radius, "\">",
         x, "</button>"
       )
     }
     
-    validation_set <- validation_set[report_tbl$i, ]
-  
+    # Reformat `type`
+    assertion_type <- validation_set$assertion_type
+    type_upd <- 
+      seq_along(assertion_type) %>%
+      vapply(
+        FUN.VALUE = character(1),
+        USE.NAMES = FALSE,
+        FUN = function(x) {
+
+          title <- gsub("\"", "'", agent$validation_set$brief[[x]])
+          
+          paste0(
+            "<div><p title=\"", title, "\"style=\"margin-top: 0px; margin-bottom: 0px; ",
+            "font-family: monospace; white-space: nowrap; ",
+            "text-overflow: ellipsis; overflow: hidden;\">",
+            assertion_type[x],
+            "</p></div>"
+          )
+        }
+      )
+
     # Reformat `columns`
     columns_upd <- 
       validation_set$column %>%
@@ -239,18 +327,19 @@ get_agent_report <- function(agent,
             x <- NA_character_
           } else {
             text <- x %>% unlist() %>% strsplit(", ") %>% unlist()
+            title <- text
             text <- 
               paste(
                 paste0(
                   "<span style=\"color: purple; ",
-                  "font-size: bigger;\">&#8643;</span>",
+                  "font-size: bigger;\">&marker;</span>",
                   text
                 ),
                 collapse = ", "
               )
             x <- 
               paste0(
-                "<div><p style=\"margin-top: 0px;margin-bottom: 0px; ",
+                "<div><p title=\"", paste(title, collapse = ", "), "\"style=\"margin-top: 0px;margin-bottom: 0px; ",
                 "font-family: monospace; white-space: nowrap; ",
                 "text-overflow: ellipsis; overflow: hidden;\">",
                 text,
@@ -269,7 +358,45 @@ get_agent_report <- function(agent,
         USE.NAMES = FALSE,
         FUN = function(x) {
 
-          if (is.list(x) && length(x) > 0 && inherits(x, "col_schema")) {
+          if (is.list(x) && length(x) == 2 && all(names(x) %in% c("TRUE", "FALSE")) && !is_formula(x[[1]])) {
+            # Case of in-between comparison validation where there are
+            # one or two columns specified as bounds
+            bounds_incl <- as.logical(names(x))
+            
+            if (rlang::is_quosure(x[[1]])) {
+              x_left <- 
+                paste0(
+                  "<span style=\"color: purple; font-size: bigger;\">&marker;</span>",
+                  rlang::as_label(x[[1]])
+                )
+            } else {
+              x_left <- x[[1]]
+            }
+            
+            if (rlang::is_quosure(x[[2]])) {
+              x_right <- 
+                paste0(
+                  "<span style=\"color: purple; font-size: bigger;\">&marker;</span>",
+                  rlang::as_label(x[[2]])
+                )
+            } else {
+              x_right <- x[[2]]
+            }
+            
+            title <- paste0(rlang::as_label(x[[1]]), ", ", rlang::as_label(x[[2]]))
+            text <- paste0(x_left, ", ", x_right)
+
+            x <- 
+              paste0(
+                "<div><p title=\"", title, "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "font-family: monospace; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                text,
+                "</p></div>"
+              )
+
+          } else if (is.list(x) && length(x) > 0 && inherits(x, "col_schema")) {
+            # Case of column schema as a value
             
             column_schema_text <- report_column_schema[lang]
             column_schema_type_text <- 
@@ -289,7 +416,21 @@ get_agent_report <- function(agent,
                 "</div>"
               )
             
+          } else if (is_call(x)) {
+            
+            text <- rlang::as_label(x)
+            
+            x <- 
+              paste0(
+                "<div><p title=\"", text , "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "font-family: monospace; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                text,
+                "</p></div>"
+              )
+            
           } else if (is.list(x) && length(x) > 0 && !inherits(x, "quosures")) {
+            # Conjointly case
             
             step_text <- 
               if (length(x) > 1) {
@@ -309,20 +450,20 @@ get_agent_report <- function(agent,
             x <- NA_character_
             
           } else {
-            
+
             text <-
               x %>%
               tidy_gsub(
                 "~",
-                "<span style=\"color: purple; font-size: bigger;\">&#8643;</span>"
+                "<span style=\"color: purple; font-size: bigger;\">&marker;</span>"
               ) %>%
               unname()
-            
+          
             text <- paste(text, collapse = ", ")
             
             x <- 
               paste0(
-                "<div><p style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "<div><p title=\"", x %>% tidy_gsub("~", "") %>% paste(., collapse = ", "), "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
                 "font-family: monospace; white-space: nowrap; ",
                 "text-overflow: ellipsis; overflow: hidden;\">",
                 text,
@@ -332,7 +473,7 @@ get_agent_report <- function(agent,
           x
         } 
       )
-    
+
     # Reformat `precon`
     precon_upd <- 
       validation_set$preconditions %>%
@@ -340,25 +481,173 @@ get_agent_report <- function(agent,
         FUN.VALUE = character(1),
         USE.NAMES = FALSE,
         FUN = function(x) {
+
           if (is.null(x)) {
             x <- 
               make_button(
                 x = "&Iscr;",
                 scale = scale,
                 color = "#333333",
-                background = "#FFFFFF"
+                background = "#EFEFEF",
+                text = "No table preconditions applied.",
+                border_radius = "4px"
               )
             
-          } else {
-            x <- x %>% as.character() %>% base::setdiff("~")
+          } else if (rlang::is_formula(x) || rlang::is_function(x)) {
+
+            if (rlang::is_formula(x)) {
+              text <- rlang::as_label(x) %>% tidy_gsub("^~", "")
+            } else {
+              text <- rlang::as_label(body(x))
+            }
             
             x <- 
               make_button(
                 x = "&#10174;",
                 scale = scale,
                 color = "#FFFFFF",
-                background = "#67C2DC"
+                background = "#67C2DC",
+                text = paste0("Table altered with preconditions: ", gsub("\"", "'", text)),
+                border_radius = "4px"
               )
+          }
+          x
+        } 
+      )
+
+    # Reformat `eval`
+    eval_upd <- 
+      seq_along(eval) %>%
+      vapply(
+        FUN.VALUE = character(1),
+        USE.NAMES = FALSE,
+        FUN = function(x) {
+
+          if (is.na(eval[x])) {
+            
+            out <- "&mdash;"
+            
+          } else if (eval[x] == "OK") {
+            
+            out <- 
+              make_button(
+                x = "&check;",
+                scale = scale,
+                color = "#4CA64C",
+                background = "transparent",
+                text = "No evaluation issues."
+              )
+            
+          } else if (eval[x] == "W + E") {
+            
+            text <- agent$validation_set$capture_stack[[x]]$error
+            
+            if (!is.null(text)) {
+              text <- as.character(text)
+            } else {
+              text <- ""
+            }
+            
+            out <- 
+              make_button(
+                x = "&#128165;",
+                scale = scale,
+                color = "#FFFFFF",
+                background = "transparent",
+                text = text
+              )
+            
+          } else if (eval[x] == "WARNING") {
+            
+            text <- agent$validation_set$capture_stack[[x]]$warning
+            
+            if (!is.null(text)) {
+              text <- as.character(text)
+            } else {
+              text <- ""
+            }
+            
+            out <- 
+              make_button(
+                x = "&#9888;",
+                scale = scale,
+                color = "#222222",
+                background = "transparent",
+                text = text
+              )
+            
+          } else if (eval[x] == "ERROR") {
+            
+            text <- agent$validation_set$capture_stack[[x]]$error
+            
+            if (!is.null(text)) {
+              text <- as.character(text)
+            } else {
+              text <- ""
+            }
+            
+            out <- 
+              make_button(
+                x = "&#128165;",
+                scale = scale,
+                color = "#FFFFFF",
+                background = "transparent",
+                text = text
+              )
+          }
+          out
+        } 
+      )
+
+    # Reformat `extract`
+    extract_upd <-
+      validation_set$i %>%
+      vapply(
+        FUN.VALUE = character(1),
+        USE.NAMES = FALSE,
+        FUN = function(x) {
+
+          if (is.null(extracts[as.character(x)][[1]])) {
+            x <- "&mdash;"
+          } else {
+
+            df <- 
+              extracts[as.character(x)][[1]] %>%
+              as.data.frame(stringsAsFactors = FALSE)
+            
+            title_text <- paste0(nrow(df), " failing rows available.")
+            
+            temp_file <- 
+              tempfile(pattern = paste0("csv_file_", x), fileext = ".csv")
+            
+            utils::write.csv(df, file = temp_file, row.names = FALSE)
+            
+            on.exit(unlink(temp_file))
+            
+            file_encoded <- base64enc::base64encode(temp_file)
+            
+            output_file_name <- 
+              paste0(
+                agent_name, "_",
+                formatC(x, width = 4, format = "d", flag = "0"),
+                ".csv"
+              ) %>%
+              tidy_gsub(":", "_")
+
+            x <- 
+              htmltools::a(
+                href = paste0(
+                  "data:text/csv;base64,", file_encoded
+                ),
+                download = output_file_name,
+                htmltools::tags$button(
+                  title = title_text,
+                  style = "background-color: #67C2DC; color: #FFFFFF; border: none; padding: 5px; font-weight: bold; cursor: pointer; border-radius: 4px;",
+                  "CSV"
+                )
+              ) %>%
+              as.character()
+            
           }
           x
         } 
@@ -429,18 +718,11 @@ get_agent_report <- function(agent,
     gt_agent_report <- 
       report_tbl %>%
       dplyr::mutate(
-        eval_sym = dplyr::case_when(
-          eval == "OK" ~ "&check;",
-          eval == "W + E" ~ "&#9888; + &#128165;",
-          eval == "WARNING" ~ "&#9888;",
-          eval == "ERROR" ~ "&#128165;",
-          is.na(eval) ~ "&mdash;"
-        )
-      ) %>%
-      dplyr::mutate(
+        type = type_upd,
         columns = columns_upd,
         values = values_upd,
         precon = precon_upd,
+        eval_sym = eval_upd,
         units = units,
         n_pass = n_pass,
         n_fail = units - n_pass,
@@ -452,7 +734,7 @@ get_agent_report <- function(agent,
         W = W_upd,
         S = S_upd,
         N = N_upd,
-        extract = extract
+        extract = extract_upd
       ) %>%
       dplyr::select(
         i, type, columns, values, precon, eval_sym, units,
@@ -483,7 +765,7 @@ get_agent_report <- function(agent,
         units = report_col_units[lang],
         n_pass = "PASS",
         n_fail = "FAIL",
-        extract = "EXTRACT"
+        extract = "EXT"
       ) %>%
       gt::tab_header(
         title = pointblank_validation_title_text[lang],
@@ -506,17 +788,11 @@ get_agent_report <- function(agent,
         decimals = 0, drop_trailing_zeros = TRUE, suffixing = TRUE
       ) %>%
       gt::fmt_number(columns = gt::vars(f_pass, f_fail), decimals = 2) %>%
-      gt::fmt_markdown(columns = gt::vars(columns, values, eval_sym, precon, W, S, N)) %>%
+      gt::fmt_markdown(columns = gt::vars(type, columns, values, precon, eval_sym, W, S, N, extract)) %>%
       gt::fmt_missing(columns = gt::vars(columns, values, units, extract)) %>%
-      gt::cols_hide(columns = gt::vars(W_val, S_val, N_val, eval, active)) %>%
+      gt::cols_hide(columns = gt::vars(W_val, S_val, N_val, active, eval)) %>%
       gt::text_transform(
-        locations = gt::cells_body(columns = gt::vars(type)),
-        fn = function(x) {
-          paste0("<code>", x, "</code>")
-        }
-      ) %>%
-      gt::text_transform(
-        locations = gt::cells_body(columns = gt::vars(units, extract)),
+        locations = gt::cells_body(columns = gt::vars(units)),
         fn = function(x) {
           dplyr::case_when(
             x == "&mdash;" ~ x,
@@ -644,12 +920,12 @@ get_agent_report <- function(agent,
 
       gt_agent_report <- 
         gt_agent_report %>%
-        gt::cols_hide(gt::vars(columns, values, precon, extract)) %>%
+        gt::cols_hide(gt::vars(columns, eval_sym, precon, extract)) %>%
         gt::cols_width(
           gt::vars(i) ~ gt::px(30),
           gt::vars(type) ~ gt::px(170),
+          gt::vars(values) ~ gt::px(130),
           gt::vars(precon) ~ gt::px(30),
-          gt::vars(eval_sym) ~ gt::px(40),
           gt::vars(units) ~ gt::px(50),
           gt::vars(n_pass) ~ gt::px(50),
           gt::vars(n_fail) ~ gt::px(50),
@@ -672,9 +948,9 @@ get_agent_report <- function(agent,
           gt::vars(i) ~ gt::px(50),
           gt::vars(type) ~ gt::px(170),
           gt::vars(columns) ~ gt::px(120),
-          gt::vars(values) ~ gt::px(140),
+          gt::vars(values) ~ gt::px(120),
           gt::vars(precon) ~ gt::px(35),
-          gt::vars(extract) ~ gt::px(75),
+          gt::vars(extract) ~ gt::px(65),
           gt::vars(W) ~ gt::px(30),
           gt::vars(S) ~ gt::px(30),
           gt::vars(N) ~ gt::px(30),

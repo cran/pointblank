@@ -1,37 +1,42 @@
-#' Verify that row data are distinct
+#' Are row data distinct?
 #'
-#' The `rows_distinct()` validation step function checks whether row values
-#' (optionally constrained to a selection of specified `columns`) are, when
-#' taken as a complete unit, distinct from all other units in the table. This
-#' function can be used directly on a data table or with an *agent* object
-#' (technically, a `ptblank_agent` object). This validation step will operate
-#' over the number of test units that is equal to the number of rows in the
-#' table (after any `preconditions` have been applied).
-#' 
+#' The `rows_distinct()` validation function, the `expect_rows_distinct()`
+#' expectation function, and the `test_rows_distinct()` test function all check
+#' whether row values (optionally constrained to a selection of specified
+#' `columns`) are, when taken as a complete unit, distinct from all other units
+#' in the table. The validation function can be used directly on a data table or
+#' with an *agent* object (technically, a `ptblank_agent` object) whereas the
+#' expectation and test functions can only be used with a data table. The types
+#' of data tables that can be used include data frames, tibbles, and even
+#' database tables of `tbl_dbi` class. As a validation step or as an
+#' expectation, this will operate over the number of test units that is equal to
+#' the number of rows in the table (after any `preconditions` have been
+#' applied).
+#'
 #' We can specify the constraining column names in quotes, in `vars()`, and with
 #' the following **tidyselect** helper functions: `starts_with()`,
 #' `ends_with()`, `contains()`, `matches()`, and `everything()`.
 #' 
 #' Having table `preconditions` means **pointblank** will mutate the table just
-#' before interrogation. It's isolated to the validation steps produced by this
-#' validation step function. Using **dplyr** code is suggested here since the
-#' statements can be translated to SQL if necessary. The code is to be supplied
-#' as a one-sided **R** formula (using a leading `~`). In the formula
-#' representation, the obligatory `tbl` variable will serve as the input
-#' data table to be transformed (e.g.,
-#' `~ tbl %>% dplyr::mutate(col_a = col_b + 10)`. A series of expressions can be
-#' used by enclosing the set of statements with `{ }` but note that the `tbl`
-#' variable must be ultimately returned.
+#' before interrogation. Such a table mutation is isolated in scope to the
+#' validation step(s) produced by the validation function call. Using
+#' **dplyr** code is suggested here since the statements can be translated to
+#' SQL if necessary. The code is most easily supplied as a one-sided **R**
+#' formula (using a leading `~`). In the formula representation, the `.` serves
+#' as the input data table to be transformed (e.g., 
+#' `~ . %>% dplyr::mutate(col_a = col_b + 10)`). Alternatively, a function could
+#' instead be supplied (e.g., 
+#' `function(x) dplyr::mutate(x, col_a = col_b + 10)`).
 #' 
 #' Often, we will want to specify `actions` for the validation. This argument,
-#' present in every validation step function, takes a specially-crafted list
+#' present in every validation function, takes a specially-crafted list
 #' object that is best produced by the [action_levels()] function. Read that
 #' function's documentation for the lowdown on how to create reactions to
 #' above-threshold failure levels in validation. The basic gist is that you'll
-#' want at least a single threshold level (specified as either the fraction test
-#' units failed, or, an absolute value), often using the `warn_at` argument.
-#' This is especially true when `x` is a table object because, otherwise,
-#' nothing happens. For the `col_vals_*()`-type functions, using 
+#' want at least a single threshold level (specified as either the fraction of
+#' test units failed, or, an absolute value), often using the `warn_at`
+#' argument. This is especially true when `x` is a table object because,
+#' otherwise, nothing happens. For the `col_vals_*()`-type functions, using 
 #' `action_levels(warn_at = 0.25)` or `action_levels(stop_at = 0.25)` are good
 #' choices depending on the situation (the first produces a warning when a
 #' quarter of the total test units fails, the other `stop()`s at the same
@@ -45,8 +50,12 @@
 #'
 #' @inheritParams col_vals_gt
 #'   
-#' @return Either a `ptblank_agent` object or a table object, depending on what
-#'   was passed to `x`.
+#' @return For the validation function, the return value is either a
+#'   `ptblank_agent` object or a table object (depending on whether an agent
+#'   object or a table was passed to `x`). The expectation function invisibly
+#'   returns its input but, in the context of testing data, the function is
+#'   called primarily for its potential side-effects (e.g., signaling failure).
+#'   The test function returns a logical value.
 #'   
 #' @examples
 #' # Create a simple table with three
@@ -72,13 +81,16 @@
 #' # by using `all_passed()`
 #' all_passed(agent)
 #' 
-#' @family Validation Step Functions
+#' @family validation functions
 #' @section Function ID:
 #' 2-15
 #' 
+#' @name rows_distinct
+NULL
+
+#' @rdname rows_distinct
 #' @import rlang
 #' @export
-
 rows_distinct <- function(x,
                           columns = NULL,
                           preconditions = NULL,
@@ -140,7 +152,7 @@ rows_distinct <- function(x,
       )
   }
 
-  # Add one or more validation steps
+  # Add a validation step
   agent <-
     create_validation_step(
       agent = agent,
@@ -148,12 +160,87 @@ rows_distinct <- function(x,
       column = list(ifelse(is.null(columns), NA_character_, columns)),
       values = NULL,
       preconditions = preconditions,
-      actions = actions,
+      actions = covert_actions(actions, agent),
       brief = brief,
       active = active
     )
 
   agent
+}
+
+#' @rdname rows_distinct
+#' @import rlang
+#' @export
+expect_rows_distinct <- function(object,
+                                 columns = NULL,
+                                 preconditions = NULL,
+                                 threshold = 1) {
+  
+  fn_name <- "expect_rows_distinct"
+  
+  vs <- 
+    create_agent(tbl = object, name = "::QUIET::") %>%
+    rows_distinct(
+      columns = {{ columns }},
+      preconditions = {{ preconditions }},
+      actions = action_levels(notify_at = threshold)
+    ) %>%
+    interrogate() %>% .$validation_set
+  
+  x <- vs$notify %>% all()
+  
+  threshold_type <- get_threshold_type(threshold = threshold)
+  
+  if (threshold_type == "proportional") {
+    failed_amount <- vs$f_failed
+  } else {
+    failed_amount <- vs$n_failed
+  }
+  
+  if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
+    warning(conditionMessage(vs$capture_stack[[1]]$warning))
+  }
+  if (inherits(vs$capture_stack[[1]]$error, "simpleError")) {
+    stop(conditionMessage(vs$capture_stack[[1]]$error))
+  }
+  
+  act <- testthat::quasi_label(enquo(x), arg = "object")
+  
+  testthat::expect(
+    ok = identical(!as.vector(act$val), TRUE),
+    failure_message = glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+  )
+  
+  act$val <- object
+  
+  invisible(act$val)
+}
+
+#' @rdname rows_distinct
+#' @import rlang
+#' @export
+test_rows_distinct <- function(object,
+                               columns = NULL,
+                               preconditions = NULL,
+                               threshold = 1) {
+  
+  vs <- 
+    create_agent(tbl = object, name = "::QUIET::") %>%
+    rows_distinct(
+      columns = {{ columns }},
+      preconditions = {{ preconditions }},
+      actions = action_levels(notify_at = threshold)
+    ) %>%
+    interrogate() %>% .$validation_set
+  
+  if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
+    warning(conditionMessage(vs$capture_stack[[1]]$warning))
+  }
+  if (inherits(vs$capture_stack[[1]]$error, "simpleError")) {
+    stop(conditionMessage(vs$capture_stack[[1]]$error))
+  }
+  
+  all(!vs$notify)
 }
 
 #' Verify that row data are not duplicated (deprecated)
@@ -188,4 +275,3 @@ rows_not_duplicated <- function(x,
 
   # nocov end
 }
-

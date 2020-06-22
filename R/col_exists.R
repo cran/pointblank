@@ -1,28 +1,34 @@
 #' Do one or more columns actually exist?
 #'
-#' The `col_exists()` validation step function checks whether one or more
-#' columns exist in the target table. The only requirement is a specification of
-#' the column names. Each validation step will operate over a single test unit,
-#' which is whether the column exists or not.
-#' 
+#' The `col_exists()` validation function, the `expect_col_exists()` expectation
+#' function, and the `test_col_exists()` test function all check whether one or
+#' more columns exist in the target table. The only requirement is specification
+#' of the column names. The validation function can be used directly on a data
+#' table or with an *agent* object (technically, a `ptblank_agent` object)
+#' whereas the expectation and test functions can only be used with a data
+#' table. The types of data tables that can be used include data frames,
+#' tibbles, and even database tables of the `tbl_dbi` class. Each validation
+#' step or expectation will operate over a single test unit, which is whether
+#' the column exists or not.
+#'
 #' If providing multiple column names, the result will be an expansion of
 #' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
-#' will result in the entry of two validation steps). Aside from column names
-#' in quotes and in `vars()`, **tidyselect** helper functions are available for
+#' will result in the entry of two validation steps). Aside from column names in
+#' quotes and in `vars()`, **tidyselect** helper functions are available for
 #' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
 #' `matches()`, and `everything()`.
-#' 
+#'
 #' Often, we will want to specify `actions` for the validation. This argument,
-#' present in every validation step function, takes a specially-crafted list
-#' object that is best produced by the [action_levels()] function. Read that
-#' function's documentation for the lowdown on how to create reactions to
-#' above-threshold failure levels in validation. The basic gist is that you'll
-#' want at least a single threshold level (specified as either the fraction test
-#' units failed, or, an absolute value), often using the `warn_at` argument.
-#' Using `action_levels(warn_at = 1)` or `action_levels(stop_at = 1)` are good
-#' choices depending on the situation (the first produces a warning, the other
+#' present in every validation function, takes a specially-crafted list object
+#' that is best produced by the [action_levels()] function. Read that function's
+#' documentation for the lowdown on how to create reactions to above-threshold
+#' failure levels in validation. The basic gist is that you'll want at least a
+#' single threshold level (specified as either the fraction of test units
+#' failed, or, an absolute value), often using the `warn_at` argument. Using
+#' `action_levels(warn_at = 1)` or `action_levels(stop_at = 1)` are good choices
+#' depending on the situation (the first produces a warning, the other
 #' `stop()`s).
-#' 
+#'
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
@@ -34,33 +40,80 @@
 #'   provided as a vector of column names using `c()` or bare column names
 #'   enclosed in [vars()].
 #'   
-#' @return Either a `ptblank_agent` object or a table object, depending on what
-#'   was passed to `x`.
+#' @return For the validation function, the return value is either a
+#'   `ptblank_agent` object or a table object (depending on whether an agent
+#'   object or a table was passed to `x`). The expectation function invisibly
+#'   returns its input but, in the context of testing data, the function is
+#'   called primarily for its potential side-effects (e.g., signaling failure).
+#'   The test function returns a logical value.
 #'   
 #' @examples
-#' # Create a simple table with
-#' # two columns of numerical values
+#' # For all examples here, we'll use
+#' # a simple table with two columns:
+#' # `a` and `b`
 #' tbl <-
 #'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5, 8, 7),
 #'     b = c(7, 1, 0, 0, 0, 3)
 #'   )
 #' 
+#' # A: Using an `agent` with validation
+#' #    functions and then `interrogate()`
+#' 
 #' # Validate that columns `a` and `b`
-#' # exist in the `tbl` table
+#' # exist in the `tbl` table; this
+#' # makes two distinct validation
+#' # steps since two columns were
+#' # provided to `vars()`
 #' agent <-
-#'   create_agent(tbl = tbl) %>%
+#'   create_agent(tbl) %>%
 #'   col_exists(vars(a, b)) %>%
 #'   interrogate()
 #' 
-#' # Determine if these three validation
-#' # steps passed by using `all_passed()`
+#' # Determine if this validation
+#' # had no failing test units (1)
 #' all_passed(agent)
 #' 
-#' @family Validation Step Functions
+#' # Calling `agent` in the console
+#' # prints the agent's report; but we
+#' # can get a `gt_tbl` object directly
+#' # with `get_agent_report(agent)`
+#' 
+#' # B: Using the validation function
+#' #    directly on the data (no `agent`)
+#' 
+#' # This way of using validation functions
+#' # acts as a data filter: data is passed
+#' # through but should `stop()` if there
+#' # is a single test unit failing; the
+#' # behavior of side effects can be
+#' # customized with the `actions` option
+#' tbl %>% col_exists(vars(a, b))
+#' 
+#' # C: Using the expectation function
+#' 
+#' # With the `expect_*()` form, we need
+#' # to be more exacting and provide one
+#' # column at a time; this is primarily
+#' # used in testthat tests
+#' expect_col_exists(tbl, vars(a))
+#' expect_col_exists(tbl, vars(b))
+#' 
+#' # D: Using the test function
+#' 
+#' # With the `test_*()` form, we should
+#' # get a single logical value returned
+#' # to us (even if there are multiple
+#' # columns tested, as is the case below)
+#' tbl %>% test_col_exists(vars(a, b))
+#' 
+#' @family validation functions
 #' @section Function ID:
 #' 2-23
-#' 
+#' @name col_exists
+NULL
+
+#' @rdname col_exists
 #' @import rlang
 #' @export
 col_exists <- function(x,
@@ -113,11 +166,84 @@ col_exists <- function(x,
         assertion_type = "col_exists",
         column = columns[i],
         preconditions = NULL,
-        actions = actions,
+        actions = covert_actions(actions, agent),
         brief = brief[i],
         active = active
       )
   }
 
   agent
+}
+
+#' @rdname col_exists
+#' @import rlang
+#' @export
+expect_col_exists <- function(object,
+                              columns,
+                              threshold = 1) {
+
+  fn_name <- "expect_col_exists"
+  
+  vs <- 
+    create_agent(tbl = object, name = "::QUIET::") %>%
+    col_exists(
+      columns = {{ columns }},
+      actions = action_levels(notify_at = threshold)
+    ) %>%
+    interrogate() %>% .$validation_set
+  
+  x <- vs$notify %>% all()
+  
+  threshold_type <- get_threshold_type(threshold = threshold)
+  
+  if (threshold_type == "proportional") {
+    failed_amount <- vs$f_failed
+  } else {
+    failed_amount <- vs$n_failed
+  }
+  
+  if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
+    warning(conditionMessage(vs$capture_stack[[1]]$warning))
+  }
+  if (inherits(vs$capture_stack[[1]]$error, "simpleError")) {
+    stop(conditionMessage(vs$capture_stack[[1]]$error))
+  }
+  
+  act <- testthat::quasi_label(enquo(x), arg = "object")
+  
+  column_text <- prep_column_text(vs$column[[1]])
+  
+  testthat::expect(
+    ok = identical(!as.vector(act$val), TRUE),
+    failure_message = glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+  )
+  
+  act$val <- object
+  
+  invisible(act$val)
+}
+
+#' @rdname col_exists
+#' @import rlang
+#' @export
+test_col_exists <- function(object,
+                            columns,
+                            threshold = 1) {
+  
+  vs <- 
+    create_agent(tbl = object, name = "::QUIET::") %>%
+    col_exists(
+      columns = {{ columns }},
+      actions = action_levels(notify_at = threshold)
+    ) %>%
+    interrogate() %>% .$validation_set
+
+  if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
+    warning(conditionMessage(vs$capture_stack[[1]]$warning))
+  }
+  if (inherits(vs$capture_stack[[1]]$error, "simpleError")) {
+    stop(conditionMessage(vs$capture_stack[[1]]$error))
+  }
+
+  all(!vs$notify)
 }

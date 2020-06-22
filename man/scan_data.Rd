@@ -13,15 +13,16 @@ scan_data(
 )
 }
 \arguments{
-\item{tbl}{The input table. This can be a data frame, a tibble, or a
-\code{tbl_dbi} object.}
+\item{tbl}{The input table. This can be a data frame, tibble, or \code{tbl_dbi}.
+object.}
 
 \item{sections}{The sections to include in the finalized \verb{Table Scan} report.
 A character vector with section names is required here. The sections in
 their default order are: \code{"overview"}, \code{"variables"}, \code{"interactions"},
 \code{"correlations"}, \code{"missing"}, and \code{"sample"}. This vector can be comprised
 of less elements and the order can be changed to suit the desired layout of
-the report.}
+the report. For \code{tbl_dbi} objects, the \code{"interactions"} and
+\code{"correlations"} sections are excluded.}
 
 \item{navbar}{Should there be a navigation bar anchored to the top of the
 report page? By default this is \code{TRUE}.}
@@ -51,7 +52,7 @@ across variables}
 The output HTML report is viewable in the RStudio Viewer and can also be
 integrated in R Markdown HTML reports. If you need the output HTML as a
 string, it's possible to get that by using \code{as.character()} (e.g.,
-\code{scan_data(tbl = iris) \%>\% as.character()}). The resulting HTML string is a
+\code{scan_data(tbl = mtcars) \%>\% as.character()}). The resulting HTML string is a
 complete HTML document where Bootstrap and jQuery are embedded within.
 }
 \section{Function ID}{
@@ -69,6 +70,7 @@ complete HTML document where Bootstrap and jQuery are embedded within.
 Other Planning and Prep: 
 \code{\link{action_levels}()},
 \code{\link{col_schema}()},
-\code{\link{create_agent}()}
+\code{\link{create_agent}()},
+\code{\link{validate_rmd}()}
 }
 \concept{Planning and Prep}

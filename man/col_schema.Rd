@@ -18,7 +18,7 @@ types (\code{"r"}) or SQL column types (\code{"sql"}).}
 }
 \description{
 A table column schema object, as can be created by \code{col_schema()}, is
-necessary when using the \code{\link[=col_schema_match]{col_schema_match()}} validation step function (which
+necessary when using the \code{\link[=col_schema_match]{col_schema_match()}} validation function (which
 checks whether the table object under study matches a known column schema).
 The \code{col_schema} object can be made by carefully supplying the column names
 and their types as a set of named arguments, or, we could provide a table
@@ -31,7 +31,7 @@ both on the server side and when tabular data is collected and loaded into R.
 }
 \section{Function ID}{
 
-1-4
+1-5
 }
 
 \examples{
@@ -91,6 +91,7 @@ create_agent(tbl = tbl) \%>\%
 Other Planning and Prep: 
 \code{\link{action_levels}()},
 \code{\link{create_agent}()},
-\code{\link{scan_data}()}
+\code{\link{scan_data}()},
+\code{\link{validate_rmd}()}
 }
 \concept{Planning and Prep}

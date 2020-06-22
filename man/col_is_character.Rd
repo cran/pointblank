@@ -2,12 +2,19 @@
 % Please edit documentation in R/col_is_character.R
 \name{col_is_character}
 \alias{col_is_character}
+\alias{expect_col_is_character}
+\alias{test_col_is_character}
 \title{Do the columns contain character/string data?}
 \usage{
 col_is_character(x, columns, actions = NULL, brief = NULL, active = TRUE)
+
+expect_col_is_character(object, columns, threshold = 1)
+
+test_col_is_character(object, columns, threshold = 1)
 }
 \arguments{
-\item{x}{A data frame, tibble, or an agent object of class \code{ptblank_agent}.}
+\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or, an agent object of
+class \code{ptblank_agent} that can be created with \code{\link[=create_agent]{create_agent()}}.}
 
 \item{columns}{The column (or a set of columns, provided as a character
 vector) to which this validation should be applied.}
@@ -24,40 +31,57 @@ the validation step inactive (still reporting its presence and keeping
 indexes for the steps unchanged). If the step function will be operating
 directly on data, then any step with \code{active = FALSE} will simply pass the
 data through with no validation whatsoever. The default for this is \code{TRUE}.}
+
+\item{object}{A data frame or tibble (\code{tbl_df} or \code{tbl_dbi}) that serves as
+the target table for the expectation function.}
+
+\item{threshold}{A simple failure threshold value for use with the
+expectation function. By default, this is set to \code{1} meaning that any
+single unit of failure in data validation results in an overall test
+failure. Whole numbers beyond \code{1} indicate that any failing units up to
+that absolute threshold value will result in a succeeding \strong{testthat}
+test. Likewise, fractional values (between \code{0} and \code{1}) act as a
+proportional failure threshold.}
 }
 \value{
-Either a \code{ptblank_agent} object or a table object, depending on what
-was passed to \code{x}.
+For the validation function, the return value is either a
+\code{ptblank_agent} object or a table object (depending on whether an agent
+object or a table was passed to \code{x}). The expectation function invisibly
+returns its input but, in the context of testing data, the function is
+called primarily for its potential side-effects (e.g., signaling failure).
+The test function returns a logical value.
 }
 \description{
-The \code{col_is_character()} validation step function checks whether one or more
-columns is of the character type. Like many of the \verb{col_is_*()}-type
-functions in \strong{pointblank}, the only requirement is a specification of the
-column names. This function can be used directly on a data table or with an
-\emph{agent} object (technically, a \code{ptblank_agent} object). Each validation step
-will operate over a single test unit, which is whether the column is a
-character-type column or not.
+The \code{col_is_character()} validation function, the \code{expect_col_is_character()}
+expectation function, and the \code{test_col_is_character()} test function all
+check whether one or more columns in a table is of the character type. Like
+many of the \verb{col_is_*()}-type functions in \strong{pointblank}, the only
+requirement is a specification of the column names. The validation function
+can be used directly on a data table or with an \emph{agent} object (technically,
+a \code{ptblank_agent} object) whereas the expectation and test functions can only
+be used with a data table. The types of data tables that can be used include
+data frames, tibbles, and even database tables of the \code{tbl_dbi} class. Each
+validation step or expectation will operate over a single test unit, which is
+whether the column is a character-type column or not.
 }
 \details{
 If providing multiple column names, the result will be an expansion of
 validation steps to that number of column names (e.g., \code{vars(col_a, col_b)}
-will result in the entry of two validation steps). Aside from column names
-in quotes and in \code{vars()}, \strong{tidyselect} helper functions are available for
+will result in the entry of two validation steps). Aside from column names in
+quotes and in \code{vars()}, \strong{tidyselect} helper functions are available for
 specifying columns. They are: \code{starts_with()}, \code{ends_with()}, \code{contains()},
 \code{matches()}, and \code{everything()}.
 
 Often, we will want to specify \code{actions} for the validation. This argument,
-present in every validation step function, takes a specially-crafted list
-object that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that
-function's documentation for the lowdown on how to create reactions to
-above-threshold failure levels in validation. The basic gist is that you'll
-want at least a single threshold level (specified as either the fraction test
-units failed, or, an absolute value), often using the \code{warn_at} argument.
-This is especially true when \code{x} is a table object because, otherwise,
-nothing happens. For the \verb{col_is_*()}-type functions, using
-\code{action_levels(warn_at = 1)} or \code{action_levels(stop_at = 1)} are good choices
-depending on the situation (the first produces a warning, the other
-\code{stop()}s).
+present in every validation function, takes a specially-crafted list object
+that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that function's
+documentation for the lowdown on how to create reactions to above-threshold
+failure levels in validation. The basic gist is that you'll want at least a
+single threshold level (specified as either the fraction of test units
+failed, or, an absolute value), often using the \code{warn_at} argument. This is
+especially true when \code{x} is a table object because, otherwise, nothing
+happens. For the \verb{col_is_*()}-type functions, using \code{action_levels(warn_at = 1)} or \code{action_levels(stop_at = 1)} are good choices depending on the
+situation (the first produces a warning, the other \code{stop()}s).
 
 Want to describe this validation step in some detail? Keep in mind that this
 is only useful if \code{x} is an \emph{agent}. If that's the case, \code{brief} the agent
@@ -71,26 +95,63 @@ then be automatically generated.
 }
 
 \examples{
-# Create a simple table with
-# a column of `character` values
-tbl <- 
-  dplyr::tibble(a = c("one", "two"))
+# For all examples here, we'll use
+# a simple table with a numeric column
+# (`a`) and a character column (`b`)
+tbl <-
+  dplyr::tibble(
+    a = c(5, 7, 6, 5, 8, 7),
+    b = LETTERS[1:6]
+  )
+  
+# A: Using an `agent` with validation
+#    functions and then `interrogate()`
 
-# Validate that column `a` in the
-# table is classed as `character`
+# Validate that column `b` has the
+# `character` class
 agent <-
-  create_agent(tbl = tbl) \%>\%
-  col_is_character(vars(a)) \%>\%
+  create_agent(tbl) \%>\%
+  col_is_character(vars(b)) \%>\%
   interrogate()
 
-# Determine if these column
-# validations have all passed
-# by using `all_passed()`
+# Determine if this validation
+# had no failing test units (1)
 all_passed(agent)
+
+# Calling `agent` in the console
+# prints the agent's report; but we
+# can get a `gt_tbl` object directly
+# with `get_agent_report(agent)`
+
+# B: Using the validation function
+#    directly on the data (no `agent`)
+
+# This way of using validation functions
+# acts as a data filter: data is passed
+# through but should `stop()` if there
+# is a single test unit failing; the
+# behavior of side effects can be
+# customized with the `actions` option
+tbl \%>\% col_is_character(vars(b))
+
+# C: Using the expectation function
+
+# With the `expect_*()` form, we would
+# typically perform one validation at a
+# time; this is primarily used in
+# testthat tests
+expect_col_is_character(tbl, vars(b))
+
+# D: Using the test function
+
+# With the `test_*()` form, we should
+# get a single logical value returned
+# to us
+tbl \%>\% test_col_is_character(vars(b))
 
 }
 \seealso{
-Other Validation Step Functions: 
+Other validation functions: 
 \code{\link{col_exists}()},
 \code{\link{col_is_date}()},
 \code{\link{col_is_factor}()},
@@ -101,6 +162,7 @@ Other Validation Step Functions:
 \code{\link{col_schema_match}()},
 \code{\link{col_vals_between}()},
 \code{\link{col_vals_equal}()},
+\code{\link{col_vals_expr}()},
 \code{\link{col_vals_gte}()},
 \code{\link{col_vals_gt}()},
 \code{\link{col_vals_in_set}()},
@@ -115,4 +177,4 @@ Other Validation Step Functions:
 \code{\link{conjointly}()},
 \code{\link{rows_distinct}()}
 }
-\concept{Validation Step Functions}
+\concept{validation functions}

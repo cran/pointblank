@@ -84,12 +84,7 @@ resolve_columns <- function(x, var_expr, preconditions) {
     
     if (inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))) {
       
-      tbl <- x
-      
-      tbl <- 
-        preconditions %>%
-        rlang::f_rhs() %>%
-        rlang::eval_tidy()
+      tbl <- apply_preconditions(tbl = x, preconditions = preconditions)
       
       column <- resolve_expr_to_cols(tbl = tbl, var_expr = !!var_expr)
       
@@ -97,10 +92,7 @@ resolve_columns <- function(x, var_expr, preconditions) {
       
       tbl <- get_tbl_object(agent = x)
       
-      tbl <- 
-        preconditions %>%
-        rlang::f_rhs() %>%
-        rlang::eval_tidy()
+      tbl <- apply_preconditions(tbl = tbl, preconditions = preconditions)
       
       column <- resolve_expr_to_cols(tbl = tbl, var_expr = !!var_expr)
     }
@@ -109,15 +101,24 @@ resolve_columns <- function(x, var_expr, preconditions) {
   column
 }
 
+get_threshold_type <- function(threshold) {
+  
+  if (threshold >= 1) {
+    threshold_type <- "absolute"
+  } else if (threshold >= 0 && threshold < 1) {
+    threshold_type <- "proportional"
+  }
+}
+
 row_based_step_fns_vector <- function() {
   
   c(
-    "col_vals_gt",
-    "col_vals_gte",
     "col_vals_lt",
     "col_vals_lte",
     "col_vals_equal",
     "col_vals_not_equal",
+    "col_vals_gte",
+    "col_vals_gt",
     "col_vals_between",
     "col_vals_not_between",
     "col_vals_in_set",
@@ -125,7 +126,9 @@ row_based_step_fns_vector <- function() {
     "col_vals_null",
     "col_vals_not_null",
     "col_vals_regex",
-    "conjointly"
+    "col_vals_expr",
+    "conjointly",
+    "rows_distinct"
   )
 }
 
@@ -180,7 +183,7 @@ get_tbl_information <- function(tbl) {
     )
     
   } else if (inherits(tbl, "tbl_dbi")) {
-
+    
     tbl_src <- gsub("^([a-z]*).*", "\\1", get_tbl_dbi_src_details(tbl))
     
     r_column_names_types <- get_r_column_names_types(tbl)
@@ -190,21 +193,29 @@ get_tbl_information <- function(tbl) {
     db_tbl_name <- dbplyr::remote_name(tbl) %>% as.character()
     
     n_cols <- length(r_column_names_types$col_names)
+
+    if (tbl_src != "postgres") {
+      q_types <- 
+        glue::glue(
+          "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}' LIMIT {n_cols}"
+        )
+    } else {
+      db_tbl_name_no_schema <- gsub('.*\\.', '', db_tbl_name)
+      q_types <- 
+        glue::glue(
+          "select column_name,data_type from information_schema.columns where table_name = '{db_tbl_name_no_schema}'"
+        )
+    }
     
-    q_types <- 
-      glue::glue(
-        "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}' LIMIT {n_cols}"
-      )
-    
-    if (tbl_src != "sqlite") {
-      
+    if (tbl_src != "sqlite" & tbl_src != "postgres") {
       db_col_types <- 
         DBI::dbGetQuery(tbl_connection, q_types) %>%
+        dplyr::collect() %>%
         dplyr::pull(DATA_TYPE) %>%
         tolower()
-      
-    } else if (tbl_src == "sqlite") {
-      
+    }
+    
+    if (tbl_src == "sqlite") {
       db_col_types <-
         vapply(
           r_column_names_types$col_names,
@@ -223,8 +234,16 @@ get_tbl_information <- function(tbl) {
           }
         ) %>%
         tolower()
-      
-    } else {
+    }
+    
+    if (tbl_src == "postgres") {
+      db_col_types <- 
+        DBI::dbGetQuery(tbl_connection, q_types) %>%
+        dplyr::pull(data_type) %>%
+        tolower()
+    }
+    
+    if (!exists("db_col_types")) {
       db_col_types <- NA_character_
     }
     
@@ -249,7 +268,7 @@ normalize_reporting_language <- function(reporting_lang) {
   
   if (is.null(reporting_lang)) return("en")
   
-  if (!(tolower(reporting_lang) %in%  reporting_languages)) {
+  if (!(tolower(reporting_lang) %in% reporting_languages)) {
     stop("The text ", reporting_lang, " doesn't correspond to a pointblank reporting language",
          call. = FALSE)
   }

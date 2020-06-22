@@ -4,7 +4,7 @@
 #' part of the input dataset for something else. The `get_sundered_data()`
 #' function works with an agent object that has intel (i.e., post
 #' `interrogate()`) and gets either the 'pass' data piece (rows with no failing
-#' units across all row-based validation step functions), or, the 'fail' data
+#' units across all row-based validation functions), or, the 'fail' data
 #' piece (rows with at least one failing unit across the same series of
 #' validations). There are some caveats, only those validation steps with
 #' no `preconditions` are considered. And, the validation steps used for this
@@ -54,7 +54,7 @@
 get_sundered_data <- function(agent,
                               type = "pass",
                               id_cols = NULL) {
-  
+
   # Stop function if the agent hasn't
   # yet performed an interrogation
   if (!inherits(agent, "has_intel")) {
@@ -90,7 +90,7 @@ get_sundered_data <- function(agent,
   validation_steps_i <- 
     agent$validation_set %>%
     dplyr::filter(eval_error == FALSE) %>%
-    dplyr::filter(assertion_type %in% row_based_step_fns_vector()) %>%
+    dplyr::filter(assertion_type %in% base::setdiff(row_based_step_fns_vector(), "rows_distinct")) %>%
     dplyr::filter(vapply(preconditions, FUN = is.null, FUN.VALUE = logical(1))) %>%
     dplyr::pull(i)
   

@@ -2,6 +2,8 @@
 % Please edit documentation in R/col_vals_not_between.R
 \name{col_vals_not_between}
 \alias{col_vals_not_between}
+\alias{expect_col_vals_not_between}
+\alias{test_col_vals_not_between}
 \title{Are column data not between two specified values?}
 \usage{
 col_vals_not_between(
@@ -16,9 +18,32 @@ col_vals_not_between(
   brief = NULL,
   active = TRUE
 )
+
+expect_col_vals_not_between(
+  object,
+  columns,
+  left,
+  right,
+  inclusive = c(TRUE, TRUE),
+  na_pass = FALSE,
+  preconditions = NULL,
+  threshold = 1
+)
+
+test_col_vals_not_between(
+  object,
+  columns,
+  left,
+  right,
+  inclusive = c(TRUE, TRUE),
+  na_pass = FALSE,
+  preconditions = NULL,
+  threshold = 1
+)
 }
 \arguments{
-\item{x}{A data frame, tibble, or an agent object of class \code{ptblank_agent}.}
+\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or, an agent object of
+class \code{ptblank_agent} that can be created with \code{\link[=create_agent]{create_agent()}}.}
 
 \item{columns}{The column (or a set of columns, provided as a character
 vector) to which this validation should be applied.}
@@ -36,11 +61,9 @@ a pass.}
 
 \item{preconditions}{expressions used for mutating the input table before
 proceeding with the validation. This is ideally as a one-sided R formula
-using a leading \code{~}. In the formula representation, the \code{tbl} serves as the
+using a leading \code{~}. In the formula representation, the \code{.} serves as the
 input data table to be transformed (e.g.,
-\code{~ tbl \%>\% dplyr::mutate(col = col + 10)}. A series of expressions can be
-used by enclosing the set of statements with \code{{ }} but note that the \code{tbl}
-object must be ultimately returned.}
+\code{~ . \%>\% dplyr::mutate(col = col + 10)}.}
 
 \item{actions}{A list containing threshold levels so that the validation step
 can react accordingly when exceeding the set levels. This is to be created
@@ -54,27 +77,45 @@ the validation step inactive (still reporting its presence and keeping
 indexes for the steps unchanged). If the step function will be operating
 directly on data, then any step with \code{active = FALSE} will simply pass the
 data through with no validation whatsoever. The default for this is \code{TRUE}.}
+
+\item{object}{A data frame or tibble (\code{tbl_df} or \code{tbl_dbi}) that serves as
+the target table for the expectation function.}
+
+\item{threshold}{A simple failure threshold value for use with the
+expectation function. By default, this is set to \code{1} meaning that any
+single unit of failure in data validation results in an overall test
+failure. Whole numbers beyond \code{1} indicate that any failing units up to
+that absolute threshold value will result in a succeeding \strong{testthat}
+test. Likewise, fractional values (between \code{0} and \code{1}) act as a
+proportional failure threshold.}
 }
 \value{
-Either a \code{ptblank_agent} object or a table object, depending on what
-was passed to \code{x}.
+For the validation function, the return value is either a
+\code{ptblank_agent} object or a table object (depending on whether an agent
+object or a table was passed to \code{x}). The expectation function invisibly
+returns its input but, in the context of testing data, the function is
+called primarily for its potential side-effects (e.g., signaling failure).
+The test function returns a logical value.
 }
 \description{
-The \code{col_vals_not_between()} validation step function checks whether column
-values (in any number of specified \code{columns}) \emph{do not} fall within a range.
-The range specified with three arguments: \code{left}, \code{right}, and \code{inclusive}.
-The \code{left} and \code{right} values specify the lower and upper bounds. The bounds
-can be specified as single, literal values or as column names given in
-\code{vars()}. The \code{inclusive} argument, as a vector of two logical values
-relating to \code{left} and \code{right}, states whether each bound is inclusive or
-not. The default is \code{c(TRUE, TRUE)}, where both endpoints are inclusive
-(i.e., \verb{[left, right]}). For partially-unbounded versions of this function,
-we can use the \code{\link[=col_vals_lt]{col_vals_lt()}}, \code{\link[=col_vals_lte]{col_vals_lte()}}, \code{\link[=col_vals_gt]{col_vals_gt()}}, or
-\code{\link[=col_vals_gte]{col_vals_gte()}} validation step functions. This function can be used
-directly on a data table or with an \emph{agent} object (technically, a
-\code{ptblank_agent} object). Each validation step will operate over the number of
-test units that is equal to the number of rows in the table (after any
-\code{preconditions} have been applied).
+The \code{col_vals_not_between()} validation function, the
+\code{expect_col_vals_not_between()} expectation function, and the
+\code{test_col_vals_not_between()} test function all check whether column values
+in a table \emph{do not} fall within a range. The range specified with three
+arguments: \code{left}, \code{right}, and \code{inclusive}. The \code{left} and \code{right} values
+specify the lower and upper bounds. The bounds can be specified as single,
+literal values or as column names given in \code{vars()}. The \code{inclusive}
+argument, as a vector of two logical values relating to \code{left} and \code{right},
+states whether each bound is inclusive or not. The default is \code{c(TRUE, TRUE)}, where both endpoints are inclusive (i.e., \verb{[left, right]}). For
+partially-unbounded versions of this function, we can use the
+\code{\link[=col_vals_lt]{col_vals_lt()}}, \code{\link[=col_vals_lte]{col_vals_lte()}}, \code{\link[=col_vals_gt]{col_vals_gt()}}, or \code{\link[=col_vals_gte]{col_vals_gte()}}
+validation functions. The validation function can be used directly on a data
+table or with an \emph{agent} object (technically, a \code{ptblank_agent} object)
+whereas the expectation and test functions can only be used with a data
+table. The types of data tables that can be used include data frames,
+tibbles, and even database tables of \code{tbl_dbi} class. Each validation step or
+expectation will operate over the number of test units that is equal to the
+number of rows in the table (after any \code{preconditions} have been applied).
 }
 \details{
 If providing multiple column names to \code{columns}, the result will be an
@@ -84,32 +125,30 @@ from column names in quotes and in \code{vars()}, \strong{tidyselect} helper fun
 are available for specifying columns. They are: \code{starts_with()},
 \code{ends_with()}, \code{contains()}, \code{matches()}, and \code{everything()}.
 
-This validation step function supports special handling of \code{NA} values. The
+This validation function supports special handling of \code{NA} values. The
 \code{na_pass} argument will determine whether an \code{NA} value appearing in a test
-unit should be counted as a \emph{pass} or a \emph{fail}. The default of
-\code{na_pass = FALSE} means that any \code{NA}s encountered will accumulate failing
-test units.
+unit should be counted as a \emph{pass} or a \emph{fail}. The default of \code{na_pass = FALSE} means that any \code{NA}s encountered will accumulate failing test units.
 
 Having table \code{preconditions} means \strong{pointblank} will mutate the table just
-before interrogation. It's isolated to the validation steps produced by this
-validation step function. Using \strong{dplyr} code is suggested here since the
-statements can be translated to SQL if necessary. The code is to be supplied
-as a one-sided \strong{R} formula (using a leading \code{~}). In the formula
-representation, the obligatory \code{tbl} variable will serve as the input
-data table to be transformed (e.g.,
-\code{~ tbl \%>\% dplyr::mutate(col_a = col_b + 10)}. A series of expressions can be
-used by enclosing the set of statements with \code{{ }} but note that the \code{tbl}
-variable must be ultimately returned.
+before interrogation. Such a table mutation is isolated in scope to the
+validation step(s) produced by the validation function call. Using
+\strong{dplyr} code is suggested here since the statements can be translated to
+SQL if necessary. The code is most easily supplied as a one-sided \strong{R}
+formula (using a leading \code{~}). In the formula representation, the \code{.} serves
+as the input data table to be transformed (e.g.,
+\code{~ . \%>\% dplyr::mutate(col_a = col_b + 10)}). Alternatively, a function could
+instead be supplied (e.g.,
+\code{function(x) dplyr::mutate(x, col_a = col_b + 10)}).
 
 Often, we will want to specify \code{actions} for the validation. This argument,
-present in every validation step function, takes a specially-crafted list
+present in every validation function, takes a specially-crafted list
 object that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that
 function's documentation for the lowdown on how to create reactions to
 above-threshold failure levels in validation. The basic gist is that you'll
-want at least a single threshold level (specified as either the fraction test
-units failed, or, an absolute value), often using the \code{warn_at} argument.
-This is especially true when \code{x} is a table object because, otherwise,
-nothing happens. For the \verb{col_vals_*()}-type functions, using
+want at least a single threshold level (specified as either the fraction of
+test units failed, or, an absolute value), often using the \code{warn_at}
+argument. This is especially true when \code{x} is a table object because,
+otherwise, nothing happens. For the \verb{col_vals_*()}-type functions, using
 \code{action_levels(warn_at = 0.25)} or \code{action_levels(stop_at = 0.25)} are good
 choices depending on the situation (the first produces a warning when a
 quarter of the total test units fails, the other \code{stop()}s at the same
@@ -127,30 +166,101 @@ then be automatically generated.
 }
 
 \examples{
-# Create a simple table with a
-# column of numerical values
-tbl <- 
-  dplyr::tibble(a = c(5.6, 7.8, 3.4))
+# The `small_table` dataset in the
+# package has a column of numeric
+# values in `c` (there are a few NAs
+# in that column); the following
+# examples will validate the values
+# in that numeric column
 
-# Validate that none of the values 
-# in column `a` are between 9 and 10,
-# or, between 0 and 2
+# A: Using an `agent` with validation
+#    functions and then `interrogate()`
+
+# Validate that values in column `c`
+# are all between `10` and `20`; because
+# there are NA values, we'll choose to
+# let those pass validation by setting
+# `na_pass = TRUE`
 agent <-
-  create_agent(tbl = tbl) \%>\%
-  col_vals_not_between(vars(a), 9, 10) \%>\%
-  col_vals_not_between(vars(a), 0, 2) \%>\%
+  create_agent(small_table) \%>\%
+  col_vals_not_between(
+    vars(c), 10, 20, na_pass = TRUE
+  ) \%>\%
   interrogate()
-
-# Determine if these column
-# validations have all passed by
-# using `all_passed()`
+  
+# Determine if this validation
+# had no failing test units (there
+# are 13 test units, one for each row)
 all_passed(agent)
+
+# Calling `agent` in the console
+# prints the agent's report; but we
+# can get a `gt_tbl` object directly
+# with `get_agent_report(agent)`
+
+# B: Using the validation function
+#    directly on the data (no `agent`)
+
+# This way of using validation functions
+# acts as a data filter: data is passed
+# through but should `stop()` if there
+# is a single test unit failing; the
+# behavior of side effects can be
+# customized with the `actions` option
+small_table \%>\%
+  col_vals_not_between(
+    vars(c), 10, 20, na_pass = TRUE
+  ) \%>\%
+  dplyr::pull(c)
+
+# C: Using the expectation function
+
+# With the `expect_*()` form, we would
+# typically perform one validation at a
+# time; this is primarily used in
+# testthat tests
+expect_col_vals_not_between(
+  small_table, vars(c), 10, 20,
+  na_pass = TRUE
+)
+
+# D: Using the test function
+
+# With the `test_*()` form, we should
+# get a single logical value returned
+# to us
+small_table \%>\%
+  test_col_vals_not_between(
+    vars(c), 10, 20,
+    na_pass = TRUE
+  )
+
+# An additional note on the bounds for
+# this function: they are inclusive by
+# default; we can modify the
+# inclusiveness of the upper and lower
+# bounds with the `inclusive` option,
+# which is a length-2 logical vector
+
+# In changing the lower bound to be
+# `9` and making it non-inclusive, we
+# get `TRUE` since although two values
+# are `9` and they fall outside of the
+# lower (or left) bound (and any values
+# 'not between' count as passing test
+# units)
+small_table \%>\%
+  test_col_vals_not_between(
+    vars(c), 9, 20,
+    inclusive = c(FALSE, TRUE),
+    na_pass = TRUE
+  )
 
 }
 \seealso{
 The analogue to this function: \code{\link[=col_vals_between]{col_vals_between()}}.
 
-Other Validation Step Functions: 
+Other validation functions: 
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},
@@ -162,6 +272,7 @@ Other Validation Step Functions:
 \code{\link{col_schema_match}()},
 \code{\link{col_vals_between}()},
 \code{\link{col_vals_equal}()},
+\code{\link{col_vals_expr}()},
 \code{\link{col_vals_gte}()},
 \code{\link{col_vals_gt}()},
 \code{\link{col_vals_in_set}()},
@@ -175,4 +286,4 @@ Other Validation Step Functions:
 \code{\link{conjointly}()},
 \code{\link{rows_distinct}()}
 }
-\concept{Validation Step Functions}
+\concept{validation functions}

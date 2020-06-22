@@ -14,7 +14,7 @@ create_validation_step <- function(agent,
   } else {
     i <- max(agent$validation_set$i) + 1L
   }
-  
+
   # Create a validation step as a single-row `tbl_df` object
   validation_step_df <-
     dplyr::tibble(
@@ -46,15 +46,45 @@ create_validation_step <- function(agent,
 }
 
 apply_preconditions_to_tbl <- function(agent, idx, tbl) {
-  
+
   preconditions <- agent$validation_set$preconditions[[idx]]
   
-  if (!is.null(preconditions)) {
+  tbl <- apply_preconditions(tbl = tbl, preconditions = preconditions)
+  
+  tbl
+}
+
+apply_preconditions <- function(tbl, preconditions) {
+  
+  if (is.null(preconditions)) {
+    return(tbl)
+  }
+  
+  if (is.function(preconditions)) {
     
-    tbl <- 
+    tbl <- preconditions(tbl)
+    
+  } else if (rlang::is_formula(preconditions)) {
+    
+    # Take the RHS of `preconditions` and eval with `eval_tidy()`
+    preconditions <- 
       preconditions %>%
       rlang::f_rhs() %>%
       rlang::eval_tidy()
+    
+    if (inherits(preconditions, "fseq")) {
+      
+      tbl <- preconditions(tbl)
+      
+    } else {
+      stop("If using formula syntax to define `preconditions`, the RHS ",
+           "must resolve to a functional sequence.",
+           call. = FALSE)
+    }
+    
+  } else {
+    stop("If providing `preconditions` it must either be as a function or a formula.",
+         call. = FALSE)
   }
   
   tbl
@@ -77,17 +107,8 @@ create_autobrief <- function(agent,
         "col_vals_lt", "col_vals_lte",
         "col_vals_equal", "col_vals_not_equal")) {
     
-    operator <- 
-      switch(
-        assertion_type,
-        "col_vals_gt" = ">",
-        "col_vals_gte" = ">=",
-        "col_vals_lt" = "<",
-        "col_vals_lte" = "<=",
-        "col_vals_equal" = "==",
-        "col_vals_not_equal" = "!="
-      )
-    
+    operator <- prep_operator_text(fn_name = assertion_type)
+
     expectation_text <- 
       prep_compare_expectation_text(
         column_text,
@@ -166,18 +187,15 @@ create_autobrief <- function(agent,
     autobrief <- finalize_autobrief(expectation_text, precondition_text)
   }
   
+  if (assertion_type == "col_vals_expr") {
+   
+    expectation_text <- prep_col_vals_expr_expectation_text(lang = lang)
+    autobrief <- finalize_autobrief(expectation_text, precondition_text) 
+  }
+  
   if (grepl("col_is_.*", assertion_type)) {
     
-    if (assertion_type %in% 
-        c("col_is_numeric", "col_is_integer", "col_is_character",
-          "col_is_logical", "col_is_factor")) {
-      col_type <- gsub("col_is_", "", assertion_type)
-    } else if (assertion_type == "col_is_posix") {
-      col_type <- "POSIXct"
-    } else if (assertion_type == "col_is_date") {
-      col_type <- "Date"
-    }
-    
+    col_type <- prep_col_type(fn_name = assertion_type)
     expectation_text <- prep_col_is_expectation_text(column_text, col_type, lang = lang)
     autobrief <- finalize_autobrief(expectation_text, precondition_text)
   }
@@ -228,12 +246,47 @@ generate_autobriefs <- function(agent, columns, preconditions, values, assertion
   )
 }
 
+prep_operator_text <- function(fn_name) {
+  
+  switch(
+    fn_name,
+    "col_vals_gt" = ">",
+    "col_vals_gte" = ">=",
+    "col_vals_lt" = "<",
+    "col_vals_lte" = "<=",
+    "col_vals_equal" = "==",
+    "col_vals_not_equal" = "!=",
+    NA_character_
+  )
+}
+
+prep_col_type <- function(fn_name) {
+  
+  if (!grepl("col_is", fn_name)) {
+    return(NA_character_)
+  }
+  
+  if (grepl("col_is_(numeric|integer|character|logical|factor)", fn_name)) {
+    col_type <- gsub("col_is_", "", fn_name)
+  } else if (grepl("col_is_posix", fn_name)) {
+    col_type <- "POSIXct"
+  } else if (grepl("col_is_date", fn_name)) {
+    col_type <- "Date"
+  }
+  
+  col_type
+}
+
 prep_precondition_text <- function(preconditions, lang) {
   
   if (is.null(preconditions)) return("")
-  
-  precondition_label <- preconditions %>% rlang::f_rhs() %>% rlang::as_label()
-  
+
+  if (rlang::is_formula(preconditions)) {
+    precondition_label <- preconditions %>% rlang::f_rhs() %>% rlang::as_label()
+  } else {
+    precondition_label <- preconditions %>% rlang::as_label()
+  }
+
   paste0(precondition_text[lang], ": `", precondition_label, "`.")
 }
 
@@ -341,7 +394,7 @@ prep_conjointly_expectation_text <- function(values_text, lang) {
   glue::glue(conjointly_expectation_text[lang])
 }
 
-prep_col_exists_expectation_text <- function(column_text,lang) {
+prep_col_exists_expectation_text <- function(column_text, lang) {
   
   glue::glue(col_exists_expectation_text[lang])
 }
@@ -363,4 +416,51 @@ prep_row_distinct_expectation_text <- function(column_text, lang) {
 prep_col_schema_match_expectation_text <- function(lang) {
   
   glue::glue(col_schema_match_expectation_text[lang])
+}
+
+prep_col_vals_expr_expectation_text <- function(lang) {
+  
+  glue::glue(col_vals_expr_expectation_text[lang])
+}
+
+failure_message_gluestring <- function(fn_name, lang) {
+  
+  if (!grepl("^expect", fn_name)) {
+    fn_name <- paste0("expect_", fn_name)
+  }
+  
+  failure_text <- 
+    switch(
+      fn_name,
+      "expect_col_vals_gt" =,
+      "expect_col_vals_gte" =,
+      "expect_col_vals_lt" =,
+      "expect_col_vals_lte" =,
+      "expect_col_vals_equal" =,
+      "expect_col_vals_not_equal" = compare_failure_text[[lang]],
+      "expect_col_vals_between" = between_failure_text[[lang]],
+      "expect_col_vals_not_between" = not_between_failure_text[[lang]],
+      "expect_col_vals_in_set" = in_set_failure_text[[lang]],
+      "expect_col_vals_not_in_set" = not_in_set_failure_text[[lang]],
+      "expect_col_vals_null" = null_failure_text[[lang]],
+      "expect_col_vals_not_null" = not_null_failure_text[[lang]],
+      "expect_col_vals_regex" = regex_failure_text[[lang]],
+      "expect_conjointly" = conjointly_failure_text[[lang]],
+      "expect_col_exists" = col_exists_failure_text[[lang]],
+      "expect_col_is_numeric" =,
+      "expect_col_is_integer" =,
+      "expect_col_is_character" =,
+      "expect_col_is_logical" =,
+      "expect_col_is_posix" =,
+      "expect_col_is_date" =,
+      "expect_col_is_factor" = col_is_failure_text[[lang]],
+      "expect_rows_distinct" = all_row_distinct_failure_text[[lang]],
+      "expect_col_schema_match" = col_schema_match_failure_text[[lang]]
+    )
+  
+  paste0(
+    failure_text, "\n",
+    "The `{fn_name}()` validation failed beyond the {threshold_type} threshold level ({threshold}).
+* failure level ({failed_amount}) >= failure threshold ({threshold})"
+  )
 }

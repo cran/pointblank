@@ -22,12 +22,12 @@
 #' \item `tbl`: the table object itself
 #' \item `col_names`: the table's column names (`chr [ncol(tbl)]`)
 #' \item `col_types`: the table's column types (`chr [ncol(tbl)]`)
-#' \item `i`: the table's column types (`chr [1]`)
-#' \item `type`: the type of validation, value is validation step function name
+#' \item `i`: the validation step index (`int [1]`)
+#' \item `type`: the type of validation, value is validation function name
 #' (`chr [1]`)
-#' \item `columns`: the columns specified for the validation step function
+#' \item `columns`: the columns specified for the validation function
 #' (`chr [variable length]`)
-#' \item `values`: the values specified for the validation step function
+#' \item `values`: the values specified for the validation function
 #' (`mixed types [variable length]`)
 #' \item `briefs`: the brief for the validation step in the specified
 #' `reporting_lang` (`chr [1]`)
@@ -243,14 +243,18 @@ get_agent_x_list <- function(agent,
       x <-
         list(
           time = .time,
-          report_html_small = .report_html_small
+          report_html_small = .report_html_small,
+          reporting_lang = .reporting_lang,
+          i = .i,
+          n = .n,
+          validation_set = .validation_set
         )
       
       .email_object <- 
         blastula::compose_email(
           header = NULL,
-          body = glue::glue(stock_msg_body()) %>% blastula::md(),
-          footer = glue::glue(stock_msg_footer()) %>% blastula::md(),
+          body = glue::glue(stock_msg_body()) %>% gt::html(),
+          footer = glue::glue(stock_msg_footer()) %>% gt::html(),
         )
       
     } else {

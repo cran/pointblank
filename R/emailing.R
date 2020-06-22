@@ -192,29 +192,29 @@ email_blast <- function(x,
 #' # message object beforehand by using
 #' # the `email_preview()` function
 #' # on an `agent` object
-#' email_object <-
-#'   create_agent(
-#'     tbl = tbl,
-#'     actions = al
-#'   ) %>%
-#'   col_vals_gt(vars(a), 5) %>%
-#'   col_vals_lt(vars(b), 5) %>%
-#'   interrogate() %>%
-#'   email_preview()
+#' # email_object <-
+#' #   create_agent(
+#' #     tbl = tbl,
+#' #     actions = al
+#' #   ) %>%
+#' #   col_vals_gt(vars(a), 5) %>%
+#' #   col_vals_lt(vars(b), 5) %>%
+#' #   interrogate() %>%
+#' #   email_preview()
 #' 
 #' # The `email_preview()` function can
 #' # also be used on an agent x-list to
 #' # get the same email message object
-#' email_object <-
-#'   create_agent(
-#'     tbl = tbl,
-#'     actions = al
-#'   ) %>%
-#'   col_vals_gt(vars(a), 5) %>%
-#'   col_vals_lt(vars(b), 5) %>%
-#'   interrogate() %>%
-#'   get_agent_x_list() %>%
-#'   email_preview()
+#' # email_object <-
+#' #   create_agent(
+#' #     tbl = tbl,
+#' #     actions = al
+#' #   ) %>%
+#' #   col_vals_gt(vars(a), 5) %>%
+#' #   col_vals_lt(vars(b), 5) %>%
+#' #   interrogate() %>%
+#' #   get_agent_x_list() %>%
+#' #   email_preview()
 #' 
 #' # We can view the HTML email just
 #' # by printing `email_object`; it
@@ -262,11 +262,28 @@ check_msg_components_all_null <- function(msg_header, msg_body, msg_footer) {
 #' 
 #' @export
 stock_msg_body <- function() {
-  "
-Here is **pointblank** validation report that was initiated at {x$time}.
 
-{x$report_html_small}
+paste0(
+  blastula::add_image(
+    system.file("img", "pointblank_logo.png", package = "pointblank"),
+    width = 150
+  ),
 "
+<br>
+<div style=\"text-align: center; font-size: larger;\">
+This <strong>pointblank</strong> validation report, \\
+containing <strong>{nrow(x$validation_set)}</strong> validation step\\
+{ifelse(nrow(x$validation_set) != 1, 's', '')},<br>\\
+was initiated on {blastula::add_readable_time(x$time)}.
+</div>
+<br><br>
+{x$report_html_small}
+<br>
+<div style=\"text-align: center; font-size: larger;\">
+&#9678;
+</div>
+"
+)
 }
 
 #' Provide simple email message body components: footer
@@ -284,10 +301,15 @@ Here is **pointblank** validation report that was initiated at {x$time}.
 #' 
 #' @export
 stock_msg_footer <- function() {
-  "
-Validation performed via the `pointblank` **R** package.
   
-[Information and package documentation](https://rich-iannone.github.io/pointblank/)
+"
+<br>
+Validation performed via the <code>pointblank</code> <strong>R<strong> package.
+<br><br><br>
+<div>
+<a style=\"background-color: #999999; color: white; padding: 1em 1.5em; \\
+position: relative; text-decoration: none; text-transform: uppercase; \\
+cursor: pointer;\" href=\"https://rich-iannone.github.io/pointblank/\">Information and package documentation</a></div>
 "
 }
 
