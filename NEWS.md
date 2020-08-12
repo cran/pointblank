@@ -1,4 +1,32 @@
-# pointblank 0.4.0
+# pointblank 0.5.0
+
+## New features
+
+* The *agent* can now be given a table-reading function, which is used for reading in the data during an interrogation. If a `tbl` is not provided, then this function will be invoked. However, if both a `tbl` and a `read_fn` is specified, then the supplied `tbl` will take priority (useful for one-shot interrogations with a table in an interactive context). There are two ways to specify a `read_fn`: (1) using a function (e.g., `function() { <table reading code> }`) or, (2) with an R formula expression (e.g., `~ { <table reading code> }`).
+
+* Added a a set of functions for setting and removing an agent's association to a data table (`set_tbl()` and `remove_tbl()`) or a table-reading function (`set_read_fn()` and `remove_read_fn()`).
+
+* All validation functions now have a `step_id` parameter. The use of step IDs serves to distinguish validation steps from each other and provide an opportunity for supplying a more meaningful label compared to the step index. Supplying a `step_id` is optional; **pointblank** will automatically generate the step ID value (based on the step index) if it's not provided.
+
+* Added new functions for reading and writing YAML (here, called **pointblank** YAML). A **pointblank** YAML file can be generated with an agent by using the `agent_yaml_write()` function. You're always free to create **pointblank** YAML by hand, or, you can edit/extend an existing **pointblank** YAML file. An agent can be created from **pointblank** YAML with the `agent_yaml_read()` function. It's also possible to interrogate a target data table right from **pointblank** YAML by using `agent_yaml_interrogate()`.
+
+* The `agent_write()` and `agent_read()` functions were added; they allow for saving the agent to disk and reading the agent back from disk. Saved-to-disk agents still retain their validation plans, intel from interrogations, and their reference to a target table (the `read_fn` value) and even the entire target table (if requested). Reading an agent from disk with `agent_read()` allows us to use post-interrogation functions (e.g., `get_agent_x_list()`, `get_data_extracts()`, `get_agent_report()`, etc.) as though the interrogation had just occurred.
+
+* **pointblank** is now compatible with Spark DataFrames through the **sparklyr** package. Simply use a `tbl_spark` object when specifying the target table in `create_agent()`, `set_tbl()`, or `scan_data()`.
+
+## Minor improvements and bug fixes
+
+* An issue with showing the agent report table in the email message body via the `email_blast()` function has been resolved.
+
+* Resolved issue with using literal character values in comparison-based validation functions (e.g., `col_vals_between()`, `col_vals_gt()`, etc.).
+
+* Completely rewrote the underlying processes for the storage and retrieval of translation text.
+
+* Much improved translations of reporting text the Spanish and German languages. Thanks @pachamaltese and @DavZim for these valuable contributions!
+
+* New **testthat** tests were added that test **pointblank** validations against mock PostgreSQL and MySQL database tables via the **dittodb** package. Thank you @pachamaltese for implementing these tests.
+
+# pointblank 0.4.0 (2020-06-22)
 
 ## New R Markdown features
 
@@ -18,7 +46,7 @@
 
 * Added 24 *expectation* functions (e.g., `expect_col_exists()`, `expect_rows_distinct()`, `expect_col_schema_match()`, etc.) as complements of the 24 validation functions. All of these can be used for **testthat** tests of tabular data with a simplified interface that exposes an easy-to-use failure `threshold` (defaulting to `1`).
 
-* Added 24 *test* functions (e.g., `test_col_exists()`, `test_rows_distinct()`, `test_col_schema_match()`, etc.) to further complement the 24 validation functions. These functions return a logical value: `TRUE` if the threshold (having a default of `1`) is exceeded, `FALSE` otherwise. These `test_*()` functions use the same simplified interface of the `expect_*()` functions.
+* Added 24 *test* functions (e.g., `test_col_exists()`, `test_rows_distinct()`, `test_col_schema_match()`, etc.) to further complement the 24 validation functions. These functions return a logical value: `TRUE` if the threshold (having a default of `1`) is *not* exceeded, `FALSE` otherwise. These `test_*()` functions use the same simplified interface of the `expect_*()` functions.
 
 * Added the `col_vals_expr()`, `expect_col_vals_expr()`, and `test_col_vals_expr()` *validation*, *expectation*, and *test* functions, making it easier for DIY validations. The **dplyr** `expr()`, `case_when()`, and `between()` functions were re-exported for easier accessibility here since they work exceedingly well with the new functions.
 
@@ -54,7 +82,7 @@
 
 * Added column validity checks inside of internal `interrogate_*()` functions
 
-# pointblank 0.3.1.1
+# pointblank 0.3.1 (2020-04-02)
 
 * Fixed implementation of the `col_vals_between()` and `col_vals_not_between()` step functions to work with `tbl_dbi` objects.
 
@@ -74,7 +102,7 @@
 
 * Numerous fixes to ensure compatibility with tibble 3.0.0
 
-# pointblank 0.3.0
+# pointblank 0.3.0 (2020-01-10)
 
 The pointblank package has been changed significantly from the previous version in favor of consistency and simplicity, better reporting, and increased power. The internals have been extensively refactored and the API has accordingly gone through revisions.
 
@@ -98,14 +126,12 @@ The pointblank package has been changed significantly from the previous version 
 
 * The `conjointly()` function is a new validation step function that allows for multiple rowwise validation steps to be performed for joint validity testing.
 
-# pointblank 0.2.1
+# pointblank 0.2.1 (2019-09-12)
 
-* Revisions on account of API changes in **tidyr** `1.0.0`
+* Revisions on account of API changes in **tidyr** `1.0.0`.
 
-# pointblank 0.2.0
+* Incorporates corrections related to API changes in **rlang** `0.2.0`.
 
-* Incorporates corrections related to API changes in **rlang** `0.2.0`
+# pointblank 0.1 (2017-08-25)
 
-# pointblank 0.1
-
-* First release
+* First release.

@@ -6,10 +6,10 @@
 #' The validation step function can be used directly on a data table or with an
 #' *agent* object (technically, a `ptblank_agent` object) whereas the
 #' expectation and test functions can only be used with a data table. The types
-#' of data tables that can be used include data frames, tibbles, and even
-#' database tables of `tbl_dbi` class. Each validation step or expectation will
-#' operate over the number of test units that is equal to the number of rows in
-#' the table (after any `preconditions` have been applied).
+#' of data tables that can be used include data frames, tibbles, database tables
+#' (`tbl_dbi`), and Spark DataFrames (`tbl_spark`). Each validation step or
+#' expectation will operate over the number of test units that is equal to the
+#' number of rows in the table (after any `preconditions` have been applied).
 #'
 #' If providing multiple column names, the result will be an expansion of
 #' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
@@ -148,6 +148,7 @@ col_vals_regex <- function(x,
                            na_pass = FALSE,
                            preconditions = NULL,
                            actions = NULL,
+                           step_id = NULL,
                            brief = NULL,
                            active = TRUE) {
   
@@ -179,6 +180,13 @@ col_vals_regex <- function(x,
     brief <- generate_autobriefs(agent, columns, preconditions, values = regex, "col_vals_regex")
   }
   
+  # Normalize any provided `step_id` value(s)
+  step_id <- normalize_step_id(step_id, columns, agent)
+  
+  # Check `step_id` value(s) against all other `step_id`
+  # values in earlier validation steps
+  check_step_id_duplicates(step_id, agent)
+  
   # Add one or more validation steps based on the
   # length of the `columns` variable
   for (i in seq(columns)) {
@@ -192,6 +200,7 @@ col_vals_regex <- function(x,
         na_pass = na_pass,
         preconditions = preconditions,
         actions = covert_actions(actions, agent),
+        step_id = step_id[i],
         brief = brief[i],
         active = active
       )

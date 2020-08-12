@@ -8,10 +8,10 @@
 #' `vars()`. The validation function can be used directly on a data table or
 #' with an *agent* object (technically, a `ptblank_agent` object) whereas the
 #' expectation and test functions can only be used with a data table. The types
-#' of data tables that can be used include data frames, tibbles, and even
-#' database tables of `tbl_dbi` class. Each validation step or expectation will
-#' operate over the number of test units that is equal to the number of rows in
-#' the table (after any `preconditions` have been applied).
+#' of data tables that can be used include data frames, tibbles, database tables
+#' (`tbl_dbi`), and Spark DataFrames (`tbl_spark`). Each validation step or
+#' expectation will operate over the number of test units that is equal to the
+#' number of rows in the table (after any `preconditions` have been applied).
 #'
 #' If providing multiple column names to `columns`, the result will be an
 #' expansion of validation steps to that number of column names (e.g.,
@@ -56,10 +56,12 @@
 #' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
 #' then be automatically generated.
 #'
-#' @param x A data frame, tibble (`tbl_df` or `tbl_dbi`), or, an agent object of
-#'   class `ptblank_agent` that can be created with [create_agent()].
-#' @param object A data frame or tibble (`tbl_df` or `tbl_dbi`) that serves as
-#'   the target table for the expectation function.
+#' @param x A data frame, tibble (`tbl_df` or `tbl_dbi`), Spark DataFrame
+#'   (`tbl_spark`), or, an agent object of class `ptblank_agent` that is created
+#'   with [create_agent()].
+#' @param object A data frame, tibble (`tbl_df` or `tbl_dbi`), or Spark
+#'   DataFrame (`tbl_spark`) that serves as the target table for the expectation
+#'   function or the test function.
 #' @param columns The column (or a set of columns, provided as a character
 #'   vector) to which this validation should be applied.
 #' @param value A numeric value used for this test. Any column values `>value`
@@ -75,6 +77,17 @@
 #' @param actions A list containing threshold levels so that the validation step
 #'   can react accordingly when exceeding the set levels. This is to be created
 #'   with the [action_levels()] helper function.
+#' @param step_id One or more optional identifiers for the single or multiple
+#'   validation steps generated from calling a validation function. The use of
+#'   step IDs serves to distinguish validation steps from each other and provide
+#'   an opportunity for supplying a more meaningful label compared to the step
+#'   index. By default this is `NULL`, and **pointblank** will automatically
+#'   generate the step ID value (based on the step index) in this case. One or
+#'   more values can be provided, and the exact number of ID values should (1)
+#'   match the number of validation steps that the validation function call will
+#'   produce (influenced by the number of `columns` provided), (2) be an ID
+#'   string not used in any previous validation step, and (3) be a vector with
+#'   unique values.
 #' @param threshold A simple failure threshold value for use with the
 #'   expectation function. By default, this is set to `1` meaning that any
 #'   single unit of failure in data validation results in an overall test
@@ -180,6 +193,7 @@ col_vals_gt <- function(x,
                         na_pass = FALSE,
                         preconditions = NULL,
                         actions = NULL,
+                        step_id = NULL,
                         brief = NULL,
                         active = TRUE) {
 
@@ -211,6 +225,13 @@ col_vals_gt <- function(x,
     brief <- generate_autobriefs(agent, columns, preconditions, values = value, "col_vals_gt")
   }
   
+  # Normalize any provided `step_id` value(s)
+  step_id <- normalize_step_id(step_id, columns, agent)
+  
+  # Check `step_id` value(s) against all other `step_id`
+  # values in earlier validation steps
+  check_step_id_duplicates(step_id, agent)
+  
   # Add one or more validation steps based on the
   # length of the `columns` variable
   for (i in seq(columns)) {
@@ -224,6 +245,7 @@ col_vals_gt <- function(x,
         na_pass = na_pass,
         preconditions = preconditions,
         actions = covert_actions(actions, agent),
+        step_id = step_id[i],
         brief = brief[i],
         active = active
       )

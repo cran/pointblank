@@ -5,10 +5,10 @@
 #' can be used directly on a data table or with an *agent* object (technically,
 #' a `ptblank_agent` object) whereas the expectation and test functions can only
 #' be used with a data table. The types of data tables that can be used include
-#' data frames, tibbles, and even database tables of `tbl_dbi` class. Each
-#' validation step or expectation will operate over the number of test units
-#' that is equal to the number of rows in the table (after any `preconditions`
-#' have been applied).
+#' data frames, tibbles, database tables (`tbl_dbi`), and Spark DataFrames
+#' (`tbl_spark`). Each validation step or expectation will operate over the
+#' number of test units that is equal to the number of rows in the table (after
+#' any `preconditions` have been applied).
 #' 
 #' Having table `preconditions` means **pointblank** will mutate the table just
 #' before interrogation. Such a table mutation is isolated in scope to the
@@ -153,6 +153,7 @@ col_vals_expr <- function(x,
                           expr,
                           preconditions = NULL,
                           actions = NULL,
+                          step_id = NULL,
                           brief = NULL,
                           active = TRUE) {
   
@@ -192,6 +193,13 @@ col_vals_expr <- function(x,
       )
   }
   
+  # Normalize any provided `step_id` value(s)
+  step_id <- normalize_step_id(step_id, columns = "column", agent)
+  
+  # Check `step_id` value(s) against all other `step_id`
+  # values in earlier validation steps
+  check_step_id_duplicates(step_id, agent)
+  
   # Add a validation step
   agent <-
     create_validation_step(
@@ -201,6 +209,7 @@ col_vals_expr <- function(x,
       values = expr,
       preconditions = preconditions,
       actions = covert_actions(actions, agent),
+      step_id = step_id,
       brief = brief,
       active = active
     )

@@ -6,7 +6,8 @@
 #' can use functions like [get_agent_report()] and [all_passed()] to understand
 #' how the interrogation went down.
 #'
-#' @param agent An agent object of class `ptblank_agent`.
+#' @param agent An agent object of class `ptblank_agent` that is created with
+#'   [create_agent()].
 #' @param extract_failed An option to collect rows that didn't pass a particular
 #'   validation step. The default is `TRUE` and further options allow for fine
 #'   control of how these rows are collected.
@@ -62,7 +63,48 @@ interrogate <- function(agent,
 
   # Add the starting time to the `agent` object
   agent$time <- Sys.time()
-  
+
+  # Stop function if `agent$tbl` and `agent$read_fn` are both NULL
+  if (is.null(agent$tbl) && is.null(agent$read_fn)) {
+    
+    stop(
+      "We can't `interrogate()` because the agent doesn't have a data table or ",
+      "a function to obtain one:\n",
+      "* Use the `set_tbl()` function to specify a table, or\n",
+      "* Use `set_read_fn()` to supply a table-reading function.",
+      call. = FALSE
+    )
+  }
+
+  if (is.null(agent$tbl) && !is.null(agent$read_fn)) {
+    if (inherits(agent$read_fn, "function")) {
+      agent$tbl <- rlang::exec(agent$read_fn)
+    } else if (rlang::is_formula(agent$read_fn)) {
+      agent$tbl <- agent$read_fn %>% rlang::f_rhs() %>% rlang::eval_tidy()
+    } else {
+
+      stop(
+        "The `read_fn` object must be a function or an R formula.\n",
+        "* A function can be made with `function()` {<table reading code>}.\n",
+        "* An R formula can also be used, with the expression on the RHS.",
+        call. = FALSE
+      )
+    }
+
+    # Obtain basic information on the table and
+    # set the relevant list elements
+    tbl_information <- get_tbl_information(tbl = agent$tbl)
+
+    agent$db_tbl_name <- tbl_information$db_tbl_name
+    agent$tbl_src <- tbl_information$tbl_src
+    agent$tbl_src_details <- tbl_information$tbl_src_details
+    agent$col_names <- tbl_information$col_names
+    agent$col_types <- tbl_information$r_col_types
+    agent$db_col_types <- tbl_information$db_col_types
+
+    agent$extracts <- NULL
+  }
+
   if (agent$name == "::QUIET::" || !interactive()) {
     quiet <- TRUE
   } else {
@@ -140,9 +182,9 @@ interrogate <- function(agent,
             table = tbl_checked,
             assertion_type
           )
-        
+
         tbl_checked <- tbl_checked$value
-        
+
         tbl_checked <-
           tbl_checked %>%
           dplyr::rename(!!new_col := pb_is_good_)
@@ -419,13 +461,17 @@ interrogate_comparison <- function(agent, idx, table, assertion_type) {
       "col_vals_equal" = "==",
       "col_vals_not_equal" = "!="
     )
-  
+
   # Get the value for the expression
   value <- get_values_at_idx(agent = agent, idx = idx)
 
   # Normalize a column in `vars()` to a `name` object
   if (inherits(value, "list")) {
     value <- value[1][[1]] %>% rlang::get_expr()
+  } else {
+    if (is.character(value)) {
+      value <- paste0("'", value, "'")
+    }
   }
   
   # Obtain the target column as a label
@@ -439,14 +485,15 @@ interrogate_comparison <- function(agent, idx, table, assertion_type) {
   # Perform rowwise validations for the column
   pointblank_try_catch(tbl_val_comparison(table, column, operator, value, na_pass))
 }
+
 # Function for validating comparison step functions
 tbl_val_comparison <- function(table, column, operator, value, na_pass) {
-  
+
   column_validity_checks_column_value(table = table, column = {{ column }}, value = {{ value }})
   
   # Construct a string-based expression for the validation
   expression <- paste(column, operator, value)
-  
+
   table %>%
     dplyr::mutate(pb_is_good_ = !!rlang::parse_expr(expression)) %>%
     dplyr::mutate(pb_is_good_ = dplyr::case_when(
@@ -697,7 +744,17 @@ interrogate_regex <- function(agent, idx, table) {
       stop("Regex-based validations are currently not supported on SQLite database tables", call. = FALSE)
     }
     
-    if (tbl_type == "mysql") {
+    if (tbl_type == "tbl_spark") { 
+      
+      tbl <- 
+        table %>%
+        dplyr::mutate(pb_is_good_ = ifelse(!is.na({{ column }}), RLIKE({{ column }}, regex), NA)) %>%
+        dplyr::mutate(pb_is_good_ = dplyr::case_when(
+          is.na(pb_is_good_) ~ na_pass,
+          TRUE ~ pb_is_good_
+        ))
+      
+    } else if (tbl_type == "mysql") {
 
       tbl <- 
         table %>%
@@ -898,7 +955,7 @@ interrogate_col_schema_match <- function(agent, idx, table) {
   table_schema_y <- agent$validation_set$values[[idx]]
   
   # Get the `table` `col_schema` object (this is constructed from the table)
-  if (inherits(table, "tbl_dbi")) {
+  if (inherits(table, "tbl_dbi") || inherits(table, "tbl_spark")) {
     
     if (inherits(table_schema_y, "sql_type")) {
       
@@ -1227,9 +1284,9 @@ perform_end_action <- function(agent) {
   .f_failed <- agent$validation_set$f_failed
   
   .validation_set <- agent$validation_set
-  
+
   .report_object <- agent$reporting$report_object
-  .report_object_email <- agent$reporting$report_object_email
+  .report_object_small <- agent$reporting$report_object_email
   
   if (!is.null(.report_object)) {
     .report_html <- gt::as_raw_html(.report_object, inline_css = FALSE)
@@ -1237,10 +1294,10 @@ perform_end_action <- function(agent) {
     .report_html <- NULL
   }
   
-  if (!is.null(.report_object_email)) {
-    .report_html_email <- gt::as_raw_html(.report_object_email, inline_css = TRUE)
+  if (!is.null(.report_object_small)) {
+    .report_html_small <- gt::as_raw_html(.report_object_small, inline_css = TRUE)
   } else {
-    .report_html_email <- NULL
+    .report_html_small <- NULL
   }
 
   # Have the local vars packaged in a list to make creating
@@ -1275,7 +1332,7 @@ perform_end_action <- function(agent) {
       validation_set = .validation_set,
       report_object = .report_object,
       report_html = .report_html,
-      report_html_email = .report_html_email
+      report_html_small = .report_html_small
     )
 
   lapply(actions, function(y) {

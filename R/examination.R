@@ -1,3 +1,5 @@
+# nocov start
+
 #
 # Generate section components such as tables and plots
 #
@@ -5,6 +7,7 @@
 probe_overview_stats <- function(data,
                                  reporting_lang) {
 
+  lang <- reporting_lang
   n_cols <- ncol(data)
   n_rows <- data %>% dplyr::count(name = "n") %>% dplyr::pull(n) %>% as.numeric()
 
@@ -12,13 +15,13 @@ probe_overview_stats <- function(data,
     na_cells <- 
       data %>%
       dplyr::select(dplyr::everything()) %>%
-      dplyr::summarise_all(~ sum(is.na(.))) %>%
+      dplyr::summarise_all(~ sum(ifelse(is.na(.), 1, 0))) %>%
       dplyr::collect() %>% 
       t() %>%
       as.vector() %>%
       sum()
   )
-
+  
   tbl_info <- get_tbl_information(tbl = data)
   
   tbl_src <- tbl_info$tbl_src
@@ -49,11 +52,11 @@ probe_overview_stats <- function(data,
 
   data_overview_tbl <-
     dplyr::tribble(
-      ~label,                                 ~value,
-      tbl_lab_columns[[reporting_lang]],        as.character(n_cols),
-      tbl_lab_rows[[reporting_lang]],           as.character(n_rows),
-      tbl_lab_NAs[[reporting_lang]],            glue::glue("{na_cells} {na_cells_pct}", .transformer = get) %>% as.character(),
-      tbl_lab_duplicate_rows[[reporting_lang]], glue::glue("{duplicate_rows} {duplicate_rows_pct}", .transformer = get) %>% as.character(),
+      ~label,                                               ~value,
+      get_lsv("table_scan/tbl_lab_columns")[[lang]],        as.character(n_cols),
+      get_lsv("table_scan/tbl_lab_rows")[[lang]],           as.character(n_rows),
+      get_lsv("table_scan/tbl_lab_NAs")[[lang]],            glue::glue("{na_cells} {na_cells_pct}", .transformer = get) %>% as.character(),
+      get_lsv("table_scan/tbl_lab_duplicate_rows")[[lang]], glue::glue("{duplicate_rows} {duplicate_rows_pct}", .transformer = get) %>% as.character(),
     )
   
   r_col_types_tbl <- 
@@ -85,11 +88,11 @@ probe_overview_stats <- function(data,
   # Reproducibility Summary
   reproducibility_gt <-
     dplyr::tribble(
-      ~label,                                      ~value,
-      tbl_lab_scan_build_time[[reporting_lang]],     paste0("`", Sys.time() %>% as.character(), "`"),
-      tbl_lab_pointblank_version[[reporting_lang]],  paste0("`", utils::packageVersion("pointblank") %>% as.character(), "`"),
-      tbl_lab_r_version[[reporting_lang]],           paste0(R.version$version.string, "<br><span style=\"font-size: smaller;\"><em>", R.version$nickname, "</em></span>") %>% gsub("-", "&ndash;", .),
-      tbl_lab_system_os[[reporting_lang]],           paste0("`", R.version$platform, "`")
+      ~label,                                                    ~value,
+      get_lsv("table_scan/tbl_lab_scan_build_time")[[lang]],     paste0("`", Sys.time() %>% as.character(), "`"),
+      get_lsv("table_scan/tbl_lab_pointblank_version")[[lang]],  paste0("`", utils::packageVersion("pointblank") %>% as.character(), "`"),
+      get_lsv("table_scan/tbl_lab_r_version")[[lang]],           paste0(R.version$version.string, "<br><span style=\"font-size: smaller;\"><em>", R.version$nickname, "</em></span>") %>% gsub("-", "&ndash;", .),
+      get_lsv("table_scan/tbl_lab_system_os")[[lang]],           paste0("`", R.version$platform, "`")
     ) %>%
     gt::gt() %>%
     gt::fmt_markdown(columns = gt::vars(label)) %>%
@@ -149,6 +152,8 @@ get_column_description_gt <- function(data_column,
                                       n_rows,
                                       reporting_lang) {
 
+  lang <- reporting_lang
+  
   distinct_count <- 
     data_column %>%
     dplyr::distinct() %>%
@@ -167,7 +172,7 @@ get_column_description_gt <- function(data_column,
   na_cells <- 
     data_column %>%
     dplyr::select(dplyr::everything()) %>%
-    dplyr::summarise_all(~ sum(is.na(.))) %>%
+    dplyr::summarise_all(~ sum(ifelse(is.na(.), 1, 0))) %>%
     dplyr::collect() %>% 
     t() %>%
     as.vector() %>%
@@ -184,7 +189,7 @@ get_column_description_gt <- function(data_column,
     }
   
   # Get a count of Inf/-Inf values for non-DB table cells
-  if (!inherits(data_column, "tbl_dbi")) {
+  if (!inherits(data_column, "tbl_dbi") && !inherits(data_column, "tbl_spark")) {
     
     inf_cells <-
       data_column %>%
@@ -208,10 +213,10 @@ get_column_description_gt <- function(data_column,
   
   column_description_tbl <-
     dplyr::tribble(
-      ~label,                                ~value,
-      tbl_lab_distinct[[reporting_lang]],    glue::glue("{distinct_count} {distinct_pct}", .transformer = get),
-      tbl_lab_NAs[[reporting_lang]],         glue::glue("{na_cells} {na_cells_pct}", .transformer = get),
-      "<code>Inf</code>/<code>-Inf</code>",  glue::glue("{inf_cells} {inf_cells_pct}", .transformer = get),
+      ~label,                                            ~value,
+      get_lsv("table_scan/tbl_lab_distinct")[[lang]],    glue::glue("{distinct_count} {distinct_pct}", .transformer = get),
+      get_lsv("table_scan/tbl_lab_NAs")[[lang]],         glue::glue("{na_cells} {na_cells_pct}", .transformer = get),
+      "<code>Inf</code>/<code>-Inf</code>",              glue::glue("{inf_cells} {inf_cells_pct}", .transformer = get),
     )
   
   column_description_gt <-
@@ -230,6 +235,8 @@ get_column_description_gt <- function(data_column,
 get_numeric_stats_gt <- function(data_column,
                                  reporting_lang) {
 
+  lang <- reporting_lang
+  
   summary_stats <- 
     data_column %>%
     dplyr::summarize_all(
@@ -249,10 +256,10 @@ get_numeric_stats_gt <- function(data_column,
   
   column_stats_tbl <-
     dplyr::tribble(
-      ~label,                             ~value,
-      tbl_lab_mean[[reporting_lang]],     mean,
-      tbl_lab_minimum[[reporting_lang]],  min,
-      tbl_lab_maximum[[reporting_lang]],  max
+      ~label,                                         ~value,
+      get_lsv("table_scan/tbl_lab_mean")[[lang]],     mean,
+      get_lsv("table_scan/tbl_lab_minimum")[[lang]],  min,
+      get_lsv("table_scan/tbl_lab_maximum")[[lang]],  max
     )
   
   column_stats_gt <-
@@ -269,6 +276,8 @@ get_numeric_stats_gt <- function(data_column,
 
 get_quantile_stats_gt <- function(data_column,
                                   reporting_lang) {
+  
+  lang <- reporting_lang
   
   if (inherits(data_column, "tbl_dbi")) {
     
@@ -325,16 +334,16 @@ get_quantile_stats_gt <- function(data_column,
 
   quantile_stats_tbl <-
     dplyr::tribble(
-      ~label,                                   ~value,
-      tbl_lab_minimum[[reporting_lang]],        as.character(quantile_stats$min),
-      tbl_lab_5_percentile[[reporting_lang]],   as.character(quantile_stats$p05),
-      "Q1",                                     as.character(quantile_stats$q_1),
-      tbl_lab_median[[reporting_lang]],         as.character(quantile_stats$med),
-      "Q3",                                     as.character(quantile_stats$q_3),
-      tbl_lab_95_percentile[[reporting_lang]],  as.character(quantile_stats$p95),
-      tbl_lab_maximum[[reporting_lang]],        as.character(quantile_stats$max),
-      tbl_lab_range[[reporting_lang]],          as.character(quantile_stats$range),
-      "IQR",                                    as.character(quantile_stats$iqr)
+      ~label,                                               ~value,
+      get_lsv("table_scan/tbl_lab_minimum")[[lang]],        as.character(quantile_stats$min),
+      get_lsv("table_scan/tbl_lab_5_percentile")[[lang]],   as.character(quantile_stats$p05),
+      "Q1",                                                 as.character(quantile_stats$q_1),
+      get_lsv("table_scan/tbl_lab_median")[[lang]],         as.character(quantile_stats$med),
+      "Q3",                                                 as.character(quantile_stats$q_3),
+      get_lsv("table_scan/tbl_lab_95_percentile")[[lang]],  as.character(quantile_stats$p95),
+      get_lsv("table_scan/tbl_lab_maximum")[[lang]],        as.character(quantile_stats$max),
+      get_lsv("table_scan/tbl_lab_range")[[lang]],          as.character(quantile_stats$range),
+      "IQR",                                                as.character(quantile_stats$iqr)
     )
   
   quantile_stats_gt <-
@@ -345,33 +354,68 @@ get_quantile_stats_gt <- function(data_column,
       table.border.top.style = "none",
       table.width = "100%"
     )
+  
+  quantile_stats_gt
 }
 
 calculate_quantile_stats <- function(data_column) {
+
+  if (inherits(data_column, "tbl_spark")) {
+    
+    column_name <- colnames(data_column)
+    
+    quantiles <- 
+      sparklyr::sdf_quantile(
+        data_column, column_name,
+        probabilities = c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1)
+      ) %>% 
+      unname()
+    
+    quantile_stats <- 
+      list(
+        min = quantiles[1],
+        p05 = quantiles[2],
+        q_1 = quantiles[3],
+        med = quantiles[4],
+        q_3 = quantiles[5],
+        p95 = quantiles[6],
+        max = quantiles[7],
+        iqr = quantiles[5] - quantiles[3],
+        range = quantiles[7] - quantiles[1]
+      ) %>% 
+      lapply(FUN = function(x) round(x, 2))
+    
+  } else {
   
-  data_column %>%
-    dplyr::summarize_all(
-      .funs = list(
-        min = ~ min(., na.rm = TRUE),
-        p05 = ~ stats::quantile(., probs = 0.05, na.rm = TRUE),
-        q_1 = ~ stats::quantile(., probs = 0.25, na.rm = TRUE),
-        med = ~ stats::median(., na.rm = TRUE),
-        q_3 = ~ stats::quantile(., probs = 0.75, na.rm = TRUE),
-        p95 = ~ stats::quantile(., probs = 0.95, na.rm = TRUE),
-        max = ~ max(., na.rm = TRUE),
-        iqr = ~ stats::IQR(., na.rm = TRUE)
-      )
-    ) %>%
-    dplyr::mutate(range = max - min) %>%
-    dplyr::summarize_all(~ round(., 2)) %>%
-    as.list()
+    quantile_stats <- 
+      data_column %>%
+      dplyr::summarize_all(
+        .funs = list(
+          min = ~ min(., na.rm = TRUE),
+          p05 = ~ stats::quantile(., probs = 0.05, na.rm = TRUE),
+          q_1 = ~ stats::quantile(., probs = 0.25, na.rm = TRUE),
+          med = ~ stats::median(., na.rm = TRUE),
+          q_3 = ~ stats::quantile(., probs = 0.75, na.rm = TRUE),
+          p95 = ~ stats::quantile(., probs = 0.95, na.rm = TRUE),
+          max = ~ max(., na.rm = TRUE),
+          iqr = ~ stats::IQR(., na.rm = TRUE)
+        )
+      ) %>%
+      dplyr::mutate(range = max - min) %>%
+      dplyr::summarize_all(~ round(., 2)) %>%
+      as.list()
+  }
+
+  quantile_stats
 }
 
 get_descriptive_stats_gt <- function(data_column,
                                      reporting_lang) {
+
+  lang <- reporting_lang
   
-  if (inherits(data_column, "tbl_dbi")) {
-    
+  if (inherits(data_column, "tbl_dbi") || inherits(data_column, "tbl_spark")) {
+
     data_column <- 
       data_column %>%
       dplyr::filter(!is.na(1))
@@ -433,10 +477,10 @@ get_descriptive_stats_gt <- function(data_column,
   descriptive_stats_tbl <-
     dplyr::tribble(
       ~label,                                        ~value,
-      tbl_lab_mean[[reporting_lang]],                descriptive_stats$mean,
-      tbl_lab_variance[[reporting_lang]],            descriptive_stats$variance,
-      tbl_lab_standard_deviation[[reporting_lang]],  descriptive_stats$sd,
-      tbl_lab_cov[[reporting_lang]],                 descriptive_stats$cv,
+      get_lsv("table_scan/tbl_lab_mean")[[lang]],                descriptive_stats$mean,
+      get_lsv("table_scan/tbl_lab_variance")[[lang]],            descriptive_stats$variance,
+      get_lsv("table_scan/tbl_lab_standard_deviation")[[lang]],  descriptive_stats$sd,
+      get_lsv("table_scan/tbl_lab_cov")[[lang]],                 descriptive_stats$cv,
       # "Median Absolute Deviation",        ,
       # "Kurtosis",                         ,
       # "Skewness",                         ,
@@ -454,6 +498,8 @@ get_descriptive_stats_gt <- function(data_column,
 
 get_common_values_gt <- function(data_column,
                                  reporting_lang) {
+ 
+  lang <- reporting_lang
   
   n_rows <- data_column %>% dplyr::count(name = "n") %>% dplyr::pull(n)
 
@@ -500,16 +546,16 @@ get_common_values_gt <- function(data_column,
           dplyr::rename(value = 1) %>%
           dplyr::mutate(value = as.character(value)),
         dplyr::tibble(
-          value = paste0("**", other_values_text[[reporting_lang]], "** (", other_values_distinct , ")"),
+          value = paste0("**", get_lsv("table_scan/other_values_text")[[lang]], "** (", other_values_distinct , ")"),
           n = other_values_n,
           frequency = other_values_n / n_rows
         )
       ) %>%
       gt::gt() %>%
       gt::cols_label(
-        value = tbl_lab_value[[reporting_lang]],
-        n = tbl_lab_count[[reporting_lang]],
-        frequency = tbl_lab_frequency[[reporting_lang]],
+        value = get_lsv("table_scan/tbl_lab_value")[[lang]],
+        n = get_lsv("table_scan/tbl_lab_count")[[lang]],
+        frequency = get_lsv("table_scan/tbl_lab_frequency")[[lang]],
       ) %>%
       gt::fmt_missing(columns = gt::vars(value), missing_text = "**NA**") %>%
       gt::text_transform(
@@ -533,9 +579,9 @@ get_common_values_gt <- function(data_column,
       dplyr::mutate(value = as.character(value)) %>%
       gt::gt() %>%
       gt::cols_label(
-        value = tbl_lab_value[[reporting_lang]],
-        n = tbl_lab_count[[reporting_lang]],
-        frequency = tbl_lab_frequency[[reporting_lang]],
+        value = get_lsv("table_scan/tbl_lab_value")[[lang]],
+        n = get_lsv("table_scan/tbl_lab_count")[[lang]],
+        frequency = get_lsv("table_scan/tbl_lab_frequency")[[lang]],
       ) %>%
       gt::fmt_missing(columns = gt::vars(value), missing_text = "**NA**") %>%
       gt::text_transform(
@@ -562,7 +608,9 @@ get_head_tail_slices <- function(data_column) {
 
 get_top_bottom_slice <- function(data_column,
                                  reporting_lang) {
-
+  
+  lang <- reporting_lang
+  
   n_rows <- data_column %>% dplyr::count(name = "n") %>% dplyr::pull(n)
 
   data_column_freq <-
@@ -571,8 +619,8 @@ get_top_bottom_slice <- function(data_column,
     dplyr::count() %>%
     dplyr::ungroup()
   
-  name_1 <- rlang::sym(tbl_lab_value[[reporting_lang]])
-  name_2 <- rlang::sym(tbl_lab_count[[reporting_lang]])
+  name_1 <- rlang::sym(get_lsv("table_scan/tbl_lab_value")[[lang]])
+  name_2 <- rlang::sym(get_lsv("table_scan/tbl_lab_count")[[lang]])
   
   data_column_freq <- 
     data_column_freq %>%
@@ -585,7 +633,7 @@ get_top_bottom_slice <- function(data_column,
     dplyr::collect()
   
   data_column_top_n[, 3] <- data_column_top_n[, 2, drop = TRUE] / n_rows
-  colnames(data_column_top_n)[3] <- tbl_lab_frequency[[reporting_lang]]
+  colnames(data_column_top_n)[3] <- get_lsv("table_scan/tbl_lab_frequency")[[lang]]
   
   data_column_bottom_n <- 
     data_column_freq %>%
@@ -594,7 +642,7 @@ get_top_bottom_slice <- function(data_column,
     dplyr::collect()
   
   data_column_bottom_n[, 3] <- data_column_bottom_n[, 2, drop = TRUE] / n_rows
-  colnames(data_column_bottom_n)[3] <- tbl_lab_frequency[[reporting_lang]]
+  colnames(data_column_bottom_n)[3] <- get_lsv("table_scan/tbl_lab_frequency")[[lang]]
   
   get_slice_gt <- function(data_column, slice = "max") {
 
@@ -620,7 +668,9 @@ get_top_bottom_slice <- function(data_column,
 
 get_character_nchar_stats_gt <- function(data_column,
                                          reporting_lang) {
-
+  
+  lang <- reporting_lang
+  
   character_nchar_stats <- 
     data_column %>%
     dplyr::mutate_all(.funs = nchar) %>%
@@ -637,10 +687,10 @@ get_character_nchar_stats_gt <- function(data_column,
     as.list()
   
   dplyr::tribble(
-    ~label,                             ~value,
-    tbl_lab_mean[[reporting_lang]],     character_nchar_stats$mean,
-    tbl_lab_minimum[[reporting_lang]],  character_nchar_stats$min,
-    tbl_lab_maximum[[reporting_lang]],  character_nchar_stats$max
+    ~label,                                         ~value,
+    get_lsv("table_scan/tbl_lab_mean")[[lang]],     character_nchar_stats$mean,
+    get_lsv("table_scan/tbl_lab_minimum")[[lang]],  character_nchar_stats$min,
+    get_lsv("table_scan/tbl_lab_maximum")[[lang]],  character_nchar_stats$max
   ) %>%
     gt::gt() %>%
     gt::fmt_number(columns = gt::vars(value), decimals = 1) %>%
@@ -653,9 +703,11 @@ get_character_nchar_stats_gt <- function(data_column,
 
 get_character_nchar_histogram <- function(data_column,
                                           reporting_lang) {
+
+  lang <- reporting_lang
   
-  x_label <- plot_lab_string_length[[reporting_lang]]
-  y_label <- plot_lab_count[[reporting_lang]]
+  x_label <- get_lsv("table_scan/plot_lab_string_length")[[lang]]
+  y_label <- get_lsv("table_scan/plot_lab_count")[[lang]]
 
   suppressWarnings(
     plot_histogram <- 
@@ -1101,7 +1153,7 @@ get_corr_plot <- function(mat,
 # TODO: report missing values based on user input (e.g., "9999", empty strings)
 
 probe_missing <- function(data) {
-  
+
   n_cols <- ncol(data)
   n_rows <- data %>% dplyr::count(name = "n") %>% dplyr::pull(n) %>% as.numeric()
 
@@ -1120,7 +1172,7 @@ probe_missing <- function(data) {
   cuts <- floor(seq(from = 1, to = n_rows, length.out = n_breaks + 1))[-1]
   bin_size <- cuts[1]
   
-  if (inherits(data, "tbl_dbi")) {
+  if (inherits(data, "tbl_dbi") || inherits(data, "tbl_spark")) {
     
     frequency_list <- 
       lapply(
@@ -1157,7 +1209,7 @@ probe_missing <- function(data) {
                 missing_n_span <- 
                   missing_n_span %>%
                   utils::head(cuts[x]) %>%
-                  dplyr::summarize_all(~ sum(is.na(.))) %>%
+                  dplyr::summarize_all(~ sum(ifelse(is.na(.), 1, 0))) %>%
                   dplyr::pull(a) %>%
                   as.integer()
                 
@@ -1219,7 +1271,7 @@ probe_missing <- function(data) {
             dplyr::rename(value = 1)
         })
   }
-  
+
   frequency_tbl <-
     frequency_list %>%
     dplyr::bind_rows() %>%
@@ -1233,7 +1285,7 @@ probe_missing <- function(data) {
         data %>% 
           dplyr::select(dplyr::one_of(`_x_`)) %>%
           dplyr::group_by() %>% 
-          dplyr::summarize_all(~ sum(is.na(.)) / dplyr::n()) %>%
+          dplyr::summarize_all(~ sum(ifelse(is.na(.), 1, 0)) / dplyr::n()) %>%
           dplyr::collect() %>%
           dplyr::mutate(col_num = which(col_names %in% `_x_`)) %>%
           dplyr::mutate(col_name = `_x_`) %>%
@@ -1460,7 +1512,7 @@ build_examination_page <- function(data,
                 htmltools::tags$p(
                   class = "text-muted text-center",
                   htmltools::HTML(
-                    footer_text_fragment[[reporting_lang]]
+                    get_lsv("table_scan/footer_text_fragment")[[reporting_lang]]
                   )
                 )
               )
@@ -1488,10 +1540,12 @@ probe_overview_stats_assemble <- function(data,
                                           tbl_name,
                                           reporting_lang) {
 
+  lang <- reporting_lang
+  
   if (is.na(tbl_name)) {
-    header <- section_title_overview_ts[[reporting_lang]]
+    header <- get_lsv("table_scan/nav_overview_ts")[[lang]]
   } else {
-    header <- glue::glue(section_title_overview_of_ts[[reporting_lang]])
+    header <- glue::glue(get_lsv("table_scan/section_title_overview_of_ts")[[lang]])
   }
   
   row_header <- row_header(id = "overview", header = htmltools::HTML(header))
@@ -1508,12 +1562,12 @@ probe_overview_stats_assemble <- function(data,
           class = "nav nav-pills",
           role = "tablist",
           nav_pill_li(
-            label = button_label_overview_overview_ts[[reporting_lang]],
+            label = get_lsv("table_scan/nav_overview_ts")[[lang]],
             id = "overview-dataset_overview",
             active = TRUE
           ),
           nav_pill_li(
-            label = button_label_overview_reproducibility_ts[[reporting_lang]],
+            label = get_lsv("table_scan/button_label_overview_reproducibility_ts")[[lang]],
             id = "overview-reproducibility",
             active = FALSE
           )
@@ -1527,12 +1581,12 @@ probe_overview_stats_assemble <- function(data,
             panel_component_list = list(
               panel_component(
                 size = 6,
-                title = subsection_title_overview_table_overview[[reporting_lang]],
+                title = get_lsv("table_scan/subsection_title_overview_table_overview")[[lang]],
                 content = overview_stats$data_overview_gt
               ),
               panel_component(
                 size = 6,
-                title = subsection_title_overview_column_types[[reporting_lang]],
+                title = get_lsv("table_scan/subsection_title_overview_column_types")[[lang]],
                 content = overview_stats$r_col_types_gt
               )
             )
@@ -1543,7 +1597,7 @@ probe_overview_stats_assemble <- function(data,
             panel_component_list = list(
               panel_component(
                 size = 12,
-                title = subsection_title_overview_reproducibility_information[[reporting_lang]],
+                title = get_lsv("table_scan/subsection_title_overview_reproducibility_information")[[lang]],
                 content = overview_stats$reproducibility_gt
               )
             )
@@ -1557,7 +1611,9 @@ probe_overview_stats_assemble <- function(data,
 probe_columns_assemble <- function(data,
                                    reporting_lang) {
   
-  header <- section_title_variables_ts[[reporting_lang]]
+  lang <- reporting_lang
+  
+  header <- get_lsv("table_scan/nav_variables_ts")[[lang]]
   
   row_header <- row_header(id = "variables", header = header)
   
@@ -1613,7 +1669,7 @@ probe_columns_assemble <- function(data,
                       ),
                       `aria-expanded` = "true",
                       `aria-controls` = "collapseExample",
-                      btn_toggle_details[[reporting_lang]]
+                      get_lsv("table_scan/btn_toggle_details")[[lang]]
                     )
                   ),
                   htmltools::tags$div(
@@ -1637,7 +1693,7 @@ probe_columns_assemble <- function(data,
                             `aria-controls` = paste0(id_val, "bottom-", id_val, "statistics"),
                             role = "tab",
                             `data-toggle` = "tab",
-                            tab_label_variables_statistics_ts[[reporting_lang]]
+                            get_lsv("table_scan/tab_label_variables_statistics_ts")[[lang]]
                           )
                         ),
                         htmltools::tags$li(
@@ -1649,7 +1705,7 @@ probe_columns_assemble <- function(data,
                             `aria-controls` = paste0(id_val, "bottom-", id_val, "common_values"),
                             role = "tab",
                             `data-toggle` = "tab",
-                            tab_label_variables_common_values_ts[[reporting_lang]]
+                            get_lsv("table_scan/tab_label_variables_common_values_ts")[[lang]]
                           )
                         ),
                         htmltools::tags$li(
@@ -1661,7 +1717,7 @@ probe_columns_assemble <- function(data,
                             `aria-controls` = paste0(id_val, "bottom-", id_val, "max_min_slices"),
                             role = "tab",
                             `data-toggle` = "tab",
-                            tab_label_variables_max_min_slices_ts[[reporting_lang]]
+                            get_lsv("table_scan/tab_label_variables_max_min_slices_ts")[[lang]]
                           )
                         )
                       ),
@@ -1676,7 +1732,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-6",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_quantile_statistics[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_quantile_statistics")[[lang]]
                             ),
                             x$column_quantile_gt
                           ),
@@ -1684,7 +1740,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-6",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_descriptive_statistics[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_descriptive_statistics")[[lang]]
                             ),
                             x$column_descriptive_gt
                           )
@@ -1698,7 +1754,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-12",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_common_values[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_common_values")[[lang]]
                             ),
                             x$column_common_gt
                           )
@@ -1712,7 +1768,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-6",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_maximum_values[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_maximum_values")[[lang]]
                             ),
                             x$column_top_slice_gt
                           ),
@@ -1720,7 +1776,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-6",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_minimum_values[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_minimum_values")[[lang]]
                             ),
                             x$column_bottom_slice_gt
                           )
@@ -1777,7 +1833,7 @@ probe_columns_assemble <- function(data,
                       ),
                       `aria-expanded` = "true",
                       `aria-controls` = "collapseExample",
-                      btn_toggle_details[[reporting_lang]]
+                      get_lsv("table_scan/btn_toggle_details")[[lang]]
                     )
                   ),
                   htmltools::tags$div(
@@ -1801,7 +1857,7 @@ probe_columns_assemble <- function(data,
                             `aria-controls` = paste0(id_val, "bottom-", id_val, "common_values"),
                             role = "tab",
                             `data-toggle` = "tab",
-                            subsection_title_variables_common_values[[reporting_lang]]
+                            get_lsv("table_scan/tab_label_variables_common_values_ts")[[lang]]
                           )
                         ),
                         
@@ -1814,7 +1870,7 @@ probe_columns_assemble <- function(data,
                             `aria-controls` = paste0(id_val, "bottom-", id_val, "lengths"),
                             role = "tab",
                             `data-toggle` = "tab",
-                            subsection_title_variables_string_lengths[[reporting_lang]]
+                            get_lsv("table_scan/subsection_title_variables_string_lengths")[[lang]]
                           )
                         ),
                         
@@ -1830,7 +1886,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-12",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_common_values[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_common_values")[[lang]]
                             ),
                             x$column_common_gt
                           )
@@ -1844,7 +1900,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-4",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_string_lengths[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_string_lengths")[[lang]]
                             ),
                             x$column_nchar_gt
                           ),
@@ -1852,7 +1908,7 @@ probe_columns_assemble <- function(data,
                             class = "col-sm-8",
                             htmltools::tags$p(
                               class = "h4",
-                              subsection_title_variables_histogram[[reporting_lang]]
+                              get_lsv("table_scan/subsection_title_variables_histogram")[[lang]]
                             ),
                             x$column_nchar_plot
                           )
@@ -1949,7 +2005,9 @@ probe_columns_assemble <- function(data,
 probe_interactions_assemble <- function(data,
                                         reporting_lang) {
   
-  header <- section_title_interactions_ts[[reporting_lang]]
+  lang <- reporting_lang
+  
+  header <- get_lsv("table_scan/nav_interactions_ts")[[lang]]
   
   row_header <- row_header(id = "interactions", header = header)
   
@@ -1975,7 +2033,9 @@ probe_interactions_assemble <- function(data,
 probe_correlations_assemble <- function(data,
                                         reporting_lang) {
   
-  header <- section_title_correlations_ts[[reporting_lang]]
+  lang <- reporting_lang
+  
+  header <- get_lsv("table_scan/nav_correlations_ts")[[lang]]
   
   row_header <- row_header(id = "correlations", header = header)
   
@@ -2039,8 +2099,9 @@ probe_correlations_assemble <- function(data,
 probe_missing_assemble <- function(data,
                                    reporting_lang) {
   
+  lang <- reporting_lang
   
-  header <- section_title_missing_values_ts[[reporting_lang]]
+  header <- get_lsv("table_scan/nav_missing_values_ts")[[lang]]
   
   row_header <- row_header(id = "missing", header = header)
   
@@ -2065,7 +2126,9 @@ probe_missing_assemble <- function(data,
 probe_sample_assemble <- function(data,
                                   reporting_lang) {
   
-  header <- section_title_sample_values_ts[[reporting_lang]]
+  lang <- reporting_lang
+  
+  header <- get_lsv("table_scan/nav_sample_values_ts")[[lang]]
   
   row_header <- row_header(id = "sample", header = header)
   
@@ -2094,6 +2157,8 @@ probe_sample_assemble <- function(data,
 navbar <- function(sections,
                    reporting_lang) {
   
+  lang <- reporting_lang
+  
   # Compose the list of navigational links for the navbar
   item_list <-
     sections %>%
@@ -2103,12 +2168,12 @@ navbar <- function(sections,
         label <-
           switch(
             x,
-            overview = nav_overview_ts[[reporting_lang]],
-            variables = nav_variables_ts[[reporting_lang]],
-            interactions = nav_interactions_ts[[reporting_lang]],
-            correlations = nav_correlations_ts[[reporting_lang]],
-            missing = nav_missing_values_ts[[reporting_lang]],
-            sample = nav_sample_values_ts[[reporting_lang]]
+            overview = get_lsv("table_scan/nav_overview_ts")[[lang]],
+            variables = get_lsv("table_scan/nav_variables_ts")[[lang]],
+            interactions = get_lsv("table_scan/nav_interactions_ts")[[lang]],
+            correlations = get_lsv("table_scan/nav_correlations_ts")[[lang]],
+            missing = get_lsv("table_scan/nav_missing_values_ts")[[lang]],
+            sample = get_lsv("table_scan/nav_sample_values_ts")[[lang]]
           )
         
         htmltools::tags$li(
@@ -2143,7 +2208,7 @@ navbar <- function(sections,
           class = "navbar-brand anchor",
           href = "#top",
           style = "font-size: 14.5px",
-          nav_title_ts[[reporting_lang]]
+          get_lsv("table_scan/nav_title_ts")[[lang]]
         ),
       ),
       htmltools::tags$div(
@@ -2218,3 +2283,6 @@ nav_pill_li <- function(label, id, active = FALSE) {
 pb_glue_data <- function(.x, ...) {
   glue::glue_data(.x, ..., .transformer = get, .envir = emptyenv())
 }
+
+# nocov end
+

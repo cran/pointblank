@@ -7,10 +7,10 @@
 #' in the table. The validation function can be used directly on a data table or
 #' with an *agent* object (technically, a `ptblank_agent` object) whereas the
 #' expectation and test functions can only be used with a data table. The types
-#' of data tables that can be used include data frames, tibbles, and even
-#' database tables of `tbl_dbi` class. As a validation step or as an
-#' expectation, this will operate over the number of test units that is equal to
-#' the number of rows in the table (after any `preconditions` have been
+#' of data tables that can be used include data frames, tibbles, database tables
+#' (`tbl_dbi`), and Spark DataFrames (`tbl_spark`). As a validation step or as
+#' an expectation, this will operate over the number of test units that is equal
+#' to the number of rows in the table (after any `preconditions` have been
 #' applied).
 #'
 #' We can specify the constraining column names in quotes, in `vars()`, and with
@@ -95,6 +95,7 @@ rows_distinct <- function(x,
                           columns = NULL,
                           preconditions = NULL,
                           actions = NULL,
+                          step_id = NULL,
                           brief = NULL,
                           active = TRUE) {
 
@@ -151,6 +152,15 @@ rows_distinct <- function(x,
         column = columns
       )
   }
+  
+  # Normalize any provided `step_id` value(s)
+  step_id <- normalize_step_id(step_id, columns = "column", agent)
+  
+  # Check `step_id` value(s) against all other `step_id`
+  # values in earlier validation steps
+  check_step_id_duplicates(step_id, agent)
+  
+  # TODO: check `step_id` value(s) against previous recorded IDs
 
   # Add a validation step
   agent <-
@@ -161,6 +171,7 @@ rows_distinct <- function(x,
       values = NULL,
       preconditions = preconditions,
       actions = covert_actions(actions, agent),
+      step_id = step_id,
       brief = brief,
       active = active
     )

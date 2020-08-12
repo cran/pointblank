@@ -8,9 +8,9 @@
 #' directly on a data table or with an *agent* object (technically, a
 #' `ptblank_agent` object) whereas the expectation and test functions can only
 #' be used with a data table. The types of data tables that can be used include
-#' data frames, tibbles, and even database tables of the `tbl_dbi` class. Each
-#' validation step or expectation will operate over a single test unit, which is
-#' whether the column is a factor-type column or not.
+#' data frames, tibbles, database tables (`tbl_dbi`), and Spark DataFrames
+#' (`tbl_spark`). Each validation step or expectation will operate over a single
+#' test unit, which is whether the column is a factor-type column or not.
 #' 
 #' If providing multiple column names, the result will be an expansion of
 #' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
@@ -119,6 +119,7 @@ NULL
 col_is_factor <- function(x,
                           columns,
                           actions = NULL,
+                          step_id = NULL,
                           brief = NULL,
                           active = TRUE) {
   
@@ -150,6 +151,13 @@ col_is_factor <- function(x,
     brief <- generate_autobriefs(agent, columns, preconditions, values, "col_is_factor")
   }
   
+  # Normalize any provided `step_id` value(s)
+  step_id <- normalize_step_id(step_id, columns, agent)
+  
+  # Check `step_id` value(s) against all other `step_id`
+  # values in earlier validation steps
+  check_step_id_duplicates(step_id, agent)
+  
   # Add one or more validation steps based on the
   # length of the `columns` variable
   for (i in seq(columns)) {
@@ -161,6 +169,7 @@ col_is_factor <- function(x,
         column = columns[i],
         preconditions = NULL,
         actions = covert_actions(actions, agent),
+        step_id = step_id[i],
         brief = brief[i],
         active = active
       )

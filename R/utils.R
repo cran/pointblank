@@ -101,6 +101,98 @@ resolve_columns <- function(x, var_expr, preconditions) {
   column
 }
 
+normalize_step_id <- function(step_id, columns, agent) {
+
+  if (is.null(step_id)) {
+
+    if (length(agent$validation_set$i) < 1) {
+      i <- 1
+    } else {
+      i <- max(agent$validation_set$i) + 1
+    }
+    
+    steps <- length(columns) - 1
+    i <- seq(from = i, to = i + steps)
+    
+    # Generate an ID based on `i`
+    step_id <- formatC(i, width = 4, format = "d", flag = "0")
+    return(step_id)
+  }
+  
+  # Ensure that `step_id` is coerced to character
+  step_id <- as.character(step_id)
+  
+  if (length(columns) == 1) {
+    
+    if (length(step_id) > 1) {
+      warning(
+        "Multiple `step_id` values provided for a single column:\n",
+        "* Only the first `step_id` element will be used.",
+        call. = FALSE
+      )
+    }
+    
+    return(step_id[1])
+    
+  } else if (length(columns) > 1) {
+    
+    if (length(step_id) == length(columns)) {
+      
+     if (anyDuplicated(step_id) != 0) {
+       
+       # Issue warning about duplicated `step_id` values
+       warning(
+         "Duplicate `step_id` values provided:\n",
+         "* Only the first `step_id` element will be used.",
+         call. = FALSE
+       )
+       
+       step_id <- generate_indexed_vals(step_id[1], seq_along(columns))
+     }
+    
+      return(step_id)
+      
+    } else if (length(step_id) == 1) {
+      
+      # Generate multiple `step_id` values with single `step_id`
+      step_id <- generate_indexed_vals(step_id[1], seq_along(columns))
+      
+    } else if (length(step_id) != 1 && length(step_id) != length(columns)) {
+
+      # Issue warning about length of `step_id`
+      warning(
+        "The number of `step_id` values is neither `1` nor the number of `columns`:\n",
+        "* Only the first `step_id` element will be used.",
+        call. = FALSE
+      )
+      
+      step_id <- generate_indexed_vals(step_id[1], seq_along(columns))
+    }
+  }
+  
+  step_id
+}
+
+check_step_id_duplicates <- function(step_id, agent) {
+  
+  if (any(step_id %in% agent$validation_set$step_id)) {
+
+    error_at_index <- max(agent$validation_set$i)
+    a_duplicate_step_id <- step_id[step_id %in% agent$validation_set$step_id][1]
+    
+    stop(
+      "Just after step index `", error_at_index, "`, the following `step_id` has been ",
+      "seen as used in a previous validation step:\n",
+      " * \"", a_duplicate_step_id, "\"",
+      call. = FALSE
+    )
+  }
+}
+
+generate_indexed_vals <- function(x, numbers, sep = ".") {
+  paste0(x, sep, formatC(numbers, width = 4, format = "d", flag = "0"))
+}
+
 get_threshold_type <- function(threshold) {
   
   if (threshold >= 1) {
@@ -179,6 +271,27 @@ get_tbl_information <- function(tbl) {
         col_names = r_column_names_types$col_names,
         r_col_types = r_column_names_types$r_col_types,
         db_col_types = NA_character_
+      )
+    )
+    
+  } else if (inherits(tbl, "tbl_spark")) {
+    
+    r_column_names_types <- get_r_column_names_types(tbl)
+    
+    tbl_schema <- sparklyr::sdf_schema(tbl)
+    
+    db_col_types <- 
+      lapply(tbl_schema, `[[`, 2) %>%
+      unlist() %>% unname() %>% tolower()
+    
+    return(
+      list(
+        tbl_src = "tbl_spark",
+        tbl_src_details = "Spark",
+        db_tbl_name = NA_character_,
+        col_names = r_column_names_types$col_names,
+        r_col_types = r_column_names_types$r_col_types,
+        db_col_types = db_col_types
       )
     )
     
@@ -262,18 +375,6 @@ get_tbl_information <- function(tbl) {
     warning("Information on this table type cannot be obtained at present.",
             call. = FALSE)
   } 
-}
-
-normalize_reporting_language <- function(reporting_lang) {
-  
-  if (is.null(reporting_lang)) return("en")
-  
-  if (!(tolower(reporting_lang) %in% reporting_languages)) {
-    stop("The text ", reporting_lang, " doesn't correspond to a pointblank reporting language",
-         call. = FALSE)
-  }
-  
-  tolower(reporting_lang)
 }
 
 tidy_gsub <- function(x, pattern, replacement, fixed = FALSE) {

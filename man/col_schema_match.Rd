@@ -12,6 +12,7 @@ col_schema_match(
   complete = TRUE,
   in_order = TRUE,
   actions = NULL,
+  step_id = NULL,
   brief = NULL,
   active = TRUE
 )
@@ -33,8 +34,9 @@ test_col_schema_match(
 )
 }
 \arguments{
-\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or, an agent object of
-class \code{ptblank_agent} that can be created with \code{\link[=create_agent]{create_agent()}}.}
+\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), Spark DataFrame
+(\code{tbl_spark}), or, an agent object of class \code{ptblank_agent} that is created
+with \code{\link[=create_agent]{create_agent()}}.}
 
 \item{schema}{A table schema of type \code{col_schema} which can be generated
 using the \code{\link[=col_schema]{col_schema()}} function.}
@@ -54,6 +56,18 @@ this strict order requirement is removed.}
 can react accordingly when exceeding the set levels. This is to be created
 with the \code{\link[=action_levels]{action_levels()}} helper function.}
 
+\item{step_id}{One or more optional identifiers for the single or multiple
+validation steps generated from calling a validation function. The use of
+step IDs serves to distinguish validation steps from each other and provide
+an opportunity for supplying a more meaningful label compared to the step
+index. By default this is \code{NULL}, and \strong{pointblank} will automatically
+generate the step ID value (based on the step index) in this case. One or
+more values can be provided, and the exact number of ID values should (1)
+match the number of validation steps that the validation function call will
+produce (influenced by the number of \code{columns} provided), (2) be an ID
+string not used in any previous validation step, and (3) be a vector with
+unique values.}
+
 \item{brief}{An optional, text-based description for the validation step.}
 
 \item{active}{A logical value indicating whether the validation step should
@@ -63,8 +77,9 @@ indexes for the steps unchanged). If the step function will be operating
 directly on data, then any step with \code{active = FALSE} will simply pass the
 data through with no validation whatsoever. The default for this is \code{TRUE}.}
 
-\item{object}{A data frame or tibble (\code{tbl_df} or \code{tbl_dbi}) that serves as
-the target table for the expectation function.}
+\item{object}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or Spark
+DataFrame (\code{tbl_spark}) that serves as the target table for the expectation
+function or the test function.}
 
 \item{threshold}{A simple failure threshold value for use with the
 expectation function. By default, this is set to \code{1} meaning that any
@@ -91,14 +106,17 @@ that of the target table. The validation function can be used directly on a
 data table or with an \emph{agent} object (technically, a \code{ptblank_agent} object)
 whereas the expectation and test functions can only be used with a data
 table. The types of data tables that can be used include data frames,
-tibbles, and even database tables of \code{tbl_dbi} class. The validation step or
-expectation operates over a single test unit, which is whether the schema
-matches that of the table (within the constraints enforced by the \code{complete}
-and \code{in_order} options). If the target table is a \code{tbl_dbi} object, we can
-choose to validate the column schema that is based on R column types (e.g.,
-\code{"numeric"}, \code{"character"}, etc.), or, SQL column types (e.g., \code{"double"},
-\code{"varchar"}, etc.). That option is defined in the \code{\link[=col_schema]{col_schema()}} function (it
-is the \code{.db_col_types} argument).
+tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames (\code{tbl_spark}).
+Each validation step or expectation will operate over a single test unit,
+which is whether the column is an integer-type column or not. The validation
+step or expectation operates over a single test unit, which is whether the
+schema matches that of the table (within the constraints enforced by the
+\code{complete} and \code{in_order} options). If the target table is a \code{tbl_dbi} or a
+\code{tbl_spark} object, we can choose to validate the column schema that is based
+on R column types (e.g., \code{"numeric"}, \code{"character"}, etc.), SQL column types
+(e.g., \code{"double"}, \code{"varchar"}, etc.), or Spark SQL types (e.g,.
+\code{"DoubleType"}, \code{"StringType"}, etc.). That option is defined in the
+\code{\link[=col_schema]{col_schema()}} function (it is the \code{.db_col_types} argument).
 }
 \details{
 Often, we will want to specify \code{actions} for the validation. This argument,

@@ -6,15 +6,23 @@
 \alias{test_col_is_numeric}
 \title{Do the columns contain numeric values?}
 \usage{
-col_is_numeric(x, columns, actions = NULL, brief = NULL, active = TRUE)
+col_is_numeric(
+  x,
+  columns,
+  actions = NULL,
+  step_id = NULL,
+  brief = NULL,
+  active = TRUE
+)
 
 expect_col_is_numeric(object, columns, threshold = 1)
 
 test_col_is_numeric(object, columns, threshold = 1)
 }
 \arguments{
-\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or, an agent object of
-class \code{ptblank_agent} that can be created with \code{\link[=create_agent]{create_agent()}}.}
+\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), Spark DataFrame
+(\code{tbl_spark}), or, an agent object of class \code{ptblank_agent} that is created
+with \code{\link[=create_agent]{create_agent()}}.}
 
 \item{columns}{The column (or a set of columns, provided as a character
 vector) to which this validation should be applied.}
@@ -22,6 +30,18 @@ vector) to which this validation should be applied.}
 \item{actions}{A list containing threshold levels so that the validation step
 can react accordingly when exceeding the set levels. This is to be created
 with the \code{\link[=action_levels]{action_levels()}} helper function.}
+
+\item{step_id}{One or more optional identifiers for the single or multiple
+validation steps generated from calling a validation function. The use of
+step IDs serves to distinguish validation steps from each other and provide
+an opportunity for supplying a more meaningful label compared to the step
+index. By default this is \code{NULL}, and \strong{pointblank} will automatically
+generate the step ID value (based on the step index) in this case. One or
+more values can be provided, and the exact number of ID values should (1)
+match the number of validation steps that the validation function call will
+produce (influenced by the number of \code{columns} provided), (2) be an ID
+string not used in any previous validation step, and (3) be a vector with
+unique values.}
 
 \item{brief}{An optional, text-based description for the validation step.}
 
@@ -32,8 +52,9 @@ indexes for the steps unchanged). If the step function will be operating
 directly on data, then any step with \code{active = FALSE} will simply pass the
 data through with no validation whatsoever. The default for this is \code{TRUE}.}
 
-\item{object}{A data frame or tibble (\code{tbl_df} or \code{tbl_dbi}) that serves as
-the target table for the expectation function.}
+\item{object}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or Spark
+DataFrame (\code{tbl_spark}) that serves as the target table for the expectation
+function or the test function.}
 
 \item{threshold}{A simple failure threshold value for use with the
 expectation function. By default, this is set to \code{1} meaning that any
@@ -60,9 +81,9 @@ specification of the column names. The validation function can be used
 directly on a data table or with an \emph{agent} object (technically, a
 \code{ptblank_agent} object) whereas the expectation and test functions can only
 be used with a data table. The types of data tables that can be used include
-data frames, tibbles, and even database tables of \code{tbl_dbi} class. Each
-validation step or expectation will operate over a single test unit, which is
-whether the column is a numeric-type column or not.
+data frames, tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames
+(\code{tbl_spark}). Each validation step or expectation will operate over a single
+test unit, which is whether the column is a numeric-type column or not.
 }
 \details{
 If providing multiple column names, the result will be an expansion of
