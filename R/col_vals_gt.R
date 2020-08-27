@@ -64,10 +64,10 @@
 #'   function or the test function.
 #' @param columns The column (or a set of columns, provided as a character
 #'   vector) to which this validation should be applied.
-#' @param value A numeric value used for this test. Any column values `>value`
+#' @param value A numeric value used for this test. Any column values `> value`
 #'   are considered passing.
-#' @param na_pass Should any encountered `NA` values be allowed to pass a
-#'   validation unit? This is by default `FALSE`. Set to `TRUE` to give `NA`s
+#' @param na_pass Should any encountered `NA` values be considered as passing
+#'   test units? This is by default `FALSE`. Set to `TRUE` to give `NA`s
 #'   a pass.
 #' @param preconditions expressions used for mutating the input table before
 #'   proceeding with the validation. This is ideally as a one-sided R formula
@@ -95,6 +95,7 @@
 #'   that absolute threshold value will result in a succeeding **testthat**
 #'   test. Likewise, fractional values (between `0` and `1`) act as a
 #'   proportional failure threshold.
+#' @param label An optional label for the validation step.
 #' @param brief An optional, text-based description for the validation step.
 #' @param active A logical value indicating whether the validation step should
 #'   be active. If the step function is working with an agent, `FALSE` will make
@@ -194,6 +195,7 @@ col_vals_gt <- function(x,
                         preconditions = NULL,
                         actions = NULL,
                         step_id = NULL,
+                        label = NULL,
                         brief = NULL,
                         active = TRUE) {
 
@@ -211,6 +213,7 @@ col_vals_gt <- function(x,
         value = value,
         na_pass = na_pass,
         preconditions = preconditions,
+        label = label,
         brief = brief,
         actions = prime_actions(actions),
         active = active
@@ -246,6 +249,7 @@ col_vals_gt <- function(x,
         preconditions = preconditions,
         actions = covert_actions(actions, agent),
         step_id = step_id[i],
+        label = label,
         brief = brief[i],
         active = active
       )

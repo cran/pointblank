@@ -1,6 +1,10 @@
 test_that("scan_data works with dittodb-mocked MySQL database connection", {
+  
+  skip_on_cran()
+  
   # Create a connection to the `aedes_aegypti_core_55_1d`
   # database hosted publicly at "ensembldb.ensembl.org"
+  
   dittodb::with_mock_db({
     # start_db_capturing()
     con <- DBI::dbConnect(

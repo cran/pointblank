@@ -1,6 +1,10 @@
 test_that("scan_data works with dittodb-mocked Postgres database connection", {
+  
+  skip_on_cran()
+  
   # Create a connection to the `trade_statistics`
   # database hosted publicly at "tradestatistics.io"
+  
   dittodb::with_mock_db({
     # start_db_capturing()
     con <- DBI::dbConnect(

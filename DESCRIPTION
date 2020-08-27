@@ -1,6 +1,6 @@
 Type: Package
 Package: pointblank
-Version: 0.5.0
+Version: 0.5.1
 Title: Validation of Local and Remote Data Tables
 Description: Validate data in data frames, 'tibble' objects, and in database
     tables (e.g., 'PostgreSQL' and 'MySQL'). Validation pipelines can be made
@@ -8,9 +8,12 @@ Description: Validate data in data frames, 'tibble' objects, and in database
     validation plan, several reporting options are available. User-defined
     thresholds for failure rates allow for the determination of appropriate
     reporting actions.
-Authors@R: 
+Authors@R: c(
     person("Richard", "Iannone", , "riannone@me.com", c("aut", "cre"),
-           comment = c(ORCID = "0000-0003-3925-190X"))
+           comment = c(ORCID = "0000-0003-3925-190X")),
+    person("Mauricio", "Vargas", , "mvargas@dcc.uchile.cl", c("aut"),
+           comment = c(ORCID = "0000-0003-1017-7574"))
+    )
 License: MIT + file LICENSE
 URL: https://github.com/rich-iannone/pointblank
 BugReports: https://github.com/rich-iannone/pointblank/issues
@@ -27,10 +30,11 @@ Imports: base64enc (>= 0.1-3), blastula (>= 0.3.1), cli (>= 2.0.2), DBI
         1.1.1), testthat (>= 2.3.2), tibble (>= 3.0.0), tidyselect (>=
         1.1.0), yaml (>= 2.2.1)
 Suggests: covr, lubridate, RSQLite, RMariaDB, RPostgres, readr,
-        rmarkdown, sparklyr, dittodb
+        rmarkdown, sparklyr, dittodb, odbc
 NeedsCompilation: no
-Packaged: 2020-08-12 06:26:50 UTC; rich
-Author: Richard Iannone [aut, cre] (<https://orcid.org/0000-0003-3925-190X>)
+Packaged: 2020-08-26 23:23:40 UTC; rich
+Author: Richard Iannone [aut, cre] (<https://orcid.org/0000-0003-3925-190X>),
+  Mauricio Vargas [aut] (<https://orcid.org/0000-0003-1017-7574>)
 Maintainer: Richard Iannone <riannone@me.com>
 Repository: CRAN
-Date/Publication: 2020-08-12 10:00:09 UTC
+Date/Publication: 2020-08-27 11:10:02 UTC

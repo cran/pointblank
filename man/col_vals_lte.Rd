@@ -14,6 +14,7 @@ col_vals_lte(
   preconditions = NULL,
   actions = NULL,
   step_id = NULL,
+  label = NULL,
   brief = NULL,
   active = TRUE
 )
@@ -47,8 +48,8 @@ vector) to which this validation should be applied.}
 \item{value}{A numeric value used for this test. Any column values \verb{<= value}
 are considered passing.}
 
-\item{na_pass}{Should any encountered \code{NA} values be allowed to pass a
-validation unit? This is by default \code{FALSE}. Set to \code{TRUE} to give \code{NA}s
+\item{na_pass}{Should any encountered \code{NA} values be considered as passing
+test units? This is by default \code{FALSE}. Set to \code{TRUE} to give \code{NA}s
 a pass.}
 
 \item{preconditions}{expressions used for mutating the input table before
@@ -72,6 +73,8 @@ match the number of validation steps that the validation function call will
 produce (influenced by the number of \code{columns} provided), (2) be an ID
 string not used in any previous validation step, and (3) be a vector with
 unique values.}
+
+\item{label}{An optional label for the validation step.}
 
 \item{brief}{An optional, text-based description for the validation step.}
 

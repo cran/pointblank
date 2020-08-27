@@ -298,6 +298,7 @@ get_tbl_information <- function(tbl) {
   } else if (inherits(tbl, "tbl_dbi")) {
     
     tbl_src <- gsub("^([a-z]*).*", "\\1", get_tbl_dbi_src_details(tbl))
+    tbl_sql_server <- grepl("sql server|sqlserver", tolower(get_tbl_dbi_src_details(tbl)))
     
     r_column_names_types <- get_r_column_names_types(tbl)
     
@@ -308,10 +309,11 @@ get_tbl_information <- function(tbl) {
     n_cols <- length(r_column_names_types$col_names)
 
     if (tbl_src != "postgres") {
-      q_types <- 
-        glue::glue(
-          "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}' LIMIT {n_cols}"
-        )
+      q_types <- ifelse(
+        tbl_sql_server,
+        glue::glue("SELECT TOP 9 {n_cols} DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}'"),
+        glue::glue("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}' LIMIT {n_cols}")
+      )
     } else {
       db_tbl_name_no_schema <- gsub('.*\\.', '', db_tbl_name)
       q_types <- 
@@ -375,6 +377,42 @@ get_tbl_information <- function(tbl) {
     warning("Information on this table type cannot be obtained at present.",
             call. = FALSE)
   } 
+}
+
+add_icon_img <- function(icon,
+                         height = 30,
+                         v_align = "middle") {
+
+  file <- 
+    system.file(
+      "img", "function_icons", paste0(icon, ".png"),
+      package = "pointblank"
+    )
+  
+  image_raw <-
+    readBin(
+      con = file,
+      what = "raw",
+      n = file.info(file)$size
+    )
+  
+  image_uri <- 
+    paste0(
+      "data:image/png;base64,",
+      base64enc::base64encode(image_raw, 0)
+    )
+  
+  img <- 
+    htmltools::tags$img(
+      src = image_uri,
+      alt = icon,
+      style = htmltools::css(
+        height = htmltools::validateCssUnit(height),
+        `vertical-align` = v_align
+      )
+    )
+  
+  htmltools::HTML(as.character(img))
 }
 
 tidy_gsub <- function(x, pattern, replacement, fixed = FALSE) {
