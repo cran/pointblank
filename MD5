@@ -1,7 +1,7 @@
-667162f74649eda404d523105870185e *DESCRIPTION
+c229ac8585ddf030f646a3a4cd1aaa25 *DESCRIPTION
 23f363d700e3ca29417f56e8f24ceb5e *LICENSE
 5cd17e1acdc00149517b8a8b4c84e031 *NAMESPACE
-fb4db66e99f2d9d34b111f49f0f77c76 *NEWS.md
+d36c179c1e4804fb3a380050957e4bd4 *NEWS.md
 81e48c71a33068ad65e151bee21a60fd *R/action_levels.R
 c74e02c006802dbbb74d8f59cd360d3d *R/agent_ops.R
 efa92468f55f84cee1f1ed3f2ca6b9b5 *R/all_passed.R
@@ -33,11 +33,11 @@ bb96698a7e55039e05e6ec50d2030821 *R/create_agent.R
 56549e947177c9e87cde1a4103e90d95 *R/datasets.R
 767e61407bfe9a93dc9f2d515f6ca406 *R/emailing.R
 a4069a8025299db9be4f44602b8bfde0 *R/examination.R
-4a916ba304594171aad63e559b413ca8 *R/get_agent_report.R
+ff8db8081ef9fe9a238f2e4700348a7a *R/get_agent_report.R
 aa64873807292f9143538a7004ac9974 *R/get_agent_x_list.R
 5facbed08aedef3447e874d2a1b7f98b *R/get_data_extracts.R
 720b13c1d9a96c8c5d4c2c01ec491806 *R/get_sundered_data.R
-bdbf4f6275216306b16940d9e441d4f9 *R/interrogate.R
+cdf4b0229db7c9fcdbd09e4460a2739c *R/interrogate.R
 379d6b9596ad7f658f548ce9dbf64ba6 *R/pipe.R
 b7f5fb8798aa7f81d882cbef343745a9 *R/print.R
 b326ac2c914b775b4ba366614da75865 *R/read_yaml.R
@@ -51,7 +51,7 @@ f2ce97814cf647302a36cd20d02f69bc *R/utils_text_table_scan.R
 84943e762b9048fa89d3669a50a10caa *R/validate_rmd.R
 52ec0cddd6efc3f1f1ab46421cbb11e4 *R/write_yaml.R
 509b90ce7ce2fa84accb91fac4288e78 *R/zzz.R
-bdd86b84abb2864b58cfc39fe6a3456b *README.md
+f578d29c485709b1ebedb3673b5eb292 *README.md
 63f87f3a7bded913fcbb81408f330cc8 *data/small_table.rda
 4ca32070b60612379ef6e91985daad46 *inst/css/extra.css
 284116bd332183fee084ab3834bf16be *inst/css/rmd_styles.css
@@ -195,6 +195,8 @@ dedca918d24c7809f59d13245db7783c *tests/testthat/aedes_aegypti_core_55_1d/SELECT
 6c97a16742ce0bb9ffedad531cd56056 *tests/testthat/aedes_aegypti_core_55_1d/SELECT-f4ec46.R
 3f26a89143a5a7d066eaf7ac3a9d1c16 *tests/testthat/aedes_aegypti_core_55_1d/conInfo-.R
 8e578d95c169389eb0ec5ad06d2853db *tests/testthat/aedes_aegypti_core_55_1d/dbListTables.R
+8af16517eb6fd1c749fb3ca6230c053c *tests/testthat/mysql-2.R
+633275d816e8c45ba6e5c13a3ea2833a *tests/testthat/mysql.R
 5221ef95a4335875bf243f1733ef34ac *tests/testthat/scan_data.R
 f0f0483e430d8ffb808b40ca047f4298 *tests/testthat/sqlserver.R
 fee2ed39945701ca4c9c78e5de81d63c *tests/testthat/test-action_levels.R
@@ -209,8 +211,6 @@ ec7423f9bc2739300c2eec927e40e4f9 *tests/testthat/test-col_schema.R
 8af92e7e42df50c2b4a9a84b29ac4770 *tests/testthat/test-interrogate_simple.R
 324b239d0e1352df5c46f76cdad9aee8 *tests/testthat/test-interrogate_with_agent.R
 ac7f10ef218378ecafd34c926fb8aa7e *tests/testthat/test-interrogate_with_agent_db.R
-8af16517eb6fd1c749fb3ca6230c053c *tests/testthat/test-mysql-2.R
-633275d816e8c45ba6e5c13a3ea2833a *tests/testthat/test-mysql.R
 17f26e9278ba7badb0092c458361d8a5 *tests/testthat/test-postgres-2.R
 5037377c990b142a7ba2aff633571e1b *tests/testthat/test-postgres.R
 88b549303c8ac161025e0f3154be1789 *tests/testthat/test-stop_if_not.R
