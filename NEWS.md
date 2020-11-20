@@ -1,8 +1,88 @@
+# pointblank 0.6.0
+
+## Pointblank Information
+
+* The new *information management* workflow is full of features that help you to describe tables and keep on top of changes to them. To make this work well, a new character enters: the *informant*!
+
+* Added the `create_informant()` function to create a `ptblank_informant` object (this function is similar to `create_agent()`). It is meant to hold information (as much as you want, really) for a target table, with reporting features geared toward communication.
+
+* Functions for facilitating entry of *info text* were added because we need them (`info_tabular()`, `info_columns()`, and `info_section()`). These are focused on describing columns, the table proper, and other misc. fields.
+
+* If all that wasn't enough, this release adds `info_snippet()` to round out the collection of `info_*()` functions for this workflow. Oh, hang on, there's also the all-important `incorporate()` function. What? To explain, the idea is to have some methodology for acquiring important bits of data from the target table (that's `info_snippet()`'s job) and then use `incorporate()` to grab those morsels of data and stitch them into the *info text* (via `{ }`).
+
+* Added the `get_informant_report()` function for printing the information report (a **gt** table object!).
+
+* You can also just print the *informant* object to show the information report thanks to a print method for this purpose. 
+
+* The *informant* object can be written to **pointblank** YAML using the revised `yaml_write()` (previously `agent_yaml_write()`) function. We can actually write both the *agent* and the *informant* to the same YAML file which is useful since both objects share the same target table. Reading is done with the `yaml_read_agent()` and `yaml_read_informant()` functions.
+
+* The *informant* can be emailed using the `email_create()` function; this emailing can be done in one of eight languages for the stock message text.
+
+## Translations and Locales
+
+* More text in the agent report is translated now.
+
+* Improved the Spanish (Spain) translation.
+
+* Added the Portuguese (`"pt"`, Brazil), Chinese (`"zh"`, China mainland), and Russian (`"ru"`) translations.
+
+* Added a locale option for reporting; the locale will match the language (using the base locale) unless a different locale is specified. The locale is used to format numeric values according to the locale's rules. This also applies to the reporting offered by the `scan_data()` function.
+
+* All stock email message parts (used when emailing the agent report or the information report) have been translated to the eight supported languages. The language setting in the respective objects is used to determine the language of the stock message parts.
+
+## Breaking changes
+
+* The `yaml_write()` function replaces the `agent_yaml_write()` function. The new function works to write the *agent*, the *informant* object, or both, to YAML.
+
+* The names of more YAML functions have been changed, the final roster now consists of: `yaml_write()`, `yaml_read_agent()`, `yaml_read_informant()`, `yaml_agent_interrogate()`, `yaml_agent_string()`, and `yaml_agent_show_exprs()`.
+
+* The `x_write_disk()` function replaces the `agent_write()` function. The new function works to write the *agent* or the *informant* object to disk.
+
+* The `x_read_disk()` function replaces the `agent_read()` function. The new function works to read both the *agent* or the *informant* objects written to disk.
+
+* The `email_preview()` function has been renamed to `email_create()`.
+
+## New features
+
+* The new `db_tbl()` function makes it ridiculously easy to access a database table from the selection of databases that **pointblank** supports for validation; they are accessible with the supplied keywords `"postgres"` (PostgreSQL), `"mysql"` (MySQL), `"maria"` (MariaDB), `"duckdb"` (DuckDB), `"sqlite"` (SQLite), or, with any driver function you'd like to supply.
+
+* Added the `log4r_step()` function which can be used as an action in an `action_levels()` function call (i.e., a list component for the `fns` list). We can place a call to this function in every condition that should produce a log entry (i.e., `warn`, `stop`, `notify`). 
+
+## Documentation
+
+* Added several articles that explain the different validation workflows (there are six of 'em) and articles that go over the *Information Management* workflow.
+
+* Improved documentation for almost all functions in the package; added more useful examples.
+
+* Added a table to the project `README` that keeps everyone apprised of the project milestones and the issues to be closed for each upcoming release.
+
+## Minor improvements and bug fixes
+
+* Improved appearance of the agent report: (1) more tooltips, (2) the tooltips are much improved (they animate, have larger text, and are snappier than the previous ones), (3) SVGs are now used as symbols for the validation steps instead of blurry PNGs, (4) less confusing glyphs are now used in the `TBL` column, (5) the agent label can be expressed as Markdown and looks nicer in the report, (6) the table type (and name, if supplied as `tbl_name`) is shown in the header, (7) validation threshold levels also shown in the table header, (8) interrogation starting/ending timestamps are shown (along with duration) in the table footer, (9) the table font has been changed to be less default-y, and (10) adjustments to table borders and cell shading were made for better readability.
+
+* The `get_agent_report()` function now has `lang` and `locale` arguments to override any of those values set prior (e.g., in `create_agent()`). This allows for the reporting language to be changed without the need to re-run everything from scratch.
+
+* The `set_tbl()`, `remove_tbl()`, `set_read_fn()`, and `remove_read_fn()` functions can now also be used with an *informant* object.
+
+* The `get_sundered_data()` function is more clear with regard to which validation steps are considered for splitting of the data. Using validation steps with `preconditions` must fulfill the rule that the target table only have a single form across steps.
+
+* The `is_exact` argument is new in the `col_schema_match()`, `expect_col_schema_match()`, and `test_col_schema_match()` functions, further allowing these types of validations to be less stringent. This argument loosens the requirement to include all class names for a column that may have multiple. Also, we can specify `NULL` to entirely skip the checking of a class/type.
+
+* We can now use more combinations of validation functions in `conjointly()`. Those validation functions that intrinsically operate over a single test unit (e.g., all of the `col_is_*()` functions) now work in combination with validation functions that operate over *n* test units (e.g., the `col_vals_*()` functions). This lets us test for a condition where columns are of a certain type *AND* individual test units fulfill the `col_vals_*()` requirements.
+
+* Simplified the `sections` argument of `scan_data()` to be a length-1 character vector containing key characters standing for section names.
+
+* Refactored a large portion of the code that produces the agent report to increase rendering speed.
+
+* Improved printing of errors/warnings (in the tooltips of the `EVAL` column in the agent report) thanks to implementation of HTML escaping.
+
+* The small version of the agent report (perfect for emailing) now has much improved formatting.
+
 # pointblank 0.5.2
 
 * Fixes a performance issue for validations on larger tables.
 
-* Improved the formatting of value ranges in the agent report.
+* Improved formatting of value ranges in the agent report.
 
 # pointblank 0.5.1
 

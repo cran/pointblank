@@ -1,21 +1,44 @@
-reporting_languages <- c("en", "fr", "de", "it", "es")
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
 
-normalize_reporting_language <- function(reporting_lang) {
+
+reporting_languages <- 
+  c("en", "fr", "de", "it", "es", "pt", "zh", "ru")
+
+normalize_reporting_language <- function(lang) {
   
-  if (is.null(reporting_lang)) return("en")
+  if (is.null(lang)) return("en")
   
-  if (!(tolower(reporting_lang) %in% reporting_languages)) {
-    stop("The text ", reporting_lang, " doesn't correspond to a pointblank reporting language",
+  if (!(tolower(lang) %in% reporting_languages)) {
+    stop("The text ", lang, " doesn't correspond to a pointblank ",
+         "reporting language.",
          call. = FALSE)
   }
   
-  tolower(reporting_lang)
+  tolower(lang)
 }
 
 get_lsv <- function(text,
-                    yaml_file = system.file("text", "translations", package = "pointblank")) {
-  
-  x <- yaml::read_yaml(yaml_file)
+                    file = system.file(
+                      "text", "translations_built", package = "pointblank"
+                    )) {
+
+  x <- readRDS(file = file)
   
   if (length(text) == 2) {
     x <- x[[text[1]]]

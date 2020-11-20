@@ -1,4 +1,24 @@
-#nocov start
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
+# nocov start
+# nolint start
 
 register_s3_method <- function(pkg, generic, class, fun = NULL) {
   stopifnot(is.character(pkg), length(pkg) == 1)
@@ -63,6 +83,7 @@ utils::globalVariables(
     "frequency",
     "Frequency",
     "i",
+    "item",
     "label",
     "::labels::",
     "n",
@@ -76,11 +97,13 @@ utils::globalVariables(
     ".panel_x",
     ".panel_y",
     "pb_is_good_",
+    "pct",
     "precon",
     "preconditions",
     "q_1",
     "q_3",
     "%REGEXP%",
+    "regexp_matches",
     "RLIKE",
     "S",
     "schema",
@@ -106,6 +129,7 @@ utils::globalVariables(
 .onLoad <- function(libname, pkgname, ...) {
   
   register_s3_method("knitr", "knit_print", "ptblank_agent")
+  register_s3_method("knitr", "knit_print", "ptblank_informant")
   
   if ("knitr" %in% loadedNamespaces()) {
     validate_rmd_setup()
@@ -119,4 +143,5 @@ utils::globalVariables(
   invisible()
 }
 
-#nocov end
+# nocov end
+# nolint end

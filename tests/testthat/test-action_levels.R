@@ -1,13 +1,12 @@
-context("Tests of `action_levels()`")
-
 test_that("The `action_levels()` helper function works as expected", {
   
   # Expect that if `action_levels()` is used as is,
   # all of the elements will be NULL
   al <- action_levels()
   
-  al %>% expect_is("list")
-  al %>% names() %>% 
+  al %>% expect_is("action_levels")
+  al %>% 
+    names() %>% 
     expect_equal(
       c(
         "warn_fraction", "warn_count", "stop_fraction", "stop_count", 
@@ -31,7 +30,7 @@ test_that("The `action_levels()` helper function works as expected", {
   # Create an `action_levels()` list with fractional values
   al <- action_levels(warn_at = 0.2, stop_at = 0.8, notify_at = 0.345)
   
-  al %>% expect_is("list")
+  al %>% expect_is("action_levels")
   al %>% names() %>% 
     expect_equal(
       c(
@@ -56,8 +55,9 @@ test_that("The `action_levels()` helper function works as expected", {
   # Create an `action_levels()` list with count values
   al <- action_levels(warn_at = 20, stop_at = 80, notify_at = 34.6)
   
-  al %>% expect_is("list")
-  al %>% names() %>% 
+  al %>% expect_is("action_levels")
+  al %>%
+    names() %>% 
     expect_equal(
       c(
         "warn_fraction", "warn_count", "stop_fraction", "stop_count", 
@@ -93,8 +93,9 @@ test_that("The `action_levels()` helper function works as expected", {
       fns = list(warn = ~ my_great_function(vl = .vars_list))
     )
   
-  al %>% expect_is("list")
-  al %>% names() %>% 
+  al %>% expect_is("action_levels")
+  al %>% 
+    names() %>% 
     expect_equal(
       c(
         "warn_fraction", "warn_count", "stop_fraction", "stop_count", 
@@ -102,7 +103,8 @@ test_that("The `action_levels()` helper function works as expected", {
     )
   al[[7]] %>% names() %>% expect_equal("warn")
   al[[7]][[1]] %>% expect_is("formula")
-  al[[7]][[1]] %>% as.character() %>%
+  al[[7]][[1]] %>%
+    as.character() %>%
     expect_equal(c("~", "my_great_function(vl = .vars_list)"))
   
   al$warn_fraction %>% expect_null()
@@ -148,7 +150,7 @@ test_that("The `action_levels()` helper function works as expected", {
 test_that("The appropriate actions occur when using `action_levels()`", {
   
   agent <-
-    create_agent(tbl = small_table, name = "small_table_tests") %>%
+    create_agent(tbl = small_table, label = "small_table_tests") %>%
     col_vals_gt(
       vars(d), 1000,
       actions = action_levels(warn_at = 3, fns = list(warn = ~"warning")
@@ -165,7 +167,7 @@ test_that("The appropriate actions occur when using `action_levels()`", {
   agent_report$W %>% expect_equal(rep(TRUE, 2))
   
   agent <-
-    create_agent(tbl = small_table, name = "small_table_tests") %>%
+    create_agent(tbl = small_table, label = "small_table_tests") %>%
     col_vals_gt(
       vars(d), 1000,
       actions = action_levels(notify_at = 3, fns = list(notify = ~"notify")
@@ -182,7 +184,7 @@ test_that("The appropriate actions occur when using `action_levels()`", {
   agent_report$N %>% expect_equal(rep(TRUE, 2))
   
   agent <-
-    create_agent(tbl = small_table, name = "small_table_tests") %>%
+    create_agent(tbl = small_table, label = "small_table_tests") %>%
     col_vals_gt(
       vars(d), 1000,
       actions = action_levels(stop_at = 3, fns = list(stop = ~"stop")

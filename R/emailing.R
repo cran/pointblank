@@ -1,4 +1,23 @@
-#' Send email at a step or at the end of an interrogation
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
+#' Send email at a validation step or at the end of an interrogation
 #' 
 #' The `email_blast()` function is useful for sending an email message that
 #' explains the result of a **pointblank** validation. It is powered by the
@@ -8,11 +27,13 @@
 #' function (to possibly send an email message at one or more steps).
 #'
 #' To better get a handle on emailing with `email_blast()`, the analogous
-#' [email_preview()] can be used with a **pointblank** agent object or the
+#' [email_create()] can be used with a **pointblank** agent object or the
 #' output obtained from using the [get_agent_x_list()] function.
 #' 
-#' @param x A reference to list object prepared by the agent. It's only
-#'   available in an internal evaluation context.
+#' @param x A reference to the x-list object prepared by the agent. This version
+#'   of the x-list is the same as that generated via `get_agent_x_list(<agent>)`
+#'   except this version is internally generated and hence only available in an
+#'   internal evaluation context.
 #' @param to,from The email addresses for the recipients and the sender.
 #' @param credentials A credentials list object that is produced by either of
 #'   the [blastula::creds()], [blastula::creds_anonymous()],
@@ -26,10 +47,10 @@
 #'   of length 1. If `TRUE` then the email will be sent, if `FALSE` then that
 #'   won't happen. The expression can use x-list variables (e.g., `x$notify`,
 #'   `x$type`, etc.) and all of those variables can be viewed using the
-#'   [get_agent_x_list()] function. The default expression is `~TRUE %in% x$notify`,
-#'   which results in `TRUE` if there are any `TRUE` values in the `x$notify`
-#'   logical vector (i.e., any validation step results in a 'notify'
-#'   condition).
+#'   [get_agent_x_list()] function. The default expression is
+#'   `~TRUE %in% x$notify`, which results in `TRUE` if there are any `TRUE`
+#'   values in the `x$notify` logical vector (i.e., any validation step results
+#'   in a 'notify' condition).
 #'   
 #' @examples
 #' # Create a simple table with two
@@ -87,7 +108,7 @@
 #' # nonexistent; to look at the email
 #' # message before sending anything of
 #' # the like, we can use the 
-#' # `email_preview()` function
+#' # `email_create()` function
 #' email_object <-
 #'   create_agent(
 #'     tbl = tbl,
@@ -96,11 +117,11 @@
 #'   col_vals_gt(vars(a), 5) %>%
 #'   col_vals_lt(vars(b), 5) %>%
 #'   interrogate() %>%
-#'   email_preview()
+#'   email_create()
 #'   
 #' @family Emailing
 #' @section Function ID:
-#' 3-1
+#' 4-1
 #' 
 #' @export 
 email_blast <- function(x,
@@ -147,19 +168,21 @@ email_blast <- function(x,
   }
 }
 
-#' Get a preview of an email before actually sending that email
+#' Create an email object from a **pointblank** *agent*
 #' 
-#' The `email_preview()` function provides a preview of an email that would
-#' normally be produced and sent through the [email_blast()] function. The `x`
-#' that we need for this is the agent x-list that is produced by the
-#' [get_agent_x_list()] function. Or, we can supply an agent object. In both
-#' cases, the email message with appear in the Viewer and a **blastula**
-#' `email_message` object will be returned.
+#' The `email_create()` function produces an email message object that could be
+#' sent using the **blastula** package. The `x` that we need for this could
+#' either be a **pointblank** agent, the *agent* x-list (produced from the
+#' *agent* with the [get_agent_x_list()] function), or a **pointblank**
+#' *informant*. In all casesm, the email message will appear in the Viewer and a
+#' **blastula** `email_message` object will be returned.
 #'
-#' @param x A pointblank agent or an agent x-list. The x-list object can be
-#'   created with the [get_agent_x_list()] function. It is recommended that the
-#'   `i = NULL` and `generate_report = TRUE` so that the agent report is
-#'   available within the email preview.
+#' @param x A **pointblank** *agent*, an *agent* x-list, or a **pointblank**
+#'   *informant*. The x-list object can be created with the [get_agent_x_list()]
+#'   function. It is recommended that the option `i = NULL` be used with
+#'   [get_agent_x_list()] if supplying an x-list as `x`. Furthermore, The option
+#'   `generate_report = TRUE` could be used with [create_agent()] so that the
+#'   agent report is available within the email.
 #' @param msg_header,msg_body,msg_footer Content for the header, body, and
 #'   footer components of the HTML email message.
 #'   
@@ -185,14 +208,16 @@ email_blast <- function(x,
 #'   )
 #' 
 #' # In a workflow that involves an
-#' # `agent` object, we can set up a
-#' # series of `end_fns` and have report
-#' # emailing with `email_blast()` but,
-#' # first, we can look at the email
-#' # message object beforehand by using
-#' # the `email_preview()` function
-#' # on an `agent` object
-#' # email_object <-
+#' # `agent` object, we can make use of
+#' # the `end_fns` argument and
+#' # programmatically email the report
+#' # with the `email_blast()` function,
+#' # however, an alternate workflow is to
+#' # produce the email object and choose
+#' # to send outside of the pointblank API;
+#' # the `email_create()` function lets
+#' # us do this with an `agent` object
+#' # email_object_1 <-
 #' #   create_agent(
 #' #     tbl = tbl,
 #' #     actions = al
@@ -200,12 +225,16 @@ email_blast <- function(x,
 #' #   col_vals_gt(vars(a), 5) %>%
 #' #   col_vals_lt(vars(b), 5) %>%
 #' #   interrogate() %>%
-#' #   email_preview()
+#' #   email_create()
 #' 
-#' # The `email_preview()` function can
+#' # We can view the HTML email just
+#' # by printing `email_object`; it
+#' # should appear in the Viewer
+#' 
+#' # The `email_create()` function can
 #' # also be used on an agent x-list to
 #' # get the same email message object
-#' # email_object <-
+#' # email_object_2 <-
 #' #   create_agent(
 #' #     tbl = tbl,
 #' #     actions = al
@@ -214,31 +243,94 @@ email_blast <- function(x,
 #' #   col_vals_lt(vars(b), 5) %>%
 #' #   interrogate() %>%
 #' #   get_agent_x_list() %>%
-#' #   email_preview()
+#' #   email_create()
 #' 
-#' # We can view the HTML email just
-#' # by printing `email_object`; it
-#' # should appear in the Viewer
+#' # An information report that's
+#' # produced by the informant can
+#' # made into an email message object;
+#' # let's create an informant and use
+#' # `email_create()`
+#' # email_object_3 <-
+#' #   create_informant(
+#' #     tbl = tbl
+#' #   ) %>%
+#' #   info_tabular(
+#' #     info = "A simple table in the
+#' #     *Examples* section of the function
+#' #     called `email_create()`."
+#' #   ) %>%
+#' #   info_columns(
+#' #     columns = vars(a),
+#' #     info = "Numbers. On the high side."
+#' #   ) %>%
+#' #   info_columns(
+#' #     columns = vars(b),
+#' #     info = "Lower numbers. Zeroes, even."
+#' #   ) %>%
+#' #   incorporate() %>%
+#' #   email_create()
 #' 
 #' @family Emailing
 #' @section Function ID:
-#' 3-2
+#' 4-2
 #' 
 #' @export 
-email_preview <- function(x,
-                          msg_header = NULL,
-                          msg_body = stock_msg_body(),
-                          msg_footer = stock_msg_footer()) {
+email_create <- function(x,
+                         msg_header = NULL,
+                         msg_body = stock_msg_body(),
+                         msg_footer = stock_msg_footer()) {
   
-  if (inherits(x, "ptblank_agent")) {
-    x <- get_agent_x_list(agent = x)
+  if (!is_ptblank_agent(x) &&
+      !is_ptblank_x_list(x) &&
+      !is_ptblank_informant(x)) {
+    
+    stop("Email creation requires either:\n",
+         "* a pointblank agent\n",
+         "* an agent x-list, or\n",
+         "* a pointblank informant",
+         call. = FALSE)
   }
+  
+  if (is_ptblank_informant(x)) {
+    
+    if (grepl("<!-- pointblank stock-msg-body", msg_body, fixed = TRUE)) {
+      msg_body <- gsub("email/agent_body", "email/informant_body", msg_body)
+    }
+    
+    if (grepl("<!-- pointblank stock-msg-footer", msg_footer, fixed = TRUE)) {
+      msg_footer <- gsub("email/footer_1", "email/footer_i", msg_footer)
+    }
+    
+    x$report_html_small <- get_informant_report(x, size = "small")
 
-  blastula::compose_email(
-    header = glue::glue(msg_header) %>% blastula::md(),
-    body = glue::glue(msg_body) %>% blastula::md(),
-    footer = glue::glue(msg_footer) %>% blastula::md(),
-  )
+    x$report_html_small[["_source_notes"]] <- list()
+
+    x$report_html_small <-
+      x$report_html_small %>%
+      gt::as_raw_html()
+    
+    x$time_start <- Sys.time()
+
+    return(
+      blastula::compose_email(
+        header = blastula::md(glue::glue(msg_header)),
+        body = blastula::md(glue::glue(glue::glue(msg_body))),
+        footer = blastula::md(glue::glue(glue::glue(msg_footer)))
+      )
+    )
+  }
+  
+  if (is_ptblank_agent(x)) {
+    x <- get_agent_x_list(agent = x)
+    
+    return(
+      blastula::compose_email(
+        header = blastula::md(glue::glue(msg_header)),
+        body = blastula::md(glue::glue(glue::glue(msg_body))),
+        footer = blastula::md(glue::glue(glue::glue(msg_footer)))
+      )
+    )
+  }
 }
 
 check_msg_components_all_null <- function(msg_header, msg_body, msg_footer) {
@@ -251,66 +343,90 @@ check_msg_components_all_null <- function(msg_header, msg_body, msg_footer) {
 #' Provide simple email message body components: body
 #' 
 #' The `stock_msg_body()` function simply provides some stock text for an email
-#' message sent via [email_blast()] or previewed through [email_preview()].
+#' message sent via [email_blast()] or obtained as a standalone object through
+#' [email_create()].
 #'
 #' @return Text suitable for the `msg_body` arguments of [email_blast()] and
-#'   [email_preview()].
+#'   [email_create()].
 #' 
 #' @family Emailing
 #' @section Function ID:
-#' 3-3
+#' 4-3
 #' 
 #' @export
 stock_msg_body <- function() {
 
-paste0(
-  blastula::add_image(
-    system.file("img", "pointblank_logo.png", package = "pointblank"),
-    width = 150
-  ),
-"
-<br>
-<div style=\"text-align: center; font-size: larger;\">
-This <strong>pointblank</strong> validation report, \\
-containing <strong>{nrow(x$validation_set)}</strong> validation step\\
-{ifelse(nrow(x$validation_set) != 1, 's', '')},<br>\\
-was initiated on {blastula::add_readable_time(x$time)}.
-</div>
-<br><br>
-{x$report_html_small}
-<br>
-<div style=\"text-align: center; font-size: larger;\">
-&#9678;
-</div>
-"
-)
+  htmltools::tagList(
+    htmltools::HTML("<!-- pointblank stock-msg-body -->"),
+    htmltools::HTML(
+      blastula::add_image(
+        system.file("img", "pointblank_logo.png", package = "pointblank"),
+        width = 150
+      )
+    ),
+    htmltools::tags$br(),
+    htmltools::tags$div(
+      style = htmltools::css(
+        `text-align` = "center",
+        `font-size` = "larger"
+      ),
+      htmltools::HTML("{get_lsv('email/agent_body')[[x$lang]]}")
+    ),
+    htmltools::tags$br(),
+    htmltools::tags$br(),
+    htmltools::HTML("{x$report_html_small}"),
+    htmltools::tags$br(),
+    htmltools::tags$div(
+      style = htmltools::css(
+        `text-align` = "center",
+        `font-size` = "larger"
+      ),
+      htmltools::HTML("&#9678;")
+    )
+  ) %>%
+    as.character()
 }
 
 #' Provide simple email message body components: footer
 #' 
 #' The `stock_msg_footer()` functions simply provide some stock text for an
-#' email message sent via [email_blast()] or previewed through
-#' [email_preview()].
+#' email message sent via [email_blast()] or obtained as a standalone object
+#' through [email_create()].
 #'
 #' @return Text suitable for the `msg_footer` argument of [email_blast()] and
-#'   [email_preview()].
+#'   [email_create()].
 #' 
 #' @family Emailing
 #' @section Function ID:
-#' 3-4
+#' 4-4
 #' 
 #' @export
 stock_msg_footer <- function() {
   
-"
-<br>
-Validation performed via the <code>pointblank</code> <strong>R<strong> package.
-<br><br><br>
-<div>
-<a style=\"background-color: #999999; color: white; padding: 1em 1.5em; \\
-position: relative; text-decoration: none; text-transform: uppercase; \\
-cursor: pointer;\" href=\"https://rich-iannone.github.io/pointblank/\">Information and package documentation</a></div>
-"
+  htmltools::tagList(
+    htmltools::HTML("<!-- pointblank stock-msg-footer -->"),
+    htmltools::tags$br(),
+    htmltools::HTML("{get_lsv('email/footer_1')[[x$lang]]}"),
+    htmltools::tags$br(),
+    htmltools::tags$br(),
+    htmltools::tags$br(),
+    htmltools::tags$div(
+      htmltools::tags$a(
+        style = htmltools::css(
+          `background-color` = "#999999",
+          color = "white",
+          padding = "1em 1.5em",
+          position = "relative",
+          `text-decoration` = "none",
+          `text-transform` = "uppercase",
+          cursor = "pointer"
+        ),
+        href = "https://rich-iannone.github.io/pointblank/",
+        htmltools::HTML("{get_lsv('email/footer_2')[[x$lang]]}")
+      )
+    )
+  ) %>%
+    as.character()
 }
 
 # nocov end

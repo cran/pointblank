@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 test_options <- new.env(parent = emptyenv())
 
 #nocov start
@@ -28,7 +47,7 @@ test_options <- new.env(parent = emptyenv())
 #'
 #' @family Planning and Prep
 #' @section Function ID:
-#' 1-3
+#' 1-4
 #' 
 #' @export
 validate_rmd <- function(summary = TRUE,
@@ -43,8 +62,6 @@ validate_rmd <- function(summary = TRUE,
     
     if (isTRUE(log_to_file)) {
       
-      # TODO: consider appending the date and time to the
-      # generic `validation_errors.log` filename
       test_options$perform_logging <- TRUE
       test_options$log_to_file <- file.path(getwd(), "validation_errors.log")
       
@@ -74,7 +91,7 @@ validate_rmd_setup <- function() {
   knitr::opts_hooks$set(
     error = function(options) {
       if (isTRUE(options$validate)) {
-        options$error = TRUE
+        options$error <- TRUE
       }
       options
     }
@@ -176,7 +193,8 @@ render_template <- function(template_name, data) {
       text <- pb_glue_data(data, "{error_count} {noun} failed.")
     }
     
-    rendered <- pb_glue_data(c(data, list(state = state, text = text)), template)
+    rendered <- 
+      pb_glue_data(c(data, list(state = state, text = text)), template)
     
   } else if (template_name == "document") {
     
@@ -198,7 +216,8 @@ render_template <- function(template_name, data) {
       alert <- ""
     }
     
-    rendered <- pb_glue_data(c(data, list(alert = alert)), template)
+    rendered <-
+      pb_glue_data(c(data, list(alert = alert)), template)
   }
   
   rendered
@@ -213,7 +232,11 @@ knitr_error_hook <- function(previous_hook) {
 
       increment_count("error")
       
-      error_message <- x %>% tidy_gsub("##", "") %>% tidy_gsub("\n", "")
+      error_message <-
+        x %>%
+        tidy_gsub("##", "") %>%
+        tidy_gsub("\n", "")
+      
       log4r_error(message = error_message)
     }
     
@@ -295,7 +318,11 @@ knitr_chunk_hook <- function(x, options) {
     
     if (grepl("<!--html_preserve-->", x)) {
       
-      matches <- gregexpr(pattern = "<!--html_preserve-->(.|\n)*?<!--/html_preserve-->", x)
+      matches <- 
+        gregexpr(
+          pattern = "<!--html_preserve-->(.|\n)*?<!--/html_preserve-->",
+          x
+        )
 
       output <- regmatches(x = x, m = matches) %>% unlist()
       
@@ -338,7 +365,12 @@ knitr_chunk_hook <- function(x, options) {
     }
   }
   
-  remix_content <- function(code_vec, output_vec, error_vec, agent_tbl_vec) {
+  remix_content <- function(code_vec,
+                            output_vec,
+                            error_vec,
+                            agent_tbl_vec) {
+    
+    # nolint start
     
     pass_svg <- 
       htmltools::HTML(
@@ -349,6 +381,8 @@ knitr_chunk_hook <- function(x, options) {
       htmltools::HTML(
         "<svg height=\"1.5em\" viewBox=\"0 0 32 32\" style=\"margin-top: 3px; fill: red;\"><path d=\"M 16 3 C 8.832031 3 3 8.832031 3 16 C 3 23.167969 8.832031 29 16 29 C 23.167969 29 29 23.167969 29 16 C 29 8.832031 23.167969 3 16 3 Z M 16 5 C 22.085938 5 27 9.914063 27 16 C 27 22.085938 22.085938 27 16 27 C 9.914063 27 5 22.085938 5 16 C 5 9.914063 9.914063 5 16 5 Z M 12.21875 10.78125 L 10.78125 12.21875 L 14.5625 16 L 10.78125 19.78125 L 12.21875 21.21875 L 16 17.4375 L 19.78125 21.21875 L 21.21875 19.78125 L 17.4375 16 L 21.21875 12.21875 L 19.78125 10.78125 L 16 14.5625 Z\"/></svg>"
       )
+    
+    # nolint end
     
     content <- c()
     
@@ -371,17 +405,39 @@ knitr_chunk_hook <- function(x, options) {
               class = "panel panel-success",
               htmltools::tags$div(
                 class = "panel-heading",
-                style = "color: #333; border-color: transparent;",
+                style = htmltools::css(
+                  color = "#333",
+                  `border-color` = "transparent"
+                ),
                 htmltools::tags$div(
-                  style = "display: inline-flex; width: 100%",
+                  style = htmltools::css(
+                    display = "inline-flex",
+                    width = "100%"
+                  ),
                   htmltools::tags$div(
-                    style = "margin-top: 2px; padding-left: 5px; background: #FAFAFA;",
+                    style = htmltools::css(
+                      `margin-top` = "2px",
+                      `padding-left` = "5px",
+                      background = "#FAFAFA"
+                    ),
                     pass_svg
                   ),
                   htmltools::tags$div(
-                    style = "padding-left: 2px; padding-right: 2px; padding-top: 2px; padding-bottom: 4px; margin-top: 2px; background: #FAFAFA; width: 100%; overflow-x: scroll;",
+                    style = htmltools::css(
+                      `padding-left` = "2px",
+                      `padding-right` = "2px",
+                      `padding-top` = "2px",
+                      `padding-bottom` = "4px",
+                      `margin-top` = "2px",
+                      background = "#FAFAFA",
+                      width = "100%",
+                      `overflow-x` = "scroll"
+                    ),
                     htmltools::tags$code(
-                      style = "background-color: #FAFAFA; padding-left: 0;",
+                      style = htmltools::css(
+                        `background-color` = "#FAFAFA",
+                        `padding-left` = "0"
+                      ),
                       code_vec[i]
                     )
                   )
@@ -399,42 +455,85 @@ knitr_chunk_hook <- function(x, options) {
               class = "panel panel-danger",
               htmltools::tags$div(
                 class = "panel-heading",
-                style = "color: #333; border-color: transparent;",
+                style = htmltools::css(
+                  color = "#333",
+                  `border-color` = "transparent"
+                ),
                 htmltools::tags$div(
-                  style = "display: inline-flex; width: 100%",
+                  style = htmltools::css(
+                    display = "inline-flex",
+                    width = "100%"
+                  ),
                   htmltools::tags$div(
-                    style = "margin-top: 2px; padding-left: 5px; background: #FAFAFA;",
+                    style = htmltools::css(
+                      `margin-top` = "2px",
+                      `padding-left` = "5px",
+                      background = "#FAFAFA"
+                    ),
                     fail_svg
                   ),
                   htmltools::tags$div(
-                    style = "padding-left: 2px; padding-right: 2px; padding-top: 2px; padding-bottom: 4px; margin-top: 2px; background: #FAFAFA; width: 100%; overflow-x: scroll;",
+                    style = htmltools::css(
+                      `padding-left` = "2px",
+                      `padding-right` = "2px",
+                      `padding-top` = "2px",
+                      `padding-bottom` = "4px",
+                      `margin-top` = "2px",
+                      background = "#FAFAFA",
+                      width = "100%",
+                      `overflow-x` = "scroll"
+                    ),
                     htmltools::tags$code(
-                      style = "background-color: #FAFAFA; padding-left: 0;",
+                      style = htmltools::css(
+                        `background-color` = "#FAFAFA",
+                        `padding-left` = "0"
+                      ),
                       code_vec[i]
                     )
                   )
                 ),
                 htmltools::tags$hr(
-                  style = "margin-top: 10px; margin-bottom: 0; border: 1px solid #EBCCD1;"
+                  style = htmltools::css(
+                    `margin-top` = "10px",
+                    `margin-bottom` = "0",
+                    border = "1px solid #EBCCD1"
+                  )
                 ),
                 htmltools::tags$div(
                   class = "panel-body",
-                  style = "padding-left: 15px; padding-top: 15px; padding-right: 15px; padding-bottom: 15px; background: #FAFAFA; width: 100%; overflow-x: scroll;",
+                  style = htmltools::css(
+                    `padding-left` = "15px",
+                    `padding-top` = "15px",
+                    `padding-right` = "15px",
+                    `padding-bottom` = "15px",
+                    background = "#FAFAFA",
+                    width = "100%",
+                    `overflow-x` = "scroll"
+                  ),
                   htmltools::tags$code(
-                    style = "background-color: #FAFAFA; padding-left: 0; overflow-x: scroll;",
+                    style = htmltools::css(
+                      `background-color` = "#FAFAFA",
+                      `padding-left` = "0",
+                      `overflow-x` = "scroll"
+                    ),
                     output_vec[i]
                   )
                 ),
                 htmltools::tags$hr(
-                  style = "margin-top: 0; margin-bottom: 0; border: 1px solid #EBCCD1;"
-                ),
+                  style = htmltools::css(
+                    `margin-top` = "0",
+                    `margin-bottom` = "0",
+                    border = "1px solid #EBCCD1"
+                  )
+                )
               )
             )
           )
       }
       
-      content <-  c(content, as.character(output_content)) %>% as.character()
-        
+      content <-  
+        c(content, as.character(output_content)) %>%
+        as.character()
     }
     
     content <- paste(content, collapse = "")

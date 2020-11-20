@@ -8,22 +8,22 @@ stock_msg_footer()
 }
 \value{
 Text suitable for the \code{msg_footer} argument of \code{\link[=email_blast]{email_blast()}} and
-\code{\link[=email_preview]{email_preview()}}.
+\code{\link[=email_create]{email_create()}}.
 }
 \description{
 The \code{stock_msg_footer()} functions simply provide some stock text for an
-email message sent via \code{\link[=email_blast]{email_blast()}} or previewed through
-\code{\link[=email_preview]{email_preview()}}.
+email message sent via \code{\link[=email_blast]{email_blast()}} or obtained as a standalone object
+through \code{\link[=email_create]{email_create()}}.
 }
 \section{Function ID}{
 
-3-4
+4-4
 }
 
 \seealso{
 Other Emailing: 
 \code{\link{email_blast}()},
-\code{\link{email_preview}()},
+\code{\link{email_create}()},
 \code{\link{stock_msg_body}()}
 }
 \concept{Emailing}

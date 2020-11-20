@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' Are column data less than a specified value?
 #'
 #' The `col_vals_lt()` validation function, the `expect_col_vals_lt()`
@@ -163,7 +182,8 @@ col_vals_lt <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x, name = "::QUIET::") %>%
+    secret_agent <-
+      create_agent(x, label = "::QUIET::") %>%
       col_vals_lt(
         columns = columns,
         value = value,
@@ -173,7 +193,8 @@ col_vals_lt <- function(x,
         brief = brief,
         actions = prime_actions(actions),
         active = active
-      ) %>% interrogate()
+      ) %>%
+      interrogate()
     
     return(x)
   }
@@ -181,7 +202,10 @@ col_vals_lt <- function(x,
   agent <- x
   
   if (is.null(brief)) {
-    brief <- generate_autobriefs(agent, columns, preconditions, values = value, "col_vals_lt")
+    brief <- 
+      generate_autobriefs(
+        agent, columns, preconditions, values = value, "col_vals_lt"
+      )
   }
   
   # Normalize any provided `step_id` value(s)
@@ -227,7 +251,7 @@ expect_col_vals_lt <- function(object,
   fn_name <- "expect_col_vals_lt"
   
   vs <- 
-    create_agent(tbl = object, name = "::QUIET::") %>%
+    create_agent(tbl = object, label = "::QUIET::") %>%
     col_vals_lt(
       columns = {{ columns }},
       value = {{ value }}, 
@@ -235,7 +259,8 @@ expect_col_vals_lt <- function(object,
       preconditions = {{ preconditions }},
       actions = action_levels(notify_at = threshold)
     ) %>%
-    interrogate() %>% .$validation_set
+    interrogate() %>%
+    .$validation_set
   
   x <- vs$notify %>% all()
   
@@ -262,7 +287,11 @@ expect_col_vals_lt <- function(object,
   
   testthat::expect(
     ok = identical(!as.vector(act$val), TRUE),
-    failure_message = glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+    failure_message = glue::glue(
+      failure_message_gluestring(
+        fn_name = fn_name, lang = "en"
+      )
+    )
   )
   
   act$val <- object
@@ -281,7 +310,7 @@ test_col_vals_lt <- function(object,
                              threshold = 1) {
   
   vs <- 
-    create_agent(tbl = object, name = "::QUIET::") %>%
+    create_agent(tbl = object, label = "::QUIET::") %>%
     col_vals_lt(
       columns = {{ columns }},
       value = {{ value }}, 
@@ -289,7 +318,8 @@ test_col_vals_lt <- function(object,
       preconditions = {{ preconditions }},
       actions = action_levels(notify_at = threshold)
     ) %>%
-    interrogate() %>% .$validation_set
+    interrogate() %>%
+    .$validation_set
   
   if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
     warning(conditionMessage(vs$capture_stack[[1]]$warning))

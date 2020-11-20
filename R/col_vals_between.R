@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' Are column data between two specified values?
 #'
 #' The `col_vals_between()` validation function, the `expect_col_vals_between()`
@@ -210,7 +229,8 @@ col_vals_between <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x, name = "::QUIET::") %>%
+    secret_agent <-
+      create_agent(x, label = "::QUIET::") %>%
       col_vals_between(
         columns = columns,
         left = left,
@@ -222,7 +242,8 @@ col_vals_between <- function(x,
         brief = brief,
         actions = prime_actions(actions),
         active = active
-      ) %>% interrogate()
+      ) %>%
+      interrogate()
     
     return(x)
   }
@@ -230,7 +251,14 @@ col_vals_between <- function(x,
   agent <- x
   
   if (is.null(brief)) {
-    brief <- generate_autobriefs(agent, columns, preconditions, values = c(left, right), "col_vals_between")
+    brief <- 
+      generate_autobriefs(
+        agent,
+        columns,
+        preconditions,
+        values = c(left, right),
+        "col_vals_between"
+      )
   }
   
   # Normalize any provided `step_id` value(s)
@@ -278,7 +306,7 @@ expect_col_vals_between <- function(object,
   fn_name <- "expect_col_vals_between"
   
   vs <- 
-    create_agent(tbl = object, name = "::QUIET::") %>%
+    create_agent(tbl = object, label = "::QUIET::") %>%
     col_vals_between(
       columns = {{ columns }},
       left = {{ left }}, 
@@ -288,7 +316,8 @@ expect_col_vals_between <- function(object,
       preconditions = {{ preconditions }},
       actions = action_levels(notify_at = threshold)
     ) %>%
-    interrogate() %>% .$validation_set
+    interrogate() %>%
+    .$validation_set
   
   x <- vs$notify %>% all()
   
@@ -310,12 +339,18 @@ expect_col_vals_between <- function(object,
   act <- testthat::quasi_label(enquo(x), arg = "object")
   
   column_text <- prep_column_text(vs$column[[1]])
-  value_1 <- prep_values_text(values = vs$values[[1]][[1]], limit = 3, lang = "en")
-  value_2 <- prep_values_text(values = vs$values[[1]][[2]], limit = 3, lang = "en")
+  value_1 <- 
+    prep_values_text(values = vs$values[[1]][[1]], limit = 3, lang = "en")
+  value_2 <- 
+    prep_values_text(values = vs$values[[1]][[2]], limit = 3, lang = "en")
 
   testthat::expect(
     ok = identical(!as.vector(act$val), TRUE),
-    failure_message = glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+    failure_message = glue::glue(
+      failure_message_gluestring(
+        fn_name = fn_name, lang = "en"
+      )
+    )
   )
   
   act$val <- object
@@ -336,7 +371,7 @@ test_col_vals_between <- function(object,
                                   threshold = 1) {
   
   vs <- 
-    create_agent(tbl = object, name = "::QUIET::") %>%
+    create_agent(tbl = object, label = "::QUIET::") %>%
     col_vals_between(
       columns = {{ columns }},
       left = {{ left }}, 
@@ -346,7 +381,8 @@ test_col_vals_between <- function(object,
       preconditions = {{ preconditions }},
       actions = action_levels(notify_at = threshold)
     ) %>%
-    interrogate() %>% .$validation_set
+    interrogate() %>%
+    .$validation_set
   
   if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
     warning(conditionMessage(vs$capture_stack[[1]]$warning))

@@ -1,17 +1,83 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 is_ptblank_agent <- function(x) {
   inherits(x, "ptblank_agent")
 }
 
+is_ptblank_informant <- function(x) {
+  inherits(x, "ptblank_informant")
+}
+
+is_ptblank_x_list <- function(x) {
+  inherits(x, "x_list")
+}
+
 is_a_table_object <- function(x) {
-  inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))
+  inherits(x, c("data.frame", "tbl_df", "tbl_dbi", "tbl_spark"))
+}
+
+is_tbl_spark <- function(x) {
+  inherits(x, "tbl_spark")
+}
+
+is_tbl_dbi <- function(x) {
+  inherits(x, "tbl_dbi")
+}
+
+has_agent_intel <- function(agent) {
+  inherits(agent, "has_intel")
 }
 
 get_tbl_object <- function(agent) {
   agent$tbl
 }
 
-has_agent_intel <- function(agent) {
-  inherits(agent, "has_intel")
+# Generate a label for the `agent` or `informant` object
+generate_label <- function(label = NULL) {
+  
+  if (!is.null(label)) return(as.character(label))
+  
+  paste0("[", gsub(" ", "|", as.character(Sys.time())), "]")
+}
+
+safely_transformer <- function(otherwise = NA) {
+  
+  oth <- otherwise
+  
+  function(text, envir) {
+    tryCatch(
+      eval(parse(text = text, keep.source = FALSE), envir),
+      error = function(e) if (is.language(oth)) eval(oth) else oth)
+  }
+}
+
+glue_safely <- function(...,
+                        .otherwise = NA,
+                        .envir = parent.frame()) {
+  as.character(
+    glue::glue(
+      ...,
+      .transformer = safely_transformer(.otherwise),
+      .envir = .envir
+    )
+  )
 }
 
 is_agent_empty <- function(agent) {
@@ -20,7 +86,7 @@ is_agent_empty <- function(agent) {
 }
 
 interrogation_time <- function(agent) {
-  if (has_agent_intel(agent)) agent$time else NA
+  if (has_agent_intel(agent)) agent$time_start else NA
 }
 
 number_of_validation_steps <- function(agent) {
@@ -32,7 +98,11 @@ get_assertion_type_at_idx <- function(agent, idx) {
 }
 
 get_column_as_sym_at_idx <- function(agent, idx) {
-  rlang::sym(agent$validation_set[[idx, "column"]] %>% unlist() %>% gsub("'", "", .))
+  rlang::sym(
+    agent$validation_set[[idx, "column"]] %>%
+      unlist() %>%
+      gsub("'", "", .)
+  )
 }
 
 get_values_at_idx <- function(agent, idx) {
@@ -62,10 +132,16 @@ resolve_expr_to_cols <- function(tbl, var_expr) {
 
 resolve_columns <- function(x, var_expr, preconditions) {
   
+  # nocov start
+  
   # Return an empty character vector if the expr is NULL
-  if (inherits(var_expr, "quosure") && var_expr %>% rlang::as_label() == "NULL") {
+  if (inherits(var_expr, "quosure") &&
+      var_expr %>% rlang::as_label() == "NULL") {
+    
     return(character(0))
   } 
+  
+  # nocov end
   
   # Get the column names
   if (is.null(preconditions)) {
@@ -161,7 +237,8 @@ normalize_step_id <- function(step_id, columns, agent) {
 
       # Issue warning about length of `step_id`
       warning(
-        "The number of `step_id` values is neither `1` nor the number of `columns`:\n",
+        "The number of `step_id` values is neither `1` nor the ",
+        "number of `columns`:\n",
         "* Only the first `step_id` element will be used.",
         call. = FALSE
       )
@@ -181,7 +258,8 @@ check_step_id_duplicates <- function(step_id, agent) {
     a_duplicate_step_id <- step_id[step_id %in% agent$validation_set$step_id][1]
     
     stop(
-      "Just after step index `", error_at_index, "`, the following `step_id` has been ",
+      "Just after step index `", error_at_index,
+      "`, the following `step_id` has been ",
       "seen as used in a previous validation step:\n",
       " * \"", a_duplicate_step_id, "\"",
       call. = FALSE
@@ -253,130 +331,254 @@ get_r_column_names_types <- function(tbl) {
 }
 
 get_tbl_information <- function(tbl) {
-  
-  if (inherits(tbl, "data.frame")) {
-    
-    r_column_names_types <- get_r_column_names_types(tbl)
-    
-    tbl_src <- "data.frame"
-    if (inherits(tbl, "tbl_df")) {
-      tbl_src <- "tbl_df"
-    } 
-    
-    return(
-      list(
-        tbl_src = tbl_src,
-        tbl_src_details = NA_character_,
-        db_tbl_name = NA_character_,
-        col_names = r_column_names_types$col_names,
-        r_col_types = r_column_names_types$r_col_types,
-        db_col_types = NA_character_
-      )
-    )
-    
-  } else if (inherits(tbl, "tbl_spark")) {
-    
-    r_column_names_types <- get_r_column_names_types(tbl)
-    
-    tbl_schema <- sparklyr::sdf_schema(tbl)
-    
-    db_col_types <- 
-      lapply(tbl_schema, `[[`, 2) %>%
-      unlist() %>% unname() %>% tolower()
-    
-    return(
-      list(
-        tbl_src = "tbl_spark",
-        tbl_src_details = "Spark",
-        db_tbl_name = NA_character_,
-        col_names = r_column_names_types$col_names,
-        r_col_types = r_column_names_types$r_col_types,
-        db_col_types = db_col_types
-      )
-    )
-    
-  } else if (inherits(tbl, "tbl_dbi")) {
-    
-    tbl_src <- gsub("^([a-z]*).*", "\\1", get_tbl_dbi_src_details(tbl))
-    tbl_sql_server <- grepl("sql server|sqlserver", tolower(get_tbl_dbi_src_details(tbl)))
-    
-    r_column_names_types <- get_r_column_names_types(tbl)
-    
-    tbl_connection <- tbl %>% .$src %>% .$con
-    
-    db_tbl_name <- dbplyr::remote_name(tbl) %>% as.character()
-    
-    n_cols <- length(r_column_names_types$col_names)
 
-    if (tbl_src != "postgres") {
-      q_types <- ifelse(
-        tbl_sql_server,
-        glue::glue("SELECT TOP 9 {n_cols} DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}'"),
-        glue::glue("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}' LIMIT {n_cols}")
-      )
-    } else {
-      db_tbl_name_no_schema <- gsub('.*\\.', '', db_tbl_name)
-      q_types <- 
-        glue::glue(
-          "select column_name,data_type from information_schema.columns where table_name = '{db_tbl_name_no_schema}'"
-        )
-    }
+  if (is.data.frame(tbl)) {
     
-    if (tbl_src != "sqlite" & tbl_src != "postgres") {
-      db_col_types <- 
-        DBI::dbGetQuery(tbl_connection, q_types) %>%
-        dplyr::collect() %>%
-        dplyr::pull(DATA_TYPE) %>%
-        tolower()
-    }
+    tbl_information <- get_tbl_information_df(tbl)
     
-    if (tbl_src == "sqlite") {
-      db_col_types <-
-        vapply(
-          r_column_names_types$col_names,
-          FUN.VALUE = character(1),
-          USE.NAMES = FALSE,
-          FUN = function(x) {
-            
-            DBI::dbDataType(
-              tbl_connection,
-              tbl %>%
-                dplyr::select(x) %>%
-                utils::head(1) %>%
-                dplyr::collect() %>%
-                dplyr::pull(x)
-            )
-          }
-        ) %>%
-        tolower()
-    }
+  } else if (is_tbl_spark(tbl)) {
     
-    if (tbl_src == "postgres") {
-      db_col_types <- 
-        DBI::dbGetQuery(tbl_connection, q_types) %>%
-        dplyr::pull(data_type) %>%
-        tolower()
-    }
+    # nocov start
     
-    if (!exists("db_col_types")) {
-      db_col_types <- NA_character_
-    }
+    tbl_information <- get_tbl_information_spark(tbl)
     
-    return(
-      list(
-        tbl_src = tbl_src,
-        tbl_src_details = get_tbl_dbi_src_details(tbl),
-        db_tbl_name = db_tbl_name,
-        col_names = r_column_names_types$col_names,
-        r_col_types = r_column_names_types$r_col_types,
-        db_col_types = db_col_types
-      )
-    )
+    # nocov end
+    
+  } else if (is_tbl_dbi(tbl)) {
+    
+    tbl_information <- get_tbl_information_dbi(tbl)
     
   } else {
+    
+    # nocov start
+    
     warning("Information on this table type cannot be obtained at present.",
             call. = FALSE)
+    
+    # nocov end
   } 
+  
+  tbl_information
+}
+
+get_tbl_information_df <- function(tbl) {
+  
+  r_column_names_types <- get_r_column_names_types(tbl)
+  
+  tbl_src <- if (tibble::is_tibble(tbl)) "tbl_df" else "data.frame"
+  
+  list(
+    tbl_src = tbl_src,
+    tbl_src_details = NA_character_,
+    db_tbl_name = NA_character_,
+    col_names = r_column_names_types$col_names,
+    r_col_types = r_column_names_types$r_col_types,
+    db_col_types = NA_character_
+  )
+}
+
+# nocov start
+
+get_tbl_information_spark <- function(tbl) {
+  
+  r_column_names_types <- get_r_column_names_types(tbl)
+  
+  tbl_schema <- sparklyr::sdf_schema(tbl)
+  
+  db_col_types <- 
+    lapply(tbl_schema, `[[`, 2) %>%
+    unlist() %>%
+    unname() %>%
+    tolower()
+  
+  list(
+    tbl_src = "tbl_spark",
+    tbl_src_details = "Spark",
+    db_tbl_name = NA_character_,
+    col_names = r_column_names_types$col_names,
+    r_col_types = r_column_names_types$r_col_types,
+    db_col_types = db_col_types
+  )
+}
+
+# nocov end
+
+get_tbl_information_dbi <- function(tbl) {
+
+  tbl_connection <- tbl$src$con
+
+  tbl_src_details <- tolower(get_tbl_dbi_src_details(tbl))
+  
+  if (grepl("sql server|sqlserver", tbl_src_details)) {
+    
+    # nocov start
+    
+    tbl_src <- "mssql"
+    
+    # nocov end
+    
+  } else {
+    
+    tbl_src <- gsub("^([a-z]*).*", "\\1", get_tbl_dbi_src_details(tbl))
+  }
+  
+  db_tbl_name <- as.character(dbplyr::remote_name(tbl))
+  
+  r_column_names_types <- get_r_column_names_types(tbl)
+  
+  n_cols <- length(r_column_names_types$col_names)
+  
+  # nolint start
+  
+  if (tbl_src == "postgres") {
+    
+    # nocov start
+    
+    db_tbl_name_no_schema <- gsub(".*\\.", "", db_tbl_name)
+    
+    q_types <-
+      as.character(
+        glue::glue(
+          "select column_name,data_type from \\
+        information_schema.columns where \\
+        table_name = '{db_tbl_name_no_schema}'"
+        )
+      )
+    
+    # nocov end
+
+  } else {
+
+    if (tbl_src == "mssql") {
+      
+      # nocov start
+      
+      q_types <-
+        as.character(
+          glue::glue(
+            "SELECT TOP 9 {n_cols} DATA_TYPE \\
+          FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}'"
+          )
+        )
+      
+      # nocov end
+      
+    } else { 
+      
+      q_types <-
+        as.character(
+          glue::glue(
+            "SELECT DATA_TYPE FROM \\
+          INFORMATION_SCHEMA.COLUMNS WHERE \\
+          table_name = '{db_tbl_name}' LIMIT {n_cols}"
+          )
+        )
+    }
+  }
+  
+  # nolint end
+  
+  if (tbl_src == "postgres") {
+    
+    # nocov start
+    
+    db_col_types <- 
+      DBI::dbGetQuery(tbl_connection, q_types) %>%
+      dplyr::pull(data_type) %>%
+      tolower()
+    
+    # nocov end
+  }
+  
+  if (tbl_src %in% c("duckdb", "sqlite")) {
+    
+    db_col_types <-
+      vapply(
+        r_column_names_types$col_names,
+        FUN.VALUE = character(1),
+        USE.NAMES = FALSE,
+        FUN = function(x) {
+          
+          DBI::dbDataType(
+            tbl_connection,
+            tbl %>%
+              dplyr::select(x) %>%
+              utils::head(1) %>%
+              dplyr::collect() %>%
+              dplyr::pull(x)
+          )
+        }
+      ) %>%
+      tolower()
+  }
+  
+  if (!(tbl_src %in% c("duckdb", "sqlite", "postgres"))) {
+
+    # nocov start
+    
+    db_col_types <- 
+      DBI::dbGetQuery(tbl_connection, q_types) %>%
+      dplyr::collect() %>%
+      dplyr::pull(DATA_TYPE) %>%
+      tolower()
+    
+    # nocov end
+  }
+  
+  # nocov start
+  
+  if (!exists("db_col_types")) {
+    db_col_types <- NA_character_
+  }
+  
+  # nocov end
+
+  list(
+    tbl_src = tbl_src,
+    tbl_src_details = get_tbl_dbi_src_details(tbl),
+    db_tbl_name = db_tbl_name,
+    col_names = r_column_names_types$col_names,
+    r_col_types = r_column_names_types$r_col_types,
+    db_col_types = db_col_types
+  )
+}
+
+pb_fmt_number <- function(x,
+                          decimals = 2,
+                          n_sigfig = NULL,
+                          drop_trailing_zeros = FALSE,
+                          drop_trailing_dec_mark = TRUE,
+                          use_seps = TRUE,
+                          scale_by = 1,
+                          suffixing = FALSE,
+                          pattern = "{x}",
+                          sep_mark = ",",
+                          dec_mark = ".",
+                          locale = NULL) {
+  
+  if (is.null(x)) return(NULL)
+  
+  if (length(x) == 1 &&
+      (!inherits(x, "numeric") && !inherits(x, "integer"))) {
+    return(x)
+  } 
+  
+  ((dplyr::tibble(a = x) %>%
+      gt::gt() %>%
+      gt::fmt_number(
+        vars(a),
+        decimals = decimals,
+        n_sigfig = n_sigfig,
+        drop_trailing_zeros = drop_trailing_zeros,
+        drop_trailing_dec_mark = drop_trailing_dec_mark,
+        use_seps = use_seps,
+        scale_by = scale_by,
+        suffixing = suffixing,
+        pattern = pattern,
+        sep_mark = sep_mark,
+        dec_mark = dec_mark,
+        locale = locale
+      ))$`_formats`[[1]][[1]][[1]])(x)
 }
 
 add_icon_img <- function(icon,
@@ -412,9 +614,95 @@ add_icon_img <- function(icon,
       )
     )
   
-  htmltools::HTML(as.character(img))
+  gsub("\\s\\s+", " ", htmltools::HTML(as.character(img)))
 }
 
-tidy_gsub <- function(x, pattern, replacement, fixed = FALSE) {
+add_icon_svg <- function(icon,
+                         height = 30,
+                         v_align = "middle") {
+  
+  file <- 
+    system.file(
+      "img", "function_icons", paste0(icon, ".svg"),
+      package = "pointblank"
+    )
+  
+  htmltools::tags$div(
+    style = htmltools::css(
+      margin = 0,
+      padding = 0,
+      display = "inline-block",
+      height = "30px",
+      `vertical-align` = "middle"
+    ),
+    htmltools::HTML(
+      paste(readLines(con = file, warn = FALSE), collapse = "") %>%
+        tidy_gsub("width=\"[0-9]*?px", paste0("width=\"", height, "px")) %>%
+        tidy_gsub("height=\"[0-9]*?px", paste0("height=\"", height, "px"))
+    )
+  ) %>%
+    as.character()
+}
+
+tidy_gsub <- function(x,
+                      pattern,
+                      replacement,
+                      fixed = FALSE) {
+  
   gsub(pattern, replacement, x, fixed = fixed)
+}
+
+pb_str_catalog <- function(item_vector,
+                           conj = "and",
+                           more = "more",
+                           surround = c("\"", "`"),
+                           sep = ",",
+                           limit = 5,
+                           oxford = TRUE) {
+  
+  item_count <- length(item_vector)
+  
+  if (item_count > 2 && item_count > limit) {
+    n_overlimit <- paste0("(+", paste(item_count - limit, more), ")")
+    item_vector <- item_vector[1:limit]
+  } else {
+    n_overlimit <- ""
+  }
+  
+  surround_str_1 <- rev(surround) %>% paste(collapse = "")
+  surround_str_2 <- surround %>% paste(collapse = "")
+  
+  cat_str <- paste0(surround_str_1, item_vector, surround_str_2)
+  
+  if (item_count == 1) {
+    
+    return(cat_str)
+    
+  } else if (item_count == 2) {
+    
+    return(paste(cat_str[1], conj, cat_str[2]))
+    
+  } else {
+    
+    separators <- rep(paste0(sep, " "), length(item_vector) - 1)
+    
+    if (!oxford) {
+      separators[length(separators)] <- ""
+    }
+    
+    if (n_overlimit == "") {
+      separators[length(separators)] <- 
+        paste0(separators[length(separators)], conj, " ")
+    }
+    
+    separators[length(separators) + 1] <- ""
+    
+    cat_str <-
+      paste0(cat_str, separators) %>%
+      paste(collapse = "")
+    
+    cat_str <- paste(cat_str, n_overlimit)
+    
+    return(cat_str)
+  }
 }

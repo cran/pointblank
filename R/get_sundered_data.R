@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' Sunder the data, splitting it into 'pass' and 'fail' pieces
 #'
 #' Validation of the data is one thing but, sometimes, you want to use the best
@@ -6,10 +25,21 @@
 #' `interrogate()`) and gets either the 'pass' data piece (rows with no failing
 #' test units across all row-based validation functions), or, the 'fail' data
 #' piece (rows with at least one failing test unit across the same series of
-#' validations). There are some caveats, only those validation steps with no
-#' `preconditions` are considered. And, the validation steps used for this
-#' splitting must be of the row-based variety (e.g., the `col_vals_*()`
-#' functions or [conjointly()]).
+#' validations).
+#' 
+#' There are some caveats to sundering. The validation steps considered for this
+#' splitting has to be of the row-based variety (e.g., the `col_vals_*()`
+#' functions or [conjointly()], but not `rows_distinct()`). Furthermore,
+#' validation steps that experienced evaluation issues during interrogation are
+#' not considered, and, validation steps where `active = FALSE` will be
+#' disregarded. The collection of validation steps that fulfill the above
+#' requirements for sundering are termed in-consideration validation steps.
+#'
+#' If using any `preconditions` for validation steps, we must ensure that all
+#' in-consideration validation steps use the same specified `preconditions`
+#' function. Put another way, we cannot split the target table using a
+#' collection of in-consideration validation steps that use different forms of
+#' the input table.
 #'
 #' @param agent An agent object of class `ptblank_agent`. It should have had
 #'   [interrogate()] called on it, such that the validation steps were actually
@@ -29,7 +59,8 @@
 #'   other options could be `c(TRUE, FALSE)`, `c(1, 0)`, or `c(1L, 0L)`.
 #' @param id_cols An optional specification of one or more identifying columns.
 #'   When taken together, we can count on this single column or grouping of
-#'   columns to distinguish rows.
+#'   columns to distinguish rows. If the table undergoing validation is not a
+#'   data frame or tibble, then columns need to be specified for `id_cols`.
 #' @return A list of table objects if `type` is `NULL`, or, a single table if a
 #'   `type` is given.
 #' 
@@ -58,7 +89,7 @@
 #' 
 #' @family Post-interrogation
 #' @section Function ID:
-#' 5-4
+#' 7-3
 #' 
 #' @export
 get_sundered_data <- function(agent,
@@ -80,9 +111,10 @@ get_sundered_data <- function(agent,
   
   input_tbl <- agent$tbl
   tbl_src <- agent$tbl_src
-  
+
   if (!(tbl_src %in% c("tbl_df", "data.frame")) && is.null(id_cols)) {
-    stop("This table needs to have `id_cols` specified, otherwise sundering cannot be done",
+    stop("This table needs to have `id_cols` specified, otherwise ",
+         "sundering cannot be done",
          call. = FALSE)
   }
   
@@ -93,24 +125,42 @@ get_sundered_data <- function(agent,
     dplyr::pull(n) %>%
     as.numeric()
   
-  # Get the row count of the input table after using
-  # `dplyr::distinct()`
-  row_count_input_tbl_distinct <- 
-    input_tbl %>%
-    dplyr::distinct() %>%
-    dplyr::summarize(n = dplyr::n()) %>%
-    dplyr::pull(n) %>%
-    as.numeric()
-  
-  # Get the validation steps that are row-based, and,
-  # did not result in evaluation errors
-  validation_steps_i <- 
+  # Keep only the validation steps that:
+  # - did not result in evaluation errors
+  # - are row-based (not including `rows_distinct()`)
+  # - are `active`
+  validation_set_prefiltered <- 
     agent$validation_set %>%
     dplyr::filter(eval_error == FALSE) %>%
-    dplyr::filter(assertion_type %in% base::setdiff(row_based_step_fns_vector(), "rows_distinct")) %>%
-    dplyr::filter(vapply(preconditions, FUN = is.null, FUN.VALUE = logical(1))) %>%
-    dplyr::pull(i)
+    dplyr::filter(
+      assertion_type %in%
+        base::setdiff(row_based_step_fns_vector(), "rows_distinct")
+    ) %>%
+    dplyr::filter(active == TRUE)
   
+  # Get a character vector of preconditions
+  preconditions_vec <- 
+    vapply(
+      validation_set_prefiltered[["preconditions"]],
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        paste(as.character(x), collapse = "")
+      }
+    )
+  
+  if (!all(preconditions_vec == preconditions_vec[1])) {
+    stop("Using `get_sundered_data()` requires that either:\n",
+         "* No `preconditions` are used, or\n",
+         "* All specified `preconditions` are the same",
+         call. = FALSE)
+  }
+  
+  # Obtain the validation steps that are to be used for sundering
+  validation_steps_i <- 
+    validation_set_prefiltered %>%
+    dplyr::pull(i)
+    
   if (length(validation_steps_i) == 0) {
     
     if (!is.null(type) && type == "pass") {
@@ -136,7 +186,7 @@ get_sundered_data <- function(agent,
     agent$validation_set %>%
     dplyr::filter(i %in% validation_steps_i) %>%
     dplyr::pull(tbl_checked)
-    
+
   for (i in seq(tbl_check_obj)) {
     
     if (i == min(seq(tbl_check_obj))) {
@@ -167,11 +217,15 @@ get_sundered_data <- function(agent,
       
       tbl_check_join <- 
         tbl_check_join %>%
-        dplyr::select(dplyr::one_of(by_cols), dplyr::starts_with("pb_is_good_")) %>%
+        dplyr::select(
+          dplyr::one_of(by_cols), dplyr::starts_with("pb_is_good_")
+        ) %>%
         dplyr::left_join(
           tbl_check_join_r %>%
             dplyr::rename(!!new_col_ii := pb_is_good_) %>%
-            dplyr::select(dplyr::one_of(by_cols), dplyr::starts_with("pb_is_good_")),
+            dplyr::select(
+              dplyr::one_of(by_cols), dplyr::starts_with("pb_is_good_")
+            ),
           by = by_cols
         ) %>%
         dplyr::left_join(

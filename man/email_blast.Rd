@@ -2,7 +2,7 @@
 % Please edit documentation in R/emailing.R
 \name{email_blast}
 \alias{email_blast}
-\title{Send email at a step or at the end of an interrogation}
+\title{Send email at a validation step or at the end of an interrogation}
 \usage{
 email_blast(
   x,
@@ -17,8 +17,10 @@ email_blast(
 )
 }
 \arguments{
-\item{x}{A reference to list object prepared by the agent. It's only
-available in an internal evaluation context.}
+\item{x}{A reference to the x-list object prepared by the agent. This version
+of the x-list is the same as that generated via \verb{get_agent_x_list(<agent>)}
+except this version is internally generated and hence only available in an
+internal evaluation context.}
 
 \item{to, from}{The email addresses for the recipients and the sender.}
 
@@ -37,10 +39,10 @@ footer components of the HTML email message.}
 of length 1. If \code{TRUE} then the email will be sent, if \code{FALSE} then that
 won't happen. The expression can use x-list variables (e.g., \code{x$notify},
 \code{x$type}, etc.) and all of those variables can be viewed using the
-\code{\link[=get_agent_x_list]{get_agent_x_list()}} function. The default expression is \code{~TRUE \%in\% x$notify},
-which results in \code{TRUE} if there are any \code{TRUE} values in the \code{x$notify}
-logical vector (i.e., any validation step results in a 'notify'
-condition).}
+\code{\link[=get_agent_x_list]{get_agent_x_list()}} function. The default expression is
+\code{~TRUE \%in\% x$notify}, which results in \code{TRUE} if there are any \code{TRUE}
+values in the \code{x$notify} logical vector (i.e., any validation step results
+in a 'notify' condition).}
 }
 \description{
 The \code{email_blast()} function is useful for sending an email message that
@@ -52,12 +54,12 @@ function (to possibly send an email message at one or more steps).
 }
 \details{
 To better get a handle on emailing with \code{email_blast()}, the analogous
-\code{\link[=email_preview]{email_preview()}} can be used with a \strong{pointblank} agent object or the
+\code{\link[=email_create]{email_create()}} can be used with a \strong{pointblank} agent object or the
 output obtained from using the \code{\link[=get_agent_x_list]{get_agent_x_list()}} function.
 }
 \section{Function ID}{
 
-3-1
+4-1
 }
 
 \examples{
@@ -116,7 +118,7 @@ al <-
 # nonexistent; to look at the email
 # message before sending anything of
 # the like, we can use the 
-# `email_preview()` function
+# `email_create()` function
 email_object <-
   create_agent(
     tbl = tbl,
@@ -125,12 +127,12 @@ email_object <-
   col_vals_gt(vars(a), 5) \%>\%
   col_vals_lt(vars(b), 5) \%>\%
   interrogate() \%>\%
-  email_preview()
+  email_create()
   
 }
 \seealso{
 Other Emailing: 
-\code{\link{email_preview}()},
+\code{\link{email_create}()},
 \code{\link{stock_msg_body}()},
 \code{\link{stock_msg_footer}()}
 }

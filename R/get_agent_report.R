@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' Get a summary report from an agent
 #' 
 #' @description 
@@ -27,7 +46,7 @@
 #' a right-facing arrow appears
 #' \item EVAL: a character value that denotes the result of each validation
 #' step functions' evaluation during interrogation
-#' \item UNITS: the total number of test units for the validation step
+#' \item *N*: the total number of test units for the validation step
 #' \item PASS: the number of test units that received a *pass*
 #' \item FAIL: the fraction of test units that received a *pass*
 #' \item W, S, N: indicators that show whether the `warn`, `stop`, or `notify`
@@ -81,6 +100,21 @@
 #' @param size The size of the display table, which can be either `"standard"`
 #'   (the default) or `"small"`. This only applies to a display table (where
 #'   `display_table = TRUE`).
+#' @param lang The language to use for automatic creation of briefs (short
+#'   descriptions for each validation step) and for the *agent report* (a
+#'   summary table that provides the validation plan and the results from the
+#'   interrogation. By default, `NULL` will create English (`"en"`) text. Other
+#'   options include French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish
+#'   (`"es"`), Portuguese, (`"pt"`), Chinese (`"zh"`), and Russian (`"ru"`).
+#'   This `lang` option will override any previously set lang value (e.g., by
+#'   the [create_agent()] call).
+#' @param locale An optional locale ID to use for formatting values in the
+#'   *agent report* summary table according the locale's rules. Examples include
+#'   `"en_US"` for English (United States) and `"fr_FR"` for French (France);
+#'   more simply, this can be a language identifier without a country
+#'   designation, like `"es"` for Spanish (Spain, same as `"es_ES"`). This
+#'   `locale` option will override any previously set locale value (e.g., by the
+#'   [create_agent()] call).
 #' 
 #' @return A **gt** table object if `display_table = TRUE` or a tibble if
 #'   `display_table = FALSE`.
@@ -127,26 +161,23 @@
 #' # The standard report is 875px wide
 #' # the small one is 575px wide
 #' 
-#' @family Post-interrogation
+#' @family Interrogate and Report
 #' @section Function ID:
-#' 5-1
+#' 5-2
 #' 
 #' @export
 get_agent_report <- function(agent,
                              arrange_by = c("i", "severity"),
                              keep = c("all", "fail_states"),
                              display_table = TRUE,
-                             size = "standard") {
-
+                             size = "standard",
+                             lang = NULL,
+                             locale = NULL) {
+  
   arrange_by <- match.arg(arrange_by)
   keep <- match.arg(keep)
   
   validation_set <- agent$validation_set
-  
-  agent_name <- agent$name
-  agent_time <- agent$time
-  
-  lang <- agent$reporting_lang
   
   eval <- 
     validation_set %>%
@@ -207,7 +238,8 @@ get_agent_report <- function(agent,
     
   } else {
     
-    extract_count <- as.character(validation_set[["i"]]) %in% names(agent$extracts)
+    extract_count <- 
+      as.character(validation_set[["i"]]) %in% names(agent$extracts)
     
     extract_count[extract_count == FALSE] <- NA_integer_
     
@@ -219,7 +251,7 @@ get_agent_report <- function(agent,
         FUN = nrow
       )
   }
-
+  
   report_tbl <- 
     dplyr::tibble(
       i = validation_set$i,
@@ -262,697 +294,1046 @@ get_agent_report <- function(agent,
     report_tbl %>%
     dplyr::select(-dplyr::ends_with("pts"))
   
+  if (!display_table) {
+    return(report_tbl)
+  }
   
-  validation_set <- validation_set[report_tbl$i, ]
-  eval <- eval[report_tbl$i]
-  
-  extracts <- 
-    agent$extracts[as.character(base::intersect(as.numeric(names(agent$extracts)), report_tbl$i))]
+  # Generate a gt table if `display_table == TRUE`
   
   # nocov start
+  validation_set <- validation_set[report_tbl$i, ]
+  eval <- eval[report_tbl$i]
+  extracts <- 
+    agent$extracts[
+      as.character(
+        base::intersect(as.numeric(names(agent$extracts)), report_tbl$i)
+      )
+    ]
   
-  if (display_table) {
-
-    if (size == "small") {
-      scale <- 1.0
-      email_table <- TRUE
-    } else {
-      scale <- 1.0
-      email_table <- FALSE
-    }
+  if (is.null(lang)) {
     
-    make_button <- function(x, scale, color, background, text = NULL, border_radius = NULL, v_align = "middle") {
-      
-      paste0(
-        "<button title=\"", text, "\" style=\"background: ", background,
-        "; padding: ", 5 * scale, "px ", 5 * scale, "px; ",
-        "color: ", color, "; vertical-align: ", v_align, "; font-size: ", 15 * scale,
-        "px; border: none; border-radius: ", border_radius, "\">",
-        x, "</button>"
-      )
-    }
-
-    # Reformat `type`
-    assertion_type <- validation_set$assertion_type
-    label <- validation_set$label
+    lang <- agent$lang
+    if (is.null(locale)) locale <- agent$locale
     
-    type_upd <- 
-      seq_along(assertion_type) %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-          
-          assertion_type_nchar <- nchar(assertion_type[x])
-          
-          text_size <- ifelse(assertion_type_nchar + 2 >= 20, 9, 11)
-          text_size <- ifelse(email_table, 10, text_size)
-          
-          if (email_table) {
+  } else {
+    
+    normalize_reporting_language(lang = lang)
+    
+    # Set the `locale` to the `lang` value if `locale` isn't set
+    if (is.null(locale)) locale <- lang
+  }
 
+  briefs <- validation_set$brief
+  assertion_type <- validation_set$assertion_type
+  label <- validation_set$label
+  
+  # Generate agent label HTML
+  agent_label_styled <- create_agent_label_html(agent)
+  
+  # Generate table type HTML
+  table_type <- 
+    create_table_type_html(
+      tbl_src = agent$tbl_src,
+      tbl_name = agent$tbl_name
+    )
+
+  # Generate action levels HTML
+  action_levels <- make_action_levels_html(agent, locale)
+  
+  # Combine label, table type, and action levels into
+  # a table subtitle <div>
+  combined_subtitle <-
+    htmltools::tagList(
+      htmltools::HTML(agent_label_styled),
+      htmltools::tags$div(
+        style = htmltools::css(
+          height = "25px"
+        ),
+        htmltools::HTML(paste0(table_type, action_levels))
+      ) 
+    ) %>% as.character()
+
+  # Generate table execution start/end time (and duration)
+  # as a table source note
+  table_time <- 
+    create_table_time_html(
+      time_start = agent$time_start,
+      time_end = agent$time_end,
+      locale = locale
+    )
+  
+  # Reformat `type`
+  type_upd <- 
+    seq_along(assertion_type) %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        assertion_type_nchar <- nchar(assertion_type[x])
+        
+        text_size <- ifelse(assertion_type_nchar + 2 >= 20, 10, 11)
+        text_size <- ifelse(size == "small", 11, text_size)
+        
+        if (size == "small") {
+
+          htmltools::tags$code(
+            style = htmltools::css(
+              `font-size` = paste0(text_size, "px")
+            ),
+            htmltools::HTML(paste0("&nbsp;", assertion_type[x], "()"))
+          ) %>%
+            as.character()
+          
+        } else {
+          
+          if (!is.na(label[x])) {
+
+            htmltools::tags$div(
+              `aria-label` = briefs[x],
+              `data-balloon-pos` = "right",
+              style = htmltools::css(width = "fit-content"),
+              htmltools::tags$div(
+                style = htmltools::css(
+                  float = "left",
+                  width = "30px"
+                ),
+                htmltools::HTML(add_icon_svg(icon = assertion_type[x]))
+              ),
+              htmltools::tags$div(
+                style = htmltools::css(
+                  `line-height` = "0.7em",
+                  `margin-left` = "32px",
+                  `padding-left` = "3px"
+                ),
+                htmltools::tags$p(
+                  style = htmltools::css(
+                    margin = "0",
+                    `padding-top` = "4px",
+                    `font-size` = "9px"
+                  ),
+                  htmltools::HTML(label[x])
+                ),
+                htmltools::tags$p(
+                  style = htmltools::css(margin = "0"),
+                  htmltools::tags$code(
+                    style = htmltools::css(`font-size` = "11px"),
+                    paste0(assertion_type[x], "()")
+                  )
+                )
+              )
+            ) %>% 
+              as.character()
+
+          } else {
+
+            htmltools::tags$div(
+              `aria-label` = briefs[x],
+              `data-balloon-pos` = "right",
+              style = htmltools::css(width = "fit-content"),
+              htmltools::HTML(add_icon_svg(icon = assertion_type[x])),
+              htmltools::tags$code(
+                style = htmltools::css(`font-size` = paste0(text_size, "px")),
+                htmltools::HTML(paste0("&nbsp;", assertion_type[x], "()"))
+              )
+            ) %>%
+              as.character()
+          }
+        }
+      }
+    )
+  
+  # Reformat `columns`
+  columns_upd <- 
+    validation_set$column %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        if (is.null(x) | (is.list(x) && is.na(unlist(x)))) {
+          x <- NA_character_
+        } else if (is.na(x)) {
+          x <- NA_character_
+        } else {
+
+          text <- 
+            x %>%
+            unlist() %>%
+            strsplit(", ") %>%
+            unlist()
+          
+          title <- text
+          
+          text_fragments <- 
             paste0(
-              "<code style=\"font-size: ", text_size,
-              "px;\">&nbsp;", assertion_type[x], "()</code>"
+              htmltools::tags$span(
+                style = htmltools::css(color = "purple"),
+                htmltools::HTML("&marker;")
+              ), text, collapse = ", "
             )
-
-          } else {
-            
-            if (!is.na(label[x])) {
-              
-              paste0(
-                "<div><div style=\"float: left; width: 30px;\">",
-                add_icon_img(icon = assertion_type[x]),
-                "</div>",
-                "<div style=\"line-height: 0.7em; margin-left: 32px; padding-left: 3px;\">",
-                "<p style=\"margin: 0; padding-top: 4px; font-size: 9px; \">",
-                htmltools::htmlEscape(label[x]), "</p>",
-                "<p style=\"margin: 0;\"><code style=\"font-size: 11px;\">",
-                assertion_type[x], "()</code></p></div></div>"
-              )
-              
-            } else {
-              
-              paste0(
-                add_icon_img(icon = assertion_type[x]),
-                "<code style=\"font-size: ", text_size,
-                "px;\">&nbsp;", assertion_type[x], "()</code>"
-              )
-            }
-          }
-        }
-      )
-
-    # Reformat `columns`
-    columns_upd <- 
-      validation_set$column %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-
-          if (is.null(x) | (is.list(x) && is.na(unlist(x)))) {
-            x <- NA_character_
-          } else if (is.na(x)) {
-            x <- NA_character_
-          } else {
-            text <- x %>% unlist() %>% strsplit(", ") %>% unlist()
-            title <- text
-            text <- 
-              paste(
-                paste0(
-                  "<span style=\"color: purple; ",
-                  "font-size: bigger;\">&marker;</span>",
-                  text
-                ),
-                collapse = ", "
-              )
-            x <- 
-              paste0(
-                "<div><p title=\"", paste(title, collapse = ", "), "\"style=\"margin-top: 0px;margin-bottom: 0px; ",
-                "font-family: monospace; white-space: nowrap; ",
-                "text-overflow: ellipsis; overflow: hidden;\">",
-                text,
-                "</p></div>"
-              )
-          }
-          x
-        }
-      )
-
-    # Reformat `values`
-    values_upd <- 
-      validation_set$values %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-
-          if (!is.null(x) && !is.null(names(x)) && all(names(x) %in% c("TRUE", "FALSE"))) {
-
-            # Case of in-between comparison validation where there are
-            # one or two columns specified as bounds
-            bounds_incl <- as.logical(names(x))
-            
-            if (rlang::is_quosure(x[[1]])) {
-              x_left <- 
-                paste0(
-                  "<span style=\"color: purple; font-size: bigger;\">&marker;</span>",
-                  rlang::as_label(x[[1]])
-                )
-            } else {
-              x_left <- x[[1]]
-            }
-            
-            if (rlang::is_quosure(x[[2]])) {
-              x_right <- 
-                paste0(
-                  "<span style=\"color: purple; font-size: bigger;\">&marker;</span>",
-                  rlang::as_label(x[[2]])
-                )
-            } else {
-              x_right <- x[[2]]
-            }
-            
-            text <- 
-              paste0(
-                ifelse(bounds_incl[1], "[", "("),
-                x_left,
-                ", ",
-                x_right,
-                ifelse(bounds_incl[2], "]", ")")
-              )
-            
-            title <- 
-              paste0(
-                ifelse(bounds_incl[1], "[", "("),
-                rlang::as_label(x[[1]]),
-                ", ",
-                rlang::as_label(x[[2]]),
-                ifelse(bounds_incl[2], "]", ")")
-              )
-
-            x <- 
-              paste0(
-                "<div><p title=\"", title, "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
-                "font-family: monospace; white-space: nowrap; ",
-                "text-overflow: ellipsis; overflow: hidden;\">",
-                text,
-                "</p></div>"
-              )
-
-          } else if (is.list(x) && length(x) > 0 && inherits(x, "col_schema")) {
-            
-            # Case of column schema as a value
-            
-            column_schema_text <- 
-              get_lsv("agent_report/report_column_schema")[[lang]]
-            
-            column_schema_type_text <- 
-              if (inherits(x, "r_type")) {
-                get_lsv("agent_report/report_r_col_types")[[lang]]
-              } else {
-                get_lsv("agent_report/report_r_sql_types")[[lang]]
-              }
-            
-            x <- 
-              paste0(
-                "<div>",
-                "<p style=\"margin-top: 0px; margin-bottom: 0px; ",
-                "font-size: 0.75rem;\">", column_schema_text, "</p>",
-                "<p style=\"margin-top: 2px; margin-bottom: 0px; ",
-                "font-size: 0.65rem;\">", column_schema_type_text, "</p>",
-                "</div>"
-              )
-            
-          } else if (is_call(x)) {
-            
-            text <- rlang::as_label(x)
-            
-            x <- 
-              paste0(
-                "<div><p title=\"", text , "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
-                "font-family: monospace; white-space: nowrap; ",
-                "text-overflow: ellipsis; overflow: hidden;\">",
-                text,
-                "</p></div>"
-              )
-            
-          } else if (is.list(x) && length(x) > 0 && !inherits(x, "quosures")) {
-            
-            # Conjointly case
-            
-            step_text <- 
-              if (length(x) > 1) {
-                paste0(length(x), " ", get_lsv("agent_report/report_col_steps")[[lang]])
-              } else {
-                paste0(length(x), " ", get_lsv("agent_report/report_col_step")[[lang]])
-              }
-            
-            x <- 
-              paste0(
-                "<div><p style=\"margin-top: 0px; margin-bottom: 0px; ",
-                "font-size: 0.75rem;\">", step_text, "</p></div>"
-              )
-            
-          } else if (is.null(x)) {
-            
-            x <- NA_character_
-            
-          } else {
-
-            text <-
-              x %>%
-              tidy_gsub(
-                "~",
-                "<span style=\"color: purple; font-size: bigger;\">&marker;</span>"
-              ) %>%
-              unname()
           
-            text <- paste(text, collapse = ", ")
+          if (size == "small") {
             
             x <- 
-              paste0(
-                "<div><p title=\"", x %>% tidy_gsub("~", "") %>% paste(., collapse = ", "), "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
-                "font-family: monospace; white-space: nowrap; ",
-                "text-overflow: ellipsis; overflow: hidden;\">",
-                text,
-                "</p></div>"
-              )
-          }
-          x
-        } 
-      )
-
-    # Reformat `precon`
-    precon_upd <- 
-      validation_set$preconditions %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-
-          if (is.null(x)) {
-            x <- 
-              make_button(
-                x = "&Iscr;",
-                scale = scale,
-                color = "#333333",
-                background = "#EFEFEF",
-                text = "No table preconditions applied.",
-                border_radius = "4px"
-              )
-            
-          } else if (rlang::is_formula(x) || rlang::is_function(x)) {
-
-            if (rlang::is_formula(x)) {
-              text <- rlang::as_label(x) %>% tidy_gsub("^~", "")
-            } else {
-              text <- rlang::as_label(body(x))
-            }
-            
-            x <- 
-              make_button(
-                x = "&#10174;",
-                scale = scale,
-                color = "#FFFFFF",
-                background = "#67C2DC",
-                text = paste0("Table altered with preconditions: ", gsub("\"", "'", text)),
-                border_radius = "4px"
-              )
-          }
-          x
-        } 
-      )
-
-    # Reformat `eval`
-    eval_upd <- 
-      seq_along(eval) %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-
-          if (is.na(eval[x])) {
-            
-            out <- "&mdash;"
-            
-          } else if (eval[x] == "OK") {
-            
-            out <- 
-              make_button(
-                x = "&check;",
-                scale = scale,
-                color = "#4CA64C",
-                background = "transparent",
-                text = "No evaluation issues."
-              )
-            
-          } else if (eval[x] == "W + E") {
-            
-            text <- agent$validation_set$capture_stack[[x]]$error
-            
-            if (!is.null(text)) {
-              text <- as.character(text)
-            } else {
-              text <- ""
-            }
-            
-            out <- 
-              make_button(
-                x = "&#128165;",
-                scale = scale,
-                color = "#FFFFFF",
-                background = "transparent",
-                text = text
-              )
-            
-          } else if (eval[x] == "WARNING") {
-            
-            text <- agent$validation_set$capture_stack[[x]]$warning
-            
-            if (!is.null(text)) {
-              text <- as.character(text)
-            } else {
-              text <- ""
-            }
-            
-            out <- 
-              make_button(
-                x = "&#9888;",
-                scale = scale,
-                color = "#222222",
-                background = "transparent",
-                text = text
-              )
-            
-          } else if (eval[x] == "ERROR") {
-            
-            text <- agent$validation_set$capture_stack[[x]]$error
-            
-            if (!is.null(text)) {
-              text <- as.character(text)
-            } else {
-              text <- ""
-            }
-            
-            out <- 
-              make_button(
-                x = "&#128165;",
-                scale = scale,
-                color = "#FFFFFF",
-                background = "transparent",
-                text = text
-              )
-          }
-          out
-        } 
-      )
-
-    # Reformat `extract`
-    extract_upd <-
-      validation_set$i %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-
-          if (is.null(extracts[as.character(x)][[1]])) {
-            x <- "&mdash;"
-          } else {
-
-            df <- 
-              extracts[as.character(x)][[1]] %>%
-              as.data.frame(stringsAsFactors = FALSE)
-            
-            title_text <- paste0(nrow(df), " failing rows available.")
-            
-            temp_file <- 
-              tempfile(pattern = paste0("csv_file_", x), fileext = ".csv")
-            
-            utils::write.csv(df, file = temp_file, row.names = FALSE)
-            
-            on.exit(unlink(temp_file))
-            
-            file_encoded <- base64enc::base64encode(temp_file)
-            
-            output_file_name <- 
-              paste0(
-                agent_name, "_",
-                formatC(x, width = 4, format = "d", flag = "0"),
-                ".csv"
-              ) %>%
-              tidy_gsub(":", "_")
-
-            x <- 
-              htmltools::a(
-                href = paste0(
-                  "data:text/csv;base64,", file_encoded
-                ),
-                download = output_file_name,
-                htmltools::tags$button(
-                  title = title_text,
-                  style = "background-color: #67C2DC; color: #FFFFFF; border: none; padding: 5px; font-weight: bold; cursor: pointer; border-radius: 4px;",
-                  "CSV"
+              htmltools::tags$div(
+                htmltools::tags$p(
+                  title = paste(title, collapse = ", "),
+                  style = htmltools::css(
+                    `margin-top` = "0",
+                    `margin-bottom` = "0",
+                    `font-family` = "monospace",
+                    `white-space` = "nowrap",
+                    `text-overflow` = "ellipsis",
+                    overflow = "hidden"
+                  ),
+                  htmltools::HTML(text_fragments)
                 )
-              ) %>%
+              ) %>% 
               as.character()
             
+          } else {
+            
+            x <-
+              htmltools::tags$div(
+                `aria-label` = paste(title, collapse = ", "),
+                `data-balloon-pos` = "left",
+                htmltools::tags$p(
+                  style = htmltools::css(
+                    `margin-top` = "0",
+                    `margin-bottom` = "0",
+                    `font-size` = "11px",
+                    `white-space` = "nowrap",
+                    `text-overflow` = "ellipsis",
+                    overflow = "hidden",
+                    `line-height` = "2em"
+                  ),
+                  htmltools::tags$code(htmltools::HTML(text_fragments))
+                )
+              ) %>% 
+              as.character()
           }
-          x
-        } 
-      )
-
-    # Reformat W, S, and N
-    W_upd <- 
-      validation_set$warn %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-          if (is.na(x)) {
-            x <- "&mdash;"
-          } else if (x == TRUE) {
-            x <- "<span style=\"color: #FFBF00;\">&#9679;</span>"
-          } else if (x == FALSE) {
-            x <- "<span style=\"color: #FFBF00;\">&cir;</span>"
-          }
-          x
         }
-      )
-    
-    S_upd <- 
-      validation_set$stop %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-          if (is.na(x)) {
-            x <- "&mdash;"
-          } else if (x == TRUE) {
-            x <- "<span style=\"color: #CF142B;\">&#9679;</span>"
-          } else if (x == FALSE) {
-            x <- "<span style=\"color: #CF142B;\">&cir;</span>"
-          }
-          x
-        }
-      )
-    
-    N_upd <- 
-      validation_set$notify %>%
-      vapply(
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) {
-          if (is.na(x)) {
-            x <- "&mdash;"
-          } else if (x == TRUE) {
-            x <- "<span style=\"color: #439CFE;\">&#9679;</span>"
-          } else if (x == FALSE) {
-            x <- "<span style=\"color: #439CFE;\">&cir;</span>"
-          }
-          x
-        }
-      )
+        x
+      }
+    )
+  
+  # Reformat `values`
+  values_upd <- 
+    validation_set$values %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        if (!is.null(x) &&
+            !is.null(names(x)) &&
+            all(names(x) %in% c("TRUE", "FALSE"))) {
 
-    f_pass_val <- report_tbl$f_pass
-    f_pass_val <- ifelse(f_pass_val > 0 & f_pass_val < 0.01, 0.01, f_pass_val)
-    f_pass_val <- ifelse(f_pass_val < 1 & f_pass_val > 0.99, 0.99, f_pass_val)
-    f_pass_val <- as.numeric(f_pass_val)
-    
-    f_fail_val <- 1 - report_tbl$f_pass
-    f_fail_val <- ifelse(f_fail_val > 0 & f_fail_val < 0.01, 0.01, f_fail_val)
-    f_fail_val <- ifelse(f_fail_val < 1 & f_fail_val > 0.99, 0.99, f_fail_val)
-    f_fail_val <- as.numeric(f_fail_val)
+          # Case of in-between comparison validation where there are
+          # one or two columns specified as bounds
+          bounds_incl <- as.logical(names(x))
+          
+          if (rlang::is_quosure(x[[1]])) {
+            x_left <- 
+              paste0(
+                "<span style=\"color: purple;\">&marker;</span>",
+                rlang::as_label(x[[1]])
+              )
+          } else {
+            x_left <- 
+              pb_fmt_number(
+                x[[1]],
+                decimals = 4,
+                drop_trailing_zeros = TRUE,
+                locale = locale
+              )
+          }
+          
+          if (rlang::is_quosure(x[[2]])) {
+            x_right <- 
+              paste0(
+                "<span style=\"color: purple;\">&marker;</span>",
+                rlang::as_label(x[[2]])
+              )
+          } else {
+            x_right <-
+              pb_fmt_number(
+                x[[2]],
+                decimals = 4,
+                drop_trailing_zeros = TRUE,
+                locale = locale
+              )
+          }
+          
+          text <-
+            paste0(
+              ifelse(bounds_incl[1], "[", "("),
+              x_left,
+              ", ",
+              x_right,
+              ifelse(bounds_incl[2], "]", ")")
+            )
+          
+          title <- 
+            paste0(
+              ifelse(bounds_incl[1], "[", "("),
+              pb_fmt_number(
+                rlang::as_label(x[[1]]),
+                decimals = 4,
+                drop_trailing_zeros = TRUE,
+                locale = locale
+              ),
+              ", ",
+              pb_fmt_number(
+                rlang::as_label(x[[2]]),
+                decimals = 4,
+                drop_trailing_zeros = TRUE,
+                locale = locale
+              ),
+              ifelse(bounds_incl[2], "]", ")")
+            )
+          
+          if (size == "small") {
+            
+            x <-
+              paste0(
+                "<div><p title=\"", title, "\" style=\"margin-top: 0px; ",
+                "margin-bottom: 0px; ",
+                "font-family: monospace; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                text,
+                "</p></div>"
+              )
+            
+          } else {
+            
+            x <- 
+              paste0(
+                "<div aria-label=\"", title, "\" data-balloon-pos=\"left\">",
+                "<p style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "font-size: 11px; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                "<code>", text, "</code>",
+                "</p></div>"
+              )
+          }
+          
+        } else if (is.list(x) && length(x) > 0 && inherits(x, "col_schema")) {
+          
+          # Case of column schema as a value
+          
+          column_schema_text <- 
+            get_lsv("agent_report/report_column_schema")[[lang]]
+          
+          column_schema_type_text <- 
+            if (inherits(x, "r_type")) {
+              get_lsv("agent_report/report_r_col_types")[[lang]]
+            } else {
+              get_lsv("agent_report/report_r_sql_types")[[lang]]
+            }
+          
+          x <- 
+            paste0(
+              "<div>",
+              "<p style=\"margin-top: 0px; margin-bottom: 0px; ",
+              "font-size: 0.75rem;\">", column_schema_text, "</p>",
+              "<p style=\"margin-top: 2px; margin-bottom: 0px; ",
+              "font-size: 0.65rem;\">", column_schema_type_text, "</p>",
+              "</div>"
+            )
+          
+        } else if (is_call(x)) {
+          
+          text <- rlang::as_label(x)
 
-    gt_agent_report <- 
-      report_tbl %>%
-      dplyr::mutate(
-        status_color = NA_character_,
-        type = type_upd,
-        columns = columns_upd,
-        values = values_upd,
-        precon = precon_upd,
-        eval_sym = eval_upd,
-        units = units,
-        n_pass = n_pass,
-        n_fail = units - n_pass,
-        f_pass = f_pass_val,
-        f_fail = f_fail_val,
-        W_val = W,
-        S_val = S,
-        N_val = N,
-        W = W_upd,
-        S = S_upd,
-        N = N_upd,
-        extract = extract_upd
-      ) %>%
-      dplyr::select(
-        status_color, i, type, columns, values, precon, eval_sym, units,
-        n_pass, f_pass, n_fail, f_fail, W, S, N, extract,
-        W_val, S_val, N_val, eval, active
-      ) %>%
-      gt::gt(id = "report") %>%
-      gt::cols_merge(columns = gt::vars(n_pass, f_pass), hide_columns = gt::vars(f_pass)) %>%
-      gt::cols_merge(columns = gt::vars(n_fail, f_fail), hide_columns = gt::vars(f_fail)) %>%
+          if (size == "small") {
+            x <- 
+              paste0(
+                "<div><p title=\"", text, "\" style=\"margin-top: 0px; ",
+                "margin-bottom: 0px; ",
+                "font-family: monospace; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                text,
+                "</p></div>"
+              )
+          } else {
+            x <- 
+              paste0(
+                "<div aria-label=\"", text, "\" data-balloon-pos=\"left\">",
+                "<p style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "font-size: 11px; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                "<code>", text, "</code>",
+                "</p></div>"
+              )
+          }
+          
+        } else if (is.list(x) && length(x) > 0 && !inherits(x, "quosures")) {
+          
+          # Conjointly case
+          
+          if (length(x) > 1) {
+            
+            step_text <- 
+              paste0(
+                length(x), " ",
+                get_lsv("agent_report/report_col_steps")[[lang]]
+              )
+            
+          } else {
+            
+            step_text <- 
+              paste0(
+                length(x), " ",
+                get_lsv("agent_report/report_col_step")[[lang]]
+              )
+          }
+          
+          x <- 
+            paste0(
+              "<div><p style=\"margin-top: 0px; margin-bottom: 0px; ",
+              "font-size: 0.75rem;\">", step_text, "</p></div>"
+            )
+          
+        } else if (is.null(x)) {
+          
+          x <- NA_character_
+          
+        } else {
+          
+          text <-
+            x %>%
+            tidy_gsub(
+              "~",
+              "<span style=\"color: purple;\">&marker;</span>"
+            ) %>%
+            unname()
+          
+          text <- paste(text, collapse = ", ")
+          
+          if (size == "small") {
+            x <- 
+              paste0(
+                "<div><p title=\"",
+                x %>% tidy_gsub("~", "") %>% paste(., collapse = ", "),
+                "\" style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "font-family: monospace; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                text,
+                "</p></div>"
+              )
+          } else {
+            x <- 
+              paste0(
+                "<div aria-label=\"",
+                x %>% tidy_gsub("~", "") %>% paste(., collapse = ", "),
+                "\" data-balloon-pos=\"left\"><p style=\"margin-top: 0px; ",
+                "margin-bottom: 0px; ",
+                "font-family: monospace; white-space: nowrap; ",
+                "text-overflow: ellipsis; overflow: hidden;\">",
+                "<code>", text, "</code>",
+                "</p></div>"
+              )
+          }
+        }
+        x
+      } 
+    )
+  
+  # Reformat `precon`
+  precon_upd <- 
+    validation_set$preconditions %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        if (is.null(x)) {
+          
+          x <- 
+            make_boxed_text_html(
+              x = "&#x02192;",
+              size = size,
+              color = "#333333",
+              background = "transparent",
+              font_size = "18px",
+              padding = 0,
+              tt_text = get_lsv(text = c(
+                "agent_report",
+                "report_no_table_preconditions"
+              ))[[lang]],
+              border_radius = "4px"
+            )
+          
+        } else if (rlang::is_formula(x) || rlang::is_function(x)) {
+          
+          if (rlang::is_formula(x)) {
+            text <- rlang::as_label(x) %>% tidy_gsub("^~", "")
+          } else {
+            text <- rlang::as_label(body(x))
+          }
+          
+          x <- 
+            make_boxed_text_html(
+              x = "&#x021BB;",
+              size = size,
+              color = "#3C898A",
+              background = "transparent",
+              font_size = "18px",
+              padding = 0,
+              tt_text = get_lsv(text = c(
+                "agent_report",
+                "report_some_table_preconditions"
+              ))[[lang]],
+              border_radius = "4px"
+            )
+        }
+        x
+      } 
+    )
+  
+  # Reformat `eval`
+  eval_upd <- 
+    seq_along(eval) %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        if (is.na(eval[x])) {
+          
+          out <- "&mdash;"
+          
+        } else if (eval[x] == "OK") {
+          
+          out <- 
+            make_boxed_text_html(
+              x = "&check;",
+              size = size,
+              color = "#4CA64C",
+              background = "transparent",
+              tt_text = get_lsv(text = c(
+                "agent_report",
+                "report_no_evaluation_issues"
+              ))[[lang]],
+            )
+          
+        } else if (eval[x] == "W + E") {
+          
+          text <- 
+            htmltools::htmlEscape(
+              agent$validation_set$capture_stack[[x]]$error %>%
+                tidy_gsub("\"", "'")
+            )
+          
+          if (!is.null(text)) {
+            text <- as.character(text)
+            text_size <- "large"
+          } else {
+            text <- ""
+            text_size <- NULL
+          }
+          
+          out <- 
+            make_boxed_text_html(
+              x = "&#128165;",
+              size = size,
+              color = "#FFFFFF",
+              background = "transparent",
+              tt_text = text,
+              tt_text_size = text_size
+            )
+          
+        } else if (eval[x] == "WARNING") {
+          
+          text <- 
+            htmltools::htmlEscape(
+              agent$validation_set$capture_stack[[x]]$warning %>%
+                tidy_gsub("\"", "'")
+            )
+          
+          if (!is.null(text)) {
+            text <- as.character(text)
+            text_size <- "large"
+          } else {
+            text <- ""
+            text_size <- NULL
+          }
+          
+          out <- 
+            make_boxed_text_html(
+              x = "&#9888;",
+              size = size,
+              color = "#222222",
+              background = "transparent",
+              tt_text = text,
+              tt_text_size = text_size
+            )
+          
+        } else if (eval[x] == "ERROR") {
+          
+          text <-
+            htmltools::htmlEscape(
+              agent$validation_set$capture_stack[[x]]$error %>%
+                tidy_gsub("\"", "'")
+            )
+          
+          if (!is.null(text)) {
+            text <- as.character(text)
+            text_size <- "large"
+          } else {
+            text <- ""
+            text_size <- NULL
+          }
+          
+          out <- 
+            make_boxed_text_html(
+              x = "&#128165;",
+              size = size,
+              color = "#FFFFFF",
+              background = "transparent",
+              tt_text = text,
+              tt_text_size = text_size
+            )
+        }
+        out
+      } 
+    )
+  
+  # Reformat `extract`
+  extract_upd <-
+    validation_set$i %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        if (is.null(extracts[as.character(x)][[1]])) {
+          x <- "&mdash;"
+        } else {
+          
+          df <- 
+            extracts[as.character(x)][[1]] %>%
+            as.data.frame(stringsAsFactors = FALSE)
+
+          fail_rows_extract <- 
+            pb_fmt_number(nrow(df), decimals = 0, locale = locale)
+          
+          title_text <- 
+            glue::glue(
+              get_lsv(
+                text = c(
+                  "agent_report",
+                  "report_fail_rows_available"
+                )
+              )[[lang]]
+            )
+          
+          temp_file <- 
+            tempfile(pattern = paste0("csv_file_", x), fileext = ".csv")
+          
+          utils::write.csv(df, file = temp_file, row.names = FALSE)
+          
+          on.exit(unlink(temp_file))
+          
+          file_encoded <- base64enc::base64encode(temp_file)
+          
+          output_file_name <- 
+            paste0(
+              "extract_",
+              formatC(x, width = 4, format = "d", flag = "0"),
+              ".csv"
+            )
+          
+          x <- 
+            htmltools::a(
+              href = paste0("data:text/csv;base64,", file_encoded),
+              download = output_file_name,
+              htmltools::tags$button(
+                `aria-label` = title_text,
+                `data-balloon-pos` = "left",
+                style = htmltools::css(
+                  `background-color` = "#67C2DC",
+                  color = "#FFFFFF",
+                  border = "none",
+                  padding = "5px",
+                  `font-weight` = "bold",
+                  cursor = "pointer",
+                  `border-radius` = "4px"
+                ),
+                "CSV"
+              )
+            ) %>%
+            as.character()
+        }
+        x
+      } 
+    )
+  
+  #
+  # Reformat W, S, and N
+  #
+  
+  w_upd <- 
+    validation_set$warn %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        if (is.na(x)) {
+          x <- "&mdash;"
+        } else if (x == TRUE) {
+          x <- "<span style=\"color: #E5AB00;\">&#9679;</span>"
+        } else if (x == FALSE) {
+          x <- "<span style=\"color: #E5AB00;\">&cir;</span>"
+        }
+        x
+      }
+    )
+  
+  s_upd <- 
+    validation_set$stop %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        if (is.na(x)) {
+          x <- "&mdash;"
+        } else if (x == TRUE) {
+          x <- "<span style=\"color: #CF142B;\">&#9679;</span>"
+        } else if (x == FALSE) {
+          x <- "<span style=\"color: #CF142B;\">&cir;</span>"
+        }
+        x
+      }
+    )
+  
+  n_upd <- 
+    validation_set$notify %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        if (is.na(x)) {
+          x <- "&mdash;"
+        } else if (x == TRUE) {
+          x <- "<span style=\"color: #439CFE;\">&#9679;</span>"
+        } else if (x == FALSE) {
+          x <- "<span style=\"color: #439CFE;\">&cir;</span>"
+        }
+        x
+      }
+    )
+  
+  f_pass_val <- report_tbl$f_pass
+  f_pass_val <- ifelse(f_pass_val > 0 & f_pass_val < 0.01, 0.01, f_pass_val)
+  f_pass_val <- ifelse(f_pass_val < 1 & f_pass_val > 0.99, 0.99, f_pass_val)
+  f_pass_val <- as.numeric(f_pass_val)
+  
+  f_fail_val <- 1 - report_tbl$f_pass
+  f_fail_val <- ifelse(f_fail_val > 0 & f_fail_val < 0.01, 0.01, f_fail_val)
+  f_fail_val <- ifelse(f_fail_val < 1 & f_fail_val > 0.99, 0.99, f_fail_val)
+  f_fail_val <- as.numeric(f_fail_val)
+
+  # Generate a gt table
+  gt_agent_report <- 
+    report_tbl %>%
+    dplyr::mutate(
+      status_color = NA_character_,
+      type = type_upd,
+      columns = columns_upd,
+      values = values_upd,
+      precon = precon_upd,
+      eval_sym = eval_upd,
+      units = units,
+      n_pass = n_pass,
+      n_fail = units - n_pass,
+      f_pass = f_pass_val,
+      f_fail = f_fail_val,
+      W_val = W,
+      S_val = S,
+      N_val = N,
+      W = w_upd,
+      S = s_upd,
+      N = n_upd,
+      extract = extract_upd
+    ) %>%
+    dplyr::select(
+      status_color, i, type, columns, values, precon, eval_sym, units,
+      n_pass, f_pass, n_fail, f_fail, W, S, N, extract,
+      W_val, S_val, N_val, eval, active
+    ) %>%
+    gt::gt(id = "report") %>%
+    gt::cols_merge(
+      columns = gt::vars(n_pass, f_pass),
+      hide_columns = gt::vars(f_pass)
+    ) %>%
+    gt::cols_merge(
+      columns = gt::vars(n_fail, f_fail),
+      hide_columns = gt::vars(f_fail)
+    ) %>%
+    gt::text_transform(
+      locations = gt::cells_body(columns = gt::vars(n_pass, n_fail)),
+      fn = function(x) {
+        dplyr::case_when(
+          x == "NA NA"  ~ "&mdash;",
+          TRUE ~ x %>%
+            tidy_gsub(" ", "</code><br><code>") %>%
+            paste0("<code>", ., "</code>")
+        )
+      }
+    ) %>%
+    gt::cols_label(
+      status_color = "",
+      i = "",
+      type = get_lsv("agent_report/report_col_step")[[lang]],
+      columns = get_lsv("agent_report/report_col_columns")[[lang]],
+      values = get_lsv("agent_report/report_col_values")[[lang]],
+      precon = "TBL",
+      eval_sym = "EVAL",
+      units = gt::md("&sdot;&nbsp;&sdot;&nbsp;&sdot;"),
+      n_pass = "PASS",
+      n_fail = "FAIL",
+      extract = "EXT"
+    ) %>%
+    gt::tab_header(
+      title = get_lsv("agent_report/pointblank_validation_title_text")[[lang]],
+      subtitle = gt::md(combined_subtitle)
+    ) %>%
+    gt::tab_source_note(source_note = gt::md(table_time)) %>%
+    gt::tab_options(
+      table.font.size = gt::pct(90),
+      row.striping.include_table_body = FALSE
+    ) %>%
+    gt::cols_align(
+      align = "center",
+      columns = gt::vars(precon, eval_sym, W, S, N, extract)
+    ) %>%
+    gt::cols_align(
+      align = "center",
+      columns = gt::vars(f_pass, f_fail)
+    ) %>%
+    gt::cols_align(
+      align = "right",
+      columns = gt::vars(i)
+    ) %>%
+    gt::fmt_number(
+      columns = gt::vars(units, n_pass, n_fail, f_pass, f_fail),
+      decimals = 0, drop_trailing_zeros = TRUE, suffixing = TRUE,
+      locale = locale
+    ) %>%
+    gt::fmt_number(
+      columns = gt::vars(f_pass, f_fail),
+      decimals = 2,
+      locale = locale
+    ) %>%
+    gt::fmt_markdown(
+      columns = gt::vars(
+        type, columns, values, precon,
+        eval_sym, W, S, N, extract
+      )
+    ) %>%
+    gt::fmt_missing(columns = gt::vars(columns, values, units, extract)) %>%
+    gt::fmt_missing(columns = gt::vars(status_color), missing_text = "") %>%
+    gt::cols_hide(columns = gt::vars(W_val, S_val, N_val, active, eval)) %>%
+    gt::text_transform(
+      locations = gt::cells_body(columns = gt::vars(units)),
+      fn = function(x) {
+        dplyr::case_when(
+          x == "&mdash;" ~ x,
+          TRUE ~ paste0("<code>", x, "</code>")
+        )
+      }
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_text(
+        size = gt::px(28),
+        weight = 500,
+        align = "left",
+        color = "#444444"
+      ),
+      locations = gt::cells_title("title")
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_text(
+        size = gt::px(12),
+        align = "left"
+      ),
+      locations = gt::cells_title("subtitle")
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_text(
+        weight = "bold",
+        color = "#666666",
+        size = ifelse(size == "small", gt::px(10), gt::px(13))
+      ),
+      locations = gt::cells_body(columns = gt::vars(i))
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_fill(color = "#4CA64C"),
+      locations = gt::cells_body(
+        columns = gt::vars(status_color),
+        rows = units == n_pass
+      )
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_fill(color = "#4CA64C66", alpha = 0.5),
+      locations = gt::cells_body(
+        columns = gt::vars(status_color),
+        rows = units != n_pass
+      )
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_fill(color = "#FFBF00"),
+      locations = gt::cells_body(
+        columns = gt::vars(status_color),
+        rows = W_val
+      )
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_fill(color = "#CF142B"),
+      locations = gt::cells_body(
+        columns = gt::vars(status_color),
+        rows = S_val
+      )
+    ) %>%
+    gt::tab_style(
+      style = list(
+        gt::cell_borders(sides = "left", color = "#D3D3D3"),
+        gt::cell_fill(color = "#FCFCFC")
+      ),
+      locations = gt::cells_body(columns = vars(precon, W))
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_borders(
+        sides = "left",
+        color = "#E5E5E5",
+        style = "dashed"
+      ),
+      locations = gt::cells_body(columns = vars(n_pass, n_fail))
+    ) %>%
+    gt::tab_style(
+      style = list(
+        gt::cell_borders(sides = "right", color = "#D3D3D3"),
+        gt::cell_fill(color = "#FCFCFC")
+      ),
+      locations = gt::cells_body(columns = vars(eval_sym, N))
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_fill(color = "#FCFCFC"),
+      locations = gt::cells_body(columns = vars(S))
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_borders(
+        sides = "left",
+        color = "#E5E5E5",
+        style = "dashed"
+      ),
+      locations = list(
+        gt::cells_body(columns = vars(columns, values))
+      )
+    ) %>%
+    gt::tab_style(
+      style = list(
+        gt::cell_fill(color = "#F2F2F2", alpha = 0.75),
+        gt::cell_text(color = "#8B8B8B")
+      ),
+      locations = gt::cells_body(
+        columns = TRUE,
+        rows = active == FALSE
+      )
+    ) %>%
+    gt::tab_style(
+      style = gt::cell_fill(color = "#FFC1C1", alpha = 0.35),
+      locations = gt::cells_body(
+        columns = TRUE,
+        rows = eval == "ERROR"
+      )
+    )
+  
+  if (!has_agent_intel(agent)) {
+    
+    gt_agent_report <-
+      gt_agent_report %>%
       gt::text_transform(
-        locations = gt::cells_body(columns = gt::vars(n_pass, n_fail)),
-        fn = function(x) {
-          dplyr::case_when(
-            x == "NA NA"  ~ "&mdash;",
-            TRUE ~ x %>%
-              tidy_gsub(" ", "</code><br><code>") %>%
-              paste0("<code>", ., "</code>")
+        locations = gt::cells_body(
+          columns = gt::vars(
+            precon, eval_sym, units, f_pass, f_fail,
+            n_pass, n_fail, W, S, N, extract
           )
-        }
-      ) %>%
-      gt::cols_label(
-        status_color = "",
-        i = "",
-        type = get_lsv("agent_report/report_col_step")[[lang]],
-        columns = get_lsv("agent_report/report_col_columns")[[lang]],
-        values = get_lsv("agent_report/report_col_values")[[lang]],
-        precon = "TBL",
-        eval_sym = "EVAL",
-        units = get_lsv("agent_report/report_col_units")[[lang]],
-        n_pass = "PASS",
-        n_fail = "FAIL",
-        extract = "EXT"
-      ) %>%
-      gt::tab_header(
-        title = get_lsv("agent_report/pointblank_validation_title_text")[[lang]],
-        subtitle = gt::md(paste0("`", agent_name, " (", agent_time, ")`<br><br>"))
-      ) %>%
-      gt::tab_options(
-        table.font.size = gt::pct(90 * scale),
-        row.striping.include_table_body = FALSE
-      ) %>%
-      gt::cols_align(
-        align = "center",
-        columns = gt::vars(precon, eval_sym, W, S, N, extract)
-      ) %>%
-      gt::cols_align(
-        align = "center",
-        columns = gt::vars(f_pass, f_fail)
-      ) %>%
-      gt::cols_align(
-        align = "right",
-        columns = gt::vars(i)
-      ) %>%
-      gt::fmt_number(
-        columns = gt::vars(units, n_pass, n_fail, f_pass, f_fail),
-        decimals = 0, drop_trailing_zeros = TRUE, suffixing = TRUE
-      ) %>%
-      gt::fmt_number(columns = gt::vars(f_pass, f_fail), decimals = 2) %>%
-      gt::fmt_markdown(columns = gt::vars(type, columns, values, precon, eval_sym, W, S, N, extract)) %>%
-      gt::fmt_missing(columns = gt::vars(columns, values, units, extract)) %>%
-      gt::fmt_missing(columns = gt::vars(status_color), missing_text = "") %>%
-      gt::cols_hide(columns = gt::vars(W_val, S_val, N_val, active, eval)) %>%
-      gt::text_transform(
-        locations = gt::cells_body(columns = gt::vars(units)),
-        fn = function(x) {
-          dplyr::case_when(
-            x == "&mdash;" ~ x,
-            TRUE ~ paste0("<code>", x, "</code>")
-          )
-        }
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(align = "left", indent = gt::px(5)),
-        locations = gt::cells_title("title")
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(align = "left", indent = gt::px(5)),
-        locations = gt::cells_title("subtitle")
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(
-          weight = "bold",
-          color = "#666666",
-          size = ifelse(email_table, gt::px(10), gt::px(13))
         ),
-        locations = gt::cells_body(columns = gt::vars(i))
+        fn = function(x) {
+          ""
+        }
       ) %>%
       gt::tab_style(
         style = list(
-          gt::cell_fill(color = "#F2F2F2", alpha = 0.75),
-          gt::cell_text(color = "#8B8B8B")
+          gt::cell_fill(color = "#F2F2F2"),
+          gt::cell_borders(
+            sides = "right",
+            style = "solid",
+            color = "#F2F2F2"
+          )
         ),
         locations = gt::cells_body(
-          columns = TRUE,
-          rows = active == FALSE
+          columns = gt::vars(
+            precon, eval_sym, units, f_pass, f_fail,
+            n_pass, n_fail, W, S, N, extract
+          )
         )
       ) %>%
-      gt::tab_style(
-        style = gt::cell_fill(color = "#FFC1C1", alpha = 0.35),
-        locations = gt::cells_body(
-          columns = TRUE,
-          rows = eval == "ERROR"
-        )
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_fill(
-          color = "#4CA64C"
+      gt::tab_header(
+        title = gt::md(
+          paste0(
+            "<div>",
+            "<span style=\"float: left;\">", 
+            get_lsv("agent_report/pointblank_validation_plan_text")[[lang]],
+            "</span>",
+            "<span style=\"float: right; text-decoration-line: underline; ",
+            "text-underline-position: under;",
+            "font-size: 16px; text-decoration-color: #9C2E83;",
+            "padding-top: 0.1em; padding-right: 0.4em;\">",
+            get_lsv("agent_report/no_interrogation_performed_text")[[lang]],
+            "</span>",
+            "</div>"
+          )
         ),
-        locations = gt::cells_body(
-          columns = gt::vars(status_color),
-          rows = units == n_pass
+        subtitle = gt::md(
+          paste0(
+            agent_label_styled, " ", table_type, " ", table_time, " <br><br>"
+          )
         )
+      )
+  }
+  
+  if (size == "small") {
+    
+    gt_agent_report <- 
+      gt_agent_report %>%
+      gt::cols_hide(gt::vars(columns, values, eval_sym, precon, extract)) %>%
+      gt::cols_width(
+        gt::vars(status_color) ~ gt::px(4),
+        gt::vars(i) ~ gt::px(25),
+        gt::vars(type) ~ gt::px(190),
+        gt::vars(precon) ~ gt::px(30),
+        gt::vars(units) ~ gt::px(50),
+        gt::vars(n_pass) ~ gt::px(50),
+        gt::vars(n_fail) ~ gt::px(50),
+        gt::vars(W) ~ gt::px(30),
+        gt::vars(S) ~ gt::px(30),
+        gt::vars(N) ~ gt::px(30),
+        TRUE ~ gt::px(20)
       ) %>%
       gt::tab_style(
-        style = gt::cell_fill(
-          color = "#4CA64C66",
-          alpha = 0.5
-        ),
-        locations = gt::cells_body(
-          columns = gt::vars(status_color),
-          rows = units != n_pass
-        )
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_fill(
-          color = "#FFBF00"
-        ),
-        locations = gt::cells_body(
-          columns = gt::vars(status_color),
-          rows = W_val
-        )
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_fill(
-          color = "#CF142B"
-        ),
-        locations = gt::cells_body(
-          columns = gt::vars(status_color),
-          rows = S_val
-        )
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(size = gt::px(20)),
-        locations = gt::cells_title(groups = "title")
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(size = gt::px(12)),
-        locations = gt::cells_title(groups = "subtitle")
+        locations = gt::cells_body(columns = gt::everything()),
+        style = "height: 35px"
       )
     
     if (!has_agent_intel(agent)) {
-
-      gt_agent_report <-
+      
+      gt_agent_report <- 
         gt_agent_report %>%
-        gt::text_transform(
-          locations = gt::cells_body(
-            columns = gt::vars(eval_sym, units, f_pass, f_fail, n_pass, n_fail, W, S, N, extract)
-            ),
-          fn = function(x) {
-            ""
-          }
-        ) %>%
-        gt::tab_style(
-          style = gt::cell_fill(color = "#F2F2F2"),
-          locations = gt::cells_body(
-            columns = gt::vars(eval_sym, units, f_pass, f_fail, n_pass, n_fail, W, S, N, extract)
-          )
-        ) %>%
         gt::tab_header(
           title = gt::md(
             paste0(
@@ -968,64 +1349,395 @@ get_agent_report <- function(agent,
               "</div>"
             )
           ),
-          subtitle = gt::md(paste0("`", agent_name, "`<br><br>"))
-        )
-    }
-    
-    if (email_table) {
-
-      gt_agent_report <- 
-        gt_agent_report %>%
-        gt::cols_hide(gt::vars(columns, values, eval_sym, precon, extract)) %>%
-        gt::cols_width(
-          gt::vars(status_color) ~ gt::px(4),
-          gt::vars(i) ~ gt::px(25),
-          gt::vars(type) ~ gt::px(190),
-          gt::vars(precon) ~ gt::px(30),
-          gt::vars(units) ~ gt::px(50),
-          gt::vars(n_pass) ~ gt::px(50),
-          gt::vars(n_fail) ~ gt::px(50),
-          gt::vars(W) ~ gt::px(30),
-          gt::vars(S) ~ gt::px(30),
-          gt::vars(N) ~ gt::px(30),
-          TRUE ~ gt::px(20)
-        ) %>%
-        gt::tab_style(
-          locations = gt::cells_body(columns = gt::everything()),
-          style = "height: 40px"
+          subtitle = gt::md(
+            paste0(agent_label_styled, " ", table_type, " <br><br>")
+          )
         )
       
     } else {
       
       gt_agent_report <- 
         gt_agent_report %>%
-        gt::cols_width(
-          gt::vars(status_color) ~ gt::px(6),
-          gt::vars(i) ~ gt::px(35),
-          gt::vars(type) ~ gt::px(190),
-          gt::vars(columns) ~ gt::px(120),
-          gt::vars(values) ~ gt::px(120),
-          gt::vars(precon) ~ gt::px(35),
-          gt::vars(extract) ~ gt::px(65),
-          gt::vars(W) ~ gt::px(30),
-          gt::vars(S) ~ gt::px(30),
-          gt::vars(N) ~ gt::px(30),
-          TRUE ~ gt::px(50)
-        ) %>%
-        gt::tab_style(
-          style = gt::cell_text(weight = "bold", color = "#666666"),
-          locations = gt::cells_column_labels(columns = TRUE)
-        ) %>%
-        gt::tab_style(
-          locations = gt::cells_body(columns = gt::everything()),
-          style = "height: 40px"
+        gt::tab_header(
+          title = get_lsv(text = c(
+            "agent_report", "pointblank_validation_title_text"
+          ))[[lang]],
+          subtitle = gt::md(
+            paste0(agent_label_styled, " ", table_type, " <br><br>")
+          )
         )
     }
-
-    return(gt_agent_report)
+    
+  } else {
+    
+    gt_agent_report <- 
+      gt_agent_report %>%
+      gt::cols_width(
+        gt::vars(status_color) ~ gt::px(6),
+        gt::vars(i) ~ gt::px(35),
+        gt::vars(type) ~ gt::px(190),
+        gt::vars(columns) ~ gt::px(120),
+        gt::vars(values) ~ gt::px(120),
+        gt::vars(precon) ~ gt::px(50),
+        gt::vars(eval_sym) ~ gt::px(50),
+        gt::vars(W) ~ gt::px(30),
+        gt::vars(S) ~ gt::px(30),
+        gt::vars(N) ~ gt::px(30),
+        gt::vars(extract) ~ gt::px(65),
+        TRUE ~ gt::px(50)
+      ) %>%
+      gt::tab_style(
+        style = gt::cell_text(weight = "bold", color = "#666666"),
+        locations = gt::cells_column_labels(columns = TRUE)
+      ) %>%
+      gt::tab_style(
+        locations = gt::cells_body(columns = gt::everything()),
+        style = "height: 40px"
+      ) %>%
+      gt::opt_table_font(font = gt::google_font("IBM Plex Sans")) %>%
+      gt::opt_css(
+        paste0(
+          "@import url(\"https://unpkg.com/",
+          "balloon-css/balloon.min.css\");"
+        )
+      ) %>%
+      gt::opt_css(
+        paste0(
+          "@import url(\"https://fonts.googleapis.com/",
+          "css2?family=IBM+Plex+Mono&display=swap\");"
+        )
+      ) %>%
+      gt::opt_css(
+        css = "
+          #pb_information {
+            -webkit-font-smoothing: antialiased;
+          }
+          #report .gt_row {
+            overflow: visible;
+          }
+          #report .gt_sourcenote {
+            height: 35px;
+            padding: 0
+          }
+          #report code {
+            font-family: 'IBM Plex Mono', monospace, courier;
+            font-size: 11px;
+            background-color: transparent;
+            padding: 0;
+          }
+        "
+      )
   }
   
   # nocov end
   
-  report_tbl
+  gt_agent_report
+}
+
+create_table_time_html <- function(time_start,
+                                   time_end,
+                                   locale = NULL) {
+  
+  if (length(time_start) < 1) {
+    return("")
+  }
+  
+  time_duration <- get_time_duration(time_start, time_end)
+  time_duration_formatted <- 
+    print_time_duration_report(time_duration, locale = locale)
+  
+  paste0(
+    "<span style=\"background-color: #FFF;",
+    "color: #444;padding: 0.5em 0.5em;",
+    "position: inherit;text-transform: uppercase;margin-left: 10px;",
+    "border: solid 1px #999999;font-variant-numeric: tabular-nums;",
+    "border-radius: 0;padding: 2px 10px 2px 10px;font-size: smaller;\">",
+    format(time_start, "%Y-%m-%d %H:%M:%S %Z"),
+    "</span>",
+    
+    "<span style=\"background-color: #FFF;",
+    "color: #444;padding: 0.5em 0.5em;",
+    "position: inherit;margin: 5px 1px 5px 0;",
+    "border: solid 1px #999999;border-left: none;",
+    "font-variant-numeric: tabular-nums;",
+    "border-radius: 0;padding: 2px 10px 2px 10px;font-size: smaller;\">",
+    time_duration_formatted,
+    "</span>",
+    
+    "<span style=\"background-color: #FFF;",
+    "color: #444;padding: 0.5em 0.5em;",
+    "position: inherit;text-transform: uppercase;margin: 5px 1px 5px -1px;",
+    "border: solid 1px #999999;border-left: none;",
+    "border-radius: 0;padding: 2px 10px 2px 10px;font-size: smaller;\">",
+    format(time_end, "%Y-%m-%d %H:%M:%S %Z"),
+    "</span>"
+  )
+}
+
+print_time_duration_report <- function(time_diff_s,
+                                       locale = NULL) {
+  
+  if (time_diff_s < 1) {
+    "< 1 s"
+  } else {
+    paste0(
+      pb_fmt_number(
+        round(time_diff_s, 1),
+        decimals = 1, locale = locale
+      ),
+      " s"
+    )
+  }
+}
+
+create_agent_label_html <- function(agent) {
+  
+  htmltools::tags$span(
+    agent$label,
+    style = htmltools::css(
+      `text-decoration-style` = "solid",
+      `text-decoration-color` = "#ADD8E6",
+      `text-decoration-line` = "underline",
+      `text-underline-position` = "under",
+      color = "#333333",
+      `font-variant-numeric` = "tabular-nums",
+      `padding-left` = "4px",
+      `margin-right` = "5px",
+      `padding-right` = "2px"
+    )
+  ) %>% as.character()
+}
+
+create_table_type_html <- function(tbl_src, tbl_name) {
+  
+  text <- 
+    switch(
+      tbl_src,
+      data.frame = c("#9933CC", "#FFFFFF", "data frame"),
+      tbl_df = c("#F1D35A", "#222222", "tibble"),
+      sqlite = c("#BACBEF", "#222222", "SQLite"),
+      duckdb = c("#000000", "#FFFFFF", "DuckDB"),
+      mysql = c("#EBAD40", "#222222", "MySQL"),
+      postgres = c("#3E638B", "#FFFFFF", "PostgreSQL"),
+      tbl_spark = c("#E66F21", "#FFFFFF", "Spark DataFrame"),
+      c("#E2E2E2", "#222222", tbl_src)
+    )
+  
+  if (all(!is.na(text)) && is.na(tbl_name)) {
+    
+    paste0(
+      "<span style=\"background-color: ", text[1], ";",
+      "color: ", text[2], ";padding: 0.5em 0.5em;",
+      "position: inherit;text-transform: uppercase;margin: 5px 1px 5px 4px;",
+      "font-weight: bold;border: solid 1px ", text[1], ";",
+      "padding: 2px 10px 2px 10px;font-size: smaller;\">",
+      text[3],
+      "</span>"
+    )
+  } else if (all(!is.na(text)) && !is.na(tbl_name)) {
+    
+    as.character(
+      htmltools::tagList(
+        htmltools::tags$span(
+          text[3],
+          style = htmltools::css(
+            `background-color` = text[1],
+            color = text[2],
+            padding = "0.5em 0.5em",
+            position = "inherit",
+            `text-transform` = "uppercase",
+            margin = "5px 0px 5px 5px",
+            `font-weight` = "bold",
+            border = paste0("solid 1px ", text[1]),
+            padding = "2px 15px 2px 15px",
+            `font-size` = "smaller"
+          )
+        ),
+        htmltools::tags$span(
+          tbl_name,
+          style = htmltools::css(
+            `background-color` = "none",
+            color = "#222222",
+            padding = "0.5em 0.5em",
+            position = "inherit",
+            margin = "5px 10px 5px -4px",
+            `font-weight` = "bold",
+            border = paste0("solid 1px ", text[1]),
+            padding = "2px 15px 2px 15px",
+            `font-size` = "smaller"
+          )
+        )
+      )
+    )
+    
+  } else {
+    ""
+  }
+}
+
+make_action_levels_html <- function(agent, locale) {
+  
+  actions <- agent$actions
+  
+  if (is.null(unlist(actions[1:6]))) {
+    return("")
+  }
+
+  warn <- 
+    c(
+      pb_fmt_number(actions$warn_fraction, decimals = 2, locale = locale),
+      pb_fmt_number(actions$warn_count, decimals = 0, locale = locale)
+    ) %||% "&mdash;"
+  
+  stop <-
+    c(
+      pb_fmt_number(actions$stop_fraction, decimals = 2, locale = locale),
+      pb_fmt_number(actions$stop_count, decimals = 0, locale = locale)
+    ) %||% "&mdash;"
+  
+  
+  notify <-
+    c(
+      pb_fmt_number(actions$notify_fraction, decimals = 2, locale = locale),
+      pb_fmt_number(actions$notify_count, decimals = 0, locale = locale)
+    ) %||% "&mdash;"
+  
+  as.character(
+    htmltools::tagList(
+      htmltools::tags$span(
+        "WARN",
+        style = htmltools::css(
+          `background-color` = "#E5AB00",
+          color = "white",
+          padding = "0.5em 0.5em",
+          position = "inherit",
+          `text-transform` = "uppercase",
+          margin = "5px 0px 5px 5px",
+          `font-weight` = "bold",
+          border = paste0("solid 1px #E5AB00"),
+          padding = "2px 15px 2px 15px",
+          `font-size` = "smaller"
+        )
+      ),
+      htmltools::tags$span(
+        htmltools::HTML(warn),
+        style = htmltools::css(
+          `background-color` = "none",
+          color = "#333333",
+          padding = "0.5em 0.5em",
+          position = "inherit",
+          margin = "5px 0px 5px -4px",
+          `font-weight` = "bold",
+          border = paste0("solid 1px #E5AB00"),
+          padding = "2px 15px 2px 15px",
+          `font-size` = "smaller"
+        )
+      ),
+      htmltools::tags$span(
+        "STOP",
+        style = htmltools::css(
+          `background-color` = "#D0182F",
+          color = "white",
+          padding = "0.5em 0.5em",
+          position = "inherit",
+          `text-transform` = "uppercase",
+          margin = "5px 0px 5px 1px",
+          `font-weight` = "bold",
+          border = paste0("solid 1px #D0182F"),
+          padding = "2px 15px 2px 15px",
+          `font-size` = "smaller"
+        )
+      ),
+      htmltools::tags$span(
+        htmltools::HTML(stop),
+        style = htmltools::css(
+          `background-color` = "none",
+          color = "#333333",
+          padding = "0.5em 0.5em",
+          position = "inherit",
+          margin = "5px 0px 5px -4px",
+          `font-weight` = "bold",
+          border = paste0("solid 1px #D0182F"),
+          padding = "2px 15px 2px 15px",
+          `font-size` = "smaller"
+        )
+      ),
+      htmltools::tags$span(
+        "NOTIFY",
+        style = htmltools::css(
+          `background-color` = "#499FFE",
+          color = "white",
+          padding = "0.5em 0.5em",
+          position = "inherit",
+          `text-transform` = "uppercase",
+          margin = "5px 0px 5px 1px",
+          `font-weight` = "bold",
+          border = paste0("solid 1px #499FFE"),
+          padding = "2px 15px 2px 15px",
+          `font-size` = "smaller"
+        )
+      ),
+      htmltools::tags$span(
+        htmltools::HTML(notify),
+        style = htmltools::css(
+          `background-color` = "none",
+          color = "#333333",
+          padding = "0.5em 0.5em",
+          position = "inherit",
+          margin = "5px 0px 5px -4px",
+          `font-weight` = "bold",
+          border = paste0("solid 1px #499FFE"),
+          padding = "2px 15px 2px 15px",
+          `font-size` = "smaller"
+        )
+      )
+    )
+  )
+}
+
+make_boxed_text_html <- function(x,
+                                 size = "standard",
+                                 color = "#333333",
+                                 background = "transparent",
+                                 font_size = "15px",
+                                 padding = "5px",
+                                 tt_text = NULL,
+                                 tt_position = "left",
+                                 tt_text_size = NULL,
+                                 border_radius = NULL,
+                                 v_align = "middle") {
+  
+  if (!is.null(tt_position) && size == "standard") {
+    text_type <- "aria-label"
+  } else {
+    text_type <- "title"
+  }
+  
+  text_html <- 
+    htmltools::tags$span(
+      htmltools::HTML(x),
+      style = htmltools::css(
+        background = background,
+        padding = padding,
+        color = color,
+        `vertical-align` = v_align,
+        `font-size` = font_size,
+        border = "none",
+        `border-radius` = border_radius
+      )
+    )
+  
+  if (size == "standard") {
+    text_html <-
+      text_html %>%
+      htmltools::tagAppendAttributes(
+        `aria-label` = tt_text,
+        `data-balloon-pos` = tt_position,
+        `data-balloon-length` = if (!is.null(tt_text_size)) tt_text_size
+      )
+  } else {
+    text_html <- text_html %>% htmltools::tagAppendAttributes(`title` = tt_text)
+  }
+  
+  text_html %>% as.character()
 }

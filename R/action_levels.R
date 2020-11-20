@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' Set action levels: failure thresholds and functions to invoke
 #' 
 #' @description
@@ -110,7 +129,7 @@
 #' 
 #' @family Planning and Prep
 #' @section Function ID:
-#' 1-4
+#' 1-5
 #' 
 #' @name action_levels
 NULL
@@ -128,15 +147,22 @@ action_levels <- function(warn_at = NULL,
   stop_list <- normalize_fraction_count(stop_at)
   notify_list <- normalize_fraction_count(notify_at)
   
-  list(
-    warn_fraction = warn_list$fraction,
-    warn_count = warn_list$count,
-    stop_fraction = stop_list$fraction,
-    stop_count = stop_list$count,
-    notify_fraction = notify_list$fraction,
-    notify_count = notify_list$count,
-    fns = fns
-  )
+  action_levels <- 
+    list(
+      warn_fraction = warn_list$fraction,
+      warn_count = warn_list$count,
+      stop_fraction = stop_list$fraction,
+      stop_count = stop_list$count,
+      notify_fraction = notify_list$fraction,
+      notify_count = notify_list$count,
+      fns = fns
+    )
+  
+  # Assign the class attribute value `action_levels` to
+  # the `action_levels` object
+  attr(action_levels, "class") <- "action_levels"
+  
+  action_levels
 }
 
 #' @rdname action_levels
@@ -173,7 +199,8 @@ normalize_fns_list <- function(fns) {
   }
   
   if (!all(names(fns) %in% c("warn", "stop", "notify"))) {
-    stop("All names in the `fns` list must be one of `warn`, `stop`, or `notify`.",
+    stop("All names in the `fns` list must be one of `warn`, ",
+         "`stop`, or `notify`.",
          call. = FALSE)
   }
   
@@ -183,12 +210,14 @@ normalize_fns_list <- function(fns) {
 normalize_fraction_count <- function(x) {
   
   if (!is.null(x) && !any(c(inherits(x, "numeric"), inherits(x, "integer")))) {
-    stop("All values provided to `action_levels()` must be either `numeric` or `integer` types.",
+    stop("All values provided to `action_levels()` must be either ",
+         "`numeric` or `integer` types.",
          call. = FALSE)
   }
   
   if (!is.null(x) && x <= 0) {
-    stop("All values provided to `action_levels()` must be `>=0`.", call. = FALSE)
+    stop("All values provided to `action_levels()` must be `>=0`.",
+         call. = FALSE)
   }
   
   if (!is.null(x)) {
@@ -217,7 +246,11 @@ prime_actions <- function(actions) {
       actions$fns$stop <- ~stock_stoppage(x = x)
     }
   } else {
-    actions <- action_levels(stop_at = 1, fns = list(stop = ~stock_stoppage(x = x)))
+    actions <- 
+      action_levels(
+        stop_at = 1,
+        fns = list(stop = ~stock_stoppage(x = x))
+      )
   }
   
   actions
@@ -253,12 +286,13 @@ stock_stoppage <- function(x) {
     failed_amount <- x$n_failed
     threshold_type <- "absolute"
   } else if (!is.null(x$actions$stop_fraction)) {
-    threshold <-x$actions$stop_fraction
+    threshold <- x$actions$stop_fraction
     failed_amount <- x$f_failed
     threshold_type <- "proportional"
   }
   
-  failure_message <- glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+  failure_message <- 
+    glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
   
   stop(failure_message, call. = FALSE)
 }
@@ -284,12 +318,13 @@ stock_warning <- function(x) {
     failed_amount <- x$n_failed
     threshold_type <- "absolute"
   } else if (!is.null(x$actions$warn_fraction)) {
-    threshold <-x$actions$warn_fraction
+    threshold <- x$actions$warn_fraction
     failed_amount <- x$f_failed
     threshold_type <- "proportional"
   }
   
-  failure_message <- glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+  failure_message <- 
+    glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
   
   warning(failure_message, call. = FALSE)
 }

@@ -9,7 +9,9 @@ get_agent_report(
   arrange_by = c("i", "severity"),
   keep = c("all", "fail_states"),
   display_table = TRUE,
-  size = "standard"
+  size = "standard",
+  lang = NULL,
+  locale = NULL
 )
 }
 \arguments{
@@ -31,6 +33,23 @@ available, then a tibble will be returned.}
 \item{size}{The size of the display table, which can be either \code{"standard"}
 (the default) or \code{"small"}. This only applies to a display table (where
 \code{display_table = TRUE}).}
+
+\item{lang}{The language to use for automatic creation of briefs (short
+descriptions for each validation step) and for the \emph{agent report} (a
+summary table that provides the validation plan and the results from the
+interrogation. By default, \code{NULL} will create English (\code{"en"}) text. Other
+options include French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish
+(\code{"es"}), Portuguese, (\code{"pt"}), Chinese (\code{"zh"}), and Russian (\code{"ru"}).
+This \code{lang} option will override any previously set lang value (e.g., by
+the \code{\link[=create_agent]{create_agent()}} call).}
+
+\item{locale}{An optional locale ID to use for formatting values in the
+\emph{agent report} summary table according the locale's rules. Examples include
+\code{"en_US"} for English (United States) and \code{"fr_FR"} for French (France);
+more simply, this can be a language identifier without a country
+designation, like \code{"es"} for Spanish (Spain, same as \code{"es_ES"}). This
+\code{locale} option will override any previously set locale value (e.g., by the
+\code{\link[=create_agent]{create_agent()}} call).}
 }
 \value{
 A \strong{gt} table object if \code{display_table = TRUE} or a tibble if
@@ -63,7 +82,7 @@ before interrogation; if not, a script 'I' stands for 'identity' but, if so,
 a right-facing arrow appears
 \item EVAL: a character value that denotes the result of each validation
 step functions' evaluation during interrogation
-\item UNITS: the total number of test units for the validation step
+\item \emph{N}: the total number of test units for the validation step
 \item PASS: the number of test units that received a \emph{pass}
 \item FAIL: the fraction of test units that received a \emph{pass}
 \item W, S, N: indicators that show whether the \code{warn}, \code{stop}, or \code{notify}
@@ -105,7 +124,7 @@ available for the validation step
 }
 \section{Function ID}{
 
-5-1
+5-2
 }
 
 \examples{
@@ -152,10 +171,7 @@ class(small_report)
 
 }
 \seealso{
-Other Post-interrogation: 
-\code{\link{all_passed}()},
-\code{\link{get_agent_x_list}()},
-\code{\link{get_data_extracts}()},
-\code{\link{get_sundered_data}()}
+Other Interrogate and Report: 
+\code{\link{interrogate}()}
 }
-\concept{Post-interrogation}
+\concept{Interrogate and Report}

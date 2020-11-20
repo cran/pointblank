@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' A small table that is useful for testing
 #'
 #' This is a small table with a few different types of columns. It's probably
@@ -12,7 +31,8 @@
 #' \item{date}{A `Date` column with dates from `2016-01-04` to `2016-01-30`.}
 #' \item{a}{An `integer` column with values ranging from `1` to `8`.}
 #' \item{b}{A `character` column with values that adhere to a common pattern.}
-#' \item{c}{An `integer` column with values ranging from `2` to `9`. Contains two `NA` values.}
+#' \item{c}{An `integer` column with values ranging from `2` to `9`. Contains
+#' two `NA` values.}
 #' \item{d}{A numeric column with values ranging from `108` to `10000`.}
 #' \item{e}{A `logical` column.}
 #' \item{f}{A `character` column with `"low"`, `"mid"`, and `"high"` values.}
@@ -25,7 +45,7 @@
 #'
 #' @family Datasets
 #' @section Function ID:
-#' 6-1
+#' 10-1
 #'
 "small_table"
 
@@ -45,7 +65,7 @@
 #' 
 #' @family Datasets
 #' @section Function ID:
-#' 6-2
+#' 10-2
 #' 
 #' @export
 small_table_sqlite <- function() {
@@ -55,8 +75,10 @@ small_table_sqlite <- function() {
   if (!requireNamespace("DBI", quietly = TRUE) &&
       !requireNamespace("RSQLite", quietly = TRUE)) {
     
-    stop("Creating the SQLite table object requires both the DBI and RSQLite packages:\n",
-         " * Install them with `install.packages(\"DBI\")` and `install.packages(\"RSQLite\")`.",
+    stop("Creating the SQLite table object requires both the DBI and RSQLite ",
+         "packages:\n",
+         " * Install them with `install.packages(\"DBI\")` and ",
+         "`install.packages(\"RSQLite\")`.",
          call. = FALSE)
   }
   

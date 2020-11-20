@@ -2,43 +2,46 @@
 % Please edit documentation in R/scan_data.R
 \name{scan_data}
 \alias{scan_data}
-\title{Thoroughly scan the table data so as to understand it better}
+\title{Thoroughly scan a table to better understand it}
 \usage{
-scan_data(
-  tbl,
-  sections = c("overview", "variables", "interactions", "correlations", "missing",
-    "sample"),
-  navbar = TRUE,
-  reporting_lang = NULL
-)
+scan_data(tbl, sections = "OVICMS", navbar = TRUE, lang = NULL, locale = NULL)
 }
 \arguments{
 \item{tbl}{The input table. This can be a data frame, tibble, a \code{tbl_dbi}
 object, or a \code{tbl_spark} object.}
 
 \item{sections}{The sections to include in the finalized \verb{Table Scan} report.
-A character vector with section names is required here. The sections in
-their default order are: \code{"overview"}, \code{"variables"}, \code{"interactions"},
-\code{"correlations"}, \code{"missing"}, and \code{"sample"}. This vector can be comprised
-of less elements and the order can be changed to suit the desired layout of
-the report. For \code{tbl_dbi} and \code{tbl_spark} objects, the \code{"interactions"} and
-\code{"correlations"} sections are excluded.}
+A string with key characters representing section names is required here.
+The default string is \code{"OVICMS"} wherein each letter stands for the
+following sections in their default order: \code{"O"}: \code{"overview"}; \code{"V"}:
+\code{"variables"}; \code{"I"}: \code{"interactions"}; \code{"C"}: \code{"correlations"}; \code{"M"}:
+\code{"missing"}; and \code{"S"}: \code{"sample"}. This string can be comprised of less
+characters and the order can be changed to suit the desired layout of the
+report. For \code{tbl_dbi} and \code{tbl_spark} objects supplied to \code{tbl}, the
+\code{"interactions"} and \code{"correlations"} sections are currently excluded.}
 
 \item{navbar}{Should there be a navigation bar anchored to the top of the
 report page? By default this is \code{TRUE}.}
 
-\item{reporting_lang}{The language to use for label text in the report. By
-default, \code{NULL} will create English (\code{"en"}) text. Other options include
-French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), and Spanish (\code{"es"}).}
+\item{lang}{The language to use for label text in the report. By default,
+\code{NULL} will create English (\code{"en"}) text. Other options include French
+(\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}), Portuguese,
+(\code{"pt"}), Chinese (\code{"zh"}), and Russian (\code{"ru"}).}
+
+\item{locale}{An optional locale ID to use for formatting values in the
+report according the locale's rules. Examples include \code{"en_US"} for English
+(United States) and \code{"fr_FR"} for French (France); more simply, this can be
+a language identifier without a country designation, like \code{"es"} for
+Spanish (Spain, same as \code{"es_ES"}).}
 }
 \description{
-Generates an HTML report that scours the input table data. Before calling up
+Generate an HTML report that scours the input table data. Before calling up
 an \emph{agent} to validate the data, it's a good idea to understand the data with
-some level of precision. Make this the initial step of a well-balanced \emph{data
-quality reporting} workflow. The reporting output contains several sections
-to make everything more digestible, and these are:
+some level of precision. Make this the initial step of a well-balanced
+\emph{data quality reporting} workflow. The reporting output contains several
+sections to make everything more digestible, and these are:
 \describe{
-\item{Overview}{Table dimensions, duplicate row count, column types, and
+\item{Overview}{Table dimensions, duplicate row counts, column types, and
 reproducibility information}
 \item{Variables}{A summary for each table variable and further statistics and
 summaries depending on the variable type}
@@ -49,11 +52,12 @@ variables}
 across variables}
 \item{Sample}{A table that provides the head and tail rows of the dataset}
 }
-The output HTML report is viewable in the RStudio Viewer and can also be
-integrated in R Markdown HTML reports. If you need the output HTML as a
+The output HTML report will appear in the RStudio Viewer and can also be
+integrated in R Markdown HTML output. If you need the output HTML as a
 string, it's possible to get that by using \code{as.character()} (e.g.,
 \code{scan_data(tbl = mtcars) \%>\% as.character()}). The resulting HTML string is a
-complete HTML document where Bootstrap and jQuery are embedded within.
+complete HTML document where \strong{Bootstrap} and \strong{jQuery} are embedded
+within.
 }
 \section{Function ID}{
 
@@ -71,6 +75,8 @@ Other Planning and Prep:
 \code{\link{action_levels}()},
 \code{\link{col_schema}()},
 \code{\link{create_agent}()},
+\code{\link{create_informant}()},
+\code{\link{db_tbl}()},
 \code{\link{validate_rmd}()}
 }
 \concept{Planning and Prep}

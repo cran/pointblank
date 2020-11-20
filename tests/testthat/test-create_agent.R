@@ -1,5 +1,3 @@
-context("Creation of `agent` objects")
-
 test_that("Creating a valid `agent` object is possible", {
   
   tbl <-
@@ -16,9 +14,10 @@ test_that("Creating a valid `agent` object is possible", {
   expect_true(
     all(
       names(agent) ==
-        c("name", "time", "tbl", "read_fn", "tbl_name", "db_tbl_name",
-          "tbl_src", "tbl_src_details", "col_names", "col_types", "db_col_types",
-          "actions", "end_fns", "embed_report", "reporting", "reporting_lang",
+        c("tbl", "read_fn", "tbl_name", "label",
+          "db_tbl_name", "tbl_src", "tbl_src_details", "col_names",
+          "col_types", "db_col_types", "actions", "end_fns", "embed_report",
+          "reporting", "lang", "locale", "time_start", "time_end",
           "validation_set", "extracts"
         )
     )
@@ -31,18 +30,21 @@ test_that("Creating a valid `agent` object is possible", {
   expect_is(agent$validation_set, "tbl_df")
   
   # Expect certain classes for the different `ptblank_agent` components
-  expect_is(agent$name, "character")
-  expect_is(agent$time, "POSIXct")
   expect_is(agent$tbl, class(tbl))
+  expect_null(agent$read_fn)
   expect_is(agent$tbl_name, "character")
+  expect_is(agent$label, "character")
   expect_is(agent$tbl_src, "character")
   expect_is(agent$tbl_src_details, "character")
   expect_is(agent$col_names, "character")
   expect_is(agent$col_types, "character")
+  expect_is(agent$db_col_types, "character")
   expect_null(agent$actions)
   expect_is(agent$end_fns, "list")
   expect_is(agent$embed_report, "logical")
-  expect_is(agent$reporting_lang, "character")
+  expect_is(agent$lang, "character")
+  expect_is(agent$time_start, "POSIXct")
+  expect_is(agent$time_end, "POSIXct")
   expect_is(agent$validation_set$i, "integer")
   expect_is(agent$validation_set$assertion_type, "character")
   expect_is(agent$validation_set$column, "list")
@@ -70,9 +72,81 @@ test_that("Creating a valid `agent` object is possible", {
   expect_is(agent$validation_set$proc_duration_s, "numeric")
   expect_is(agent$extracts, "list")
   
-  # Create an agent with a name
-  agent_name <- create_agent(tbl = tbl, name = "test")
+  # Expect that the agent label is a formatted date-time
+  expect_match(agent$label, "^\\[[0-9]{4}-[0-9]{2}-[0-9]{2}\\|[0-9]{2}:[0-9]{2}:[0-9]{2}\\]$")
   
-  # Expect that the agent name has been set
-  expect_equivalent(agent_name$name, "test")
+  # Expect that the table name was correctly guessed as `tbl`
+  expect_match(agent$tbl_name, "tbl")
+  
+  # Create an agent with a label and a table name
+  agent_name <- create_agent(tbl = tbl, tbl_name = "table", label = "test")
+  
+  # Expect that the agent label has been set
+  expect_equivalent(agent_name$tbl_name, "table")
+  expect_equivalent(agent_name$label, "test")
+  
+  # Expect an error if nothing is provided for
+  # either `tbl` or `read_fn`
+  expect_error(
+    create_agent()
+  )
+  
+  # Expect that when a table is piped into `create_agent()`
+  # and also when `tbl_name` isn't provided, the table
+  # name isn't known so it's assigned as `NA`
+  expect_equal(
+    small_table %>% create_agent() %>% .$tbl_name,
+    NA_character_
+  )
+  
+  # Expect that using a `read_fn` to read in a table name but
+  # not specifying `tbl_name` results in an `NA` for `tbl_name`
+  expect_equal(
+    create_agent(read_fn = ~ pointblank::small_table) %>% .$tbl_name,
+    NA_character_
+  )
+  
+  # Expect that there is a preference for reading a table from
+  # a `read_fn` if it's available (i.e., disregards `tbl` value)
+  agent_2 <- 
+    create_agent(
+      tbl = tbl,
+      read_fn = ~ pointblank::small_table
+    )
+  
+  expect_equal(
+    agent_2$col_names,
+    c("date_time", "date", "a", "b", "c", "d", "e", "f")
+  )
+  
+  agent_3 <- 
+    create_agent(
+      tbl = tbl,
+      read_fn = function() pointblank::small_table
+    )
+  
+  expect_equal(
+    agent_3$col_names,
+    c("date_time", "date", "a", "b", "c", "d", "e", "f")
+  )
+  
+  # Expect an error if the `read_fn` isn't a function
+  # or an R formula
+  expect_error(
+    create_agent(
+      read_fn = pointblank::small_table
+    )
+  )
+  
+  # Expect that the `embed_report` option will always
+  # be TRUE if we use any `end_fns` (even if we set
+  # it to FALSE)
+  agent_4 <- 
+    create_agent(
+      read_fn = ~ pointblank::small_table,
+      end_fns = ~ print(Sys.time()),
+      embed_report = FALSE
+    )
+  
+  expect_true(agent_4$embed_report)
 })

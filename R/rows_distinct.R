@@ -1,3 +1,22 @@
+#
+#                _         _    _      _                _    
+#               (_)       | |  | |    | |              | |   
+#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+# | |                                                        
+# |_|                                                        
+# 
+# This file is part of the 'rich-iannone/pointblank' package.
+# 
+# (c) Richard Iannone <riannone@me.com>
+# 
+# For full copyright and license information, please look at
+# https://rich-iannone.github.io/pointblank/LICENSE.html
+#
+
+
 #' Are row data distinct?
 #'
 #' The `rows_distinct()` validation function, the `expect_rows_distinct()`
@@ -100,9 +119,6 @@ rows_distinct <- function(x,
                           brief = NULL,
                           active = TRUE) {
 
-  # Capture the `columns` expression
-  #columns <- rlang::enquo(columns)
-  
   # Normalize the `columns` expression
   if (inherits(columns, "quosures")) {
     
@@ -122,7 +138,8 @@ rows_distinct <- function(x,
   
   if (is_a_table_object(x)) {
     
-    secret_agent <- create_agent(x, name = "::QUIET::") %>%
+    secret_agent <- 
+      create_agent(x, label = "::QUIET::") %>%
       rows_distinct(
         columns = columns,
         preconditions = preconditions,
@@ -130,7 +147,8 @@ rows_distinct <- function(x,
         brief = brief,
         actions = prime_actions(actions),
         active = active
-      ) %>% interrogate()
+      ) %>%
+      interrogate()
     
     return(x)
   }
@@ -193,13 +211,14 @@ expect_rows_distinct <- function(object,
   fn_name <- "expect_rows_distinct"
   
   vs <- 
-    create_agent(tbl = object, name = "::QUIET::") %>%
+    create_agent(tbl = object, label = "::QUIET::") %>%
     rows_distinct(
       columns = {{ columns }},
       preconditions = {{ preconditions }},
       actions = action_levels(notify_at = threshold)
     ) %>%
-    interrogate() %>% .$validation_set
+    interrogate() %>%
+    .$validation_set
   
   x <- vs$notify %>% all()
   
@@ -222,7 +241,11 @@ expect_rows_distinct <- function(object,
   
   testthat::expect(
     ok = identical(!as.vector(act$val), TRUE),
-    failure_message = glue::glue(failure_message_gluestring(fn_name = fn_name, lang = "en"))
+    failure_message = glue::glue(
+      failure_message_gluestring(
+        fn_name = fn_name, lang = "en"
+      )
+    )
   )
   
   act$val <- object
@@ -239,13 +262,14 @@ test_rows_distinct <- function(object,
                                threshold = 1) {
   
   vs <- 
-    create_agent(tbl = object, name = "::QUIET::") %>%
+    create_agent(tbl = object, label = "::QUIET::") %>%
     rows_distinct(
       columns = {{ columns }},
       preconditions = {{ preconditions }},
       actions = action_levels(notify_at = threshold)
     ) %>%
-    interrogate() %>% .$validation_set
+    interrogate() %>%
+    .$validation_set
   
   if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
     warning(conditionMessage(vs$capture_stack[[1]]$warning))
@@ -255,37 +279,4 @@ test_rows_distinct <- function(object,
   }
   
   all(!vs$notify)
-}
-
-#' Verify that row data are not duplicated (deprecated)
-#'
-#' @inheritParams col_vals_gt
-#' @param x An agent object of class `ptblank_agent`.
-#'   
-#' @return A `ptblank_agent` object.
-#'
-#' @export
-rows_not_duplicated <- function(x,
-                                columns = NULL,
-                                preconditions = NULL,
-                                brief = NULL,
-                                actions = NULL,
-                                active = TRUE) {
-  
-  # nocov start
-
-  warning("The `rows_not_duplicated()` function is deprecated and will soon be removed\n",
-          " * Use the `rows_distinct()` function instead",
-          call. = FALSE)
-  
-  rows_distinct(
-    x = x,
-    columns = {{ columns }},
-    preconditions = preconditions,
-    actions = actions,
-    brief = brief,
-    active = active
-  )
-
-  # nocov end
 }

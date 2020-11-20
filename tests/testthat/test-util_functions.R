@@ -1,5 +1,3 @@
-context("The utility functions work as expected")
-
 test_that("Utility functions won't fail us", {
   
   # Use two validation step functions to create
@@ -67,6 +65,10 @@ test_that("Utility functions won't fail us", {
   agent %>% get_values_at_idx(idx = 1) %>% expect_is("character")
   agent %>% get_values_at_idx(idx = 1) %>% expect_equal("[0-9]-[a-z]*?-[0-9]*?")
   
+  #
+  # get_column_na_pass_at_idx
+  #
+  
   # Use range-based validation step functions to create
   # an agent with two validation steps 
   agent <-
@@ -79,17 +81,29 @@ test_that("Utility functions won't fail us", {
   agent %>% get_column_na_pass_at_idx(idx = 2) %>% expect_is("logical")
   agent %>% get_column_na_pass_at_idx(idx = 2) %>% expect_equal(FALSE)
   
-  # Expect that the `create_col_schema_from_names_types()` function generates
+  #
+  # col_schema_from_names_types
+  #
+  
+  # Expect that the `col_schema_from_names_types()` function generates
   # named list object from a character vector and an unnamed list
   col_names <- names(small_table)
   col_types <- unname(lapply(small_table, class))
   
-  cs <- create_col_schema_from_names_types(names = col_names, types = col_types)
+  cs <- 
+    col_schema_from_names_types(
+      names = col_names,
+      types = col_types
+    )
   
   expect_is(cs, "list")
   expect_equal(names(cs), col_names)
   expect_equal(unname(cs), col_types)
   expect_equal(length(cs), length(col_names), length(col_types))
+  
+  #
+  # normalize_step_id
+  #
   
   # Expect that the `normalize_step_id()` function will make suitable
   # transformations of `step_id` based on the number of columns
@@ -206,10 +220,12 @@ test_that("Utility functions won't fail us", {
   # Expect a warning to be emitted for the previous statement
   expect_warning(normalize_step_id(step_id = c("one", "two", "one"), columns = columns, agent_0))
   
+  #
+  # check_step_id_duplicates
+  #
+  
   # Expect that the `check_step_id_duplicates()` function will generate
   # an error if a `step_id` has been recorded in previous validation steps
-  
-  
   agent_0 <- create_agent(tbl = small_table)
   agent_1 <- create_agent(tbl = small_table) %>% col_exists(vars(a))
   agent_3 <- create_agent(tbl = small_table) %>% col_exists(vars(a, b, c))
@@ -258,4 +274,272 @@ test_that("Utility functions won't fail us", {
       col_vals_gt(vars(d), 100) %>%
       col_vals_not_null(vars(date_time))
   )
+  
+  #
+  # normalize_reporting_language
+  #
+  
+  # Expect different forms of two-letter language codes to be
+  # accepted and transformed into lowercase versions
+  expect_equal(normalize_reporting_language(lang = NULL), "en")
+  expect_equal(normalize_reporting_language(lang = "en"), "en")
+  expect_equal(normalize_reporting_language(lang = "EN"), "en")
+  expect_equal(normalize_reporting_language(lang = "fr"), "fr")
+  expect_equal(normalize_reporting_language(lang = "FR"), "fr")
+  expect_equal(normalize_reporting_language(lang = "de"), "de")
+  expect_equal(normalize_reporting_language(lang = "DE"), "de")
+  expect_equal(normalize_reporting_language(lang = "it"), "it")
+  expect_equal(normalize_reporting_language(lang = "IT"), "it")
+  expect_equal(normalize_reporting_language(lang = "es"), "es")
+  expect_equal(normalize_reporting_language(lang = "ES"), "es")
+  expect_equal(normalize_reporting_language(lang = "pt"), "pt")
+  expect_equal(normalize_reporting_language(lang = "PT"), "pt")
+  expect_equal(normalize_reporting_language(lang = "zh"), "zh")
+  expect_equal(normalize_reporting_language(lang = "ZH"), "zh")
+  expect_equal(normalize_reporting_language(lang = "ru"), "ru")
+  expect_equal(normalize_reporting_language(lang = "RU"), "ru")
+
+  # Expect an error if the input doesn't correspond to
+  # a supported reporting language
+  expect_error(normalize_reporting_language(lang = "za"))
+  
+  #
+  # get_lsv
+  #
+  
+  # Obtain all of the available string vector names
+  x <- readRDS(file = system.file("text", "translations_built", package = "pointblank"))
+  
+  autobriefs_names <- names(x$autobriefs)
+  agent_report_names <- names(x$agent_report)
+  informant_report_names <- names(x$informant_report)
+  email_names <- names(x$email)
+  
+  expect_equal(
+    autobriefs_names,
+    c("precondition_text", "column_computed_text", "values_text", 
+      "compare_expectation_text", "compare_failure_text", "in_set_expectation_text", 
+      "in_set_failure_text", "not_in_set_expectation_text", "not_in_set_failure_text", 
+      "between_expectation_text", "between_failure_text", "not_between_expectation_text", 
+      "not_between_failure_text", "null_expectation_text", "null_failure_text", 
+      "not_null_expectation_text", "not_null_failure_text", "col_vals_expr_expectation_text", 
+      "col_vals_expr_failure_text", "regex_expectation_text", "regex_failure_text", 
+      "conjointly_expectation_text", "conjointly_failure_text", "col_exists_expectation_text", 
+      "col_exists_failure_text", "col_is_expectation_text", "col_is_failure_text", 
+      "all_row_distinct_expectation_text", "all_row_distinct_failure_text", 
+      "across_row_distinct_expectation_text", "across_row_distinct_failure_text", 
+      "col_schema_match_expectation_text", "col_schema_match_failure_text"
+    )
+  )
+  
+  expect_equal(
+    agent_report_names,
+    c("pointblank_validation_title_text", "pointblank_validation_plan_text", 
+      "no_interrogation_performed_text", "report_fail_rows_available", 
+      "report_no_table_preconditions", "report_some_table_preconditions", 
+      "report_no_evaluation_issues", "report_col_step", "report_col_steps", 
+      "report_col_columns", "report_col_values", "report_column_schema", 
+      "report_r_col_types", "report_r_sql_types")
+  )
+  
+  expect_equal(
+    informant_report_names,
+    c("pointblank_information_title_text", "pointblank_table_text")
+  )
+  
+  expect_equal(
+    email_names,
+    c("agent_body", "footer_1", "footer_2", "footer_i", "informant_body")
+  )
+  
+  # Get a localized string vectors for all items in 'autobriefs' and
+  # determine that the same number of components exists in each
+  for (i in seq_along(autobriefs_names)) {
+    expect_equal(
+      get_lsv(text = c("autobriefs", autobriefs_names[i])) %>% length(),
+      length(reporting_languages)
+    )
+  }
+  
+  # Get a localized string vectors for all items in 'agent_report' and
+  # determine that the same number of components exists in each
+  for (i in seq_along(agent_report_names)) {
+    expect_equal(
+      get_lsv(text = c("agent_report", agent_report_names[i])) %>% length(),
+      length(reporting_languages)
+    )
+  }
+  
+  # Get a localized string vectors for all items in 'informant_report' and
+  # determine that the same number of components exists in each
+  for (i in seq_along(informant_report_names)) {
+    expect_equal(
+      get_lsv(text = c("informant_report", informant_report_names[i])) %>% length(),
+      length(reporting_languages)
+    )
+  }
+  
+  # Perform the same tests for all items in 'email' but express
+  # the text as a length 1 vector
+  for (i in seq_along(email_names)) {
+    expect_equal(
+      get_lsv(text = c("email", email_names[i])) %>% length(),
+      length(reporting_languages)
+    )
+  }
+  
+  # Perform the same tests for all items in 'autobriefs' but express
+  # the text as a length 1 vector
+  for (i in seq_along(autobriefs_names)) {
+    expect_equal(
+      get_lsv(text = paste0("autobriefs/", autobriefs_names[i])) %>% length(),
+      length(reporting_languages)
+    )
+  }
+  
+  # Expect an error if providing `text` in a length 3 vector
+  expect_error(get_lsv(text = c("autobriefs", "/", autobriefs_names[1])))
+  
+  #
+  # pb_str_catalog
+  #
+  
+  l_vector <- letters[1:6]
+  
+  expect_equal(
+    pb_str_catalog(l_vector),
+    "`\"a\"`, `\"b\"`, `\"c\"`, `\"d\"`, `\"e\"` (+1 more)"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector, limit = 20),
+    "`\"a\"`, `\"b\"`, `\"c\"`, `\"d\"`, `\"e\"`, and `\"f\"` "
+  )
+  expect_equal(
+    pb_str_catalog(l_vector, limit = Inf),
+    "`\"a\"`, `\"b\"`, `\"c\"`, `\"d\"`, `\"e\"`, and `\"f\"` "
+  )
+  expect_equal(
+    pb_str_catalog(l_vector, limit = 7),
+    "`\"a\"`, `\"b\"`, `\"c\"`, `\"d\"`, `\"e\"`, and `\"f\"` "
+  )
+  expect_equal(
+    pb_str_catalog(l_vector, limit = 2),
+    "`\"a\"`, `\"b\"` (+4 more)"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector[1:2], limit = 1),
+    "`\"a\"` and `\"b\"`"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector[1:2], conj = "et"),
+    "`\"a\"` et `\"b\"`"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector, limit = 2, more = "de plus"),
+    "`\"a\"`, `\"b\"` (+4 de plus)"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector[1:3], oxford = FALSE),
+    "`\"a\"`, `\"b\"`and `\"c\"` "
+  )
+  expect_equal(
+    pb_str_catalog(l_vector[1:3], sep = " |", conj = ""),
+    "`\"a\"` | `\"b\"` |  `\"c\"` "
+  )
+  expect_equal(
+    pb_str_catalog(l_vector[1:2], surround = ""),
+    "a and b"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector, surround = ""),
+    "a, b, c, d, e (+1 more)"
+  )
+  expect_equal(
+    pb_str_catalog(l_vector[1], surround = ""),
+    "a"
+  )
+  
+  #
+  # pb_fmt_number
+  #
+  
+  expect_equal(pb_fmt_number(5.235), "5.24")
+  expect_equal(pb_fmt_number(5.235, decimals = 5), "5.23500")
+  expect_equal(pb_fmt_number(5L, decimals = 5), "5.00000")
+  expect_equal(pb_fmt_number(5.235, n_sigfig = 2), "5.2")
+  expect_equal(pb_fmt_number(5L, n_sigfig = 2), "5.0")
+  expect_equal(pb_fmt_number(5L, n_sigfig = 1), "5")
+  expect_equal(
+    pb_fmt_number(5L, n_sigfig = 1, drop_trailing_dec_mark = FALSE),
+    "5."
+  )
+  expect_equal(pb_fmt_number(24245, decimals = 1), "24,245.0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, use_seps = FALSE), "24245.0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, suffixing = TRUE), "24.2K")
+  expect_equal(pb_fmt_number(242, decimals = 1, pattern = "-{x}-"), "-242.0-")
+  expect_equal(
+    pb_fmt_number(24245, decimals = 1, dec_mark = ",", sep_mark = "."),
+    "24.245,0"
+  )
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "en"), "24,245.0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "fr"), "24 245,0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "de"), "24.245,0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "it"), "24.245,0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "es"), "24.245,0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "pt"), "24.245,0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "zh"), "24,245.0")
+  expect_equal(pb_fmt_number(24245, decimals = 1, locale = "ru"), "24 245,0")
+  
+  expect_null(pb_fmt_number(NULL))
+  expect_equal(pb_fmt_number("text"), "text")
+  
+  #
+  # add_icon_img / add_icon_svg
+  #
+
+  function_icons <-
+    c(
+      "col_exists", "col_is_character", "col_is_date", "col_is_factor",
+      "col_is_integer", "col_is_logical", "col_is_numeric", "col_is_posix",
+      "col_schema_match", "col_vals_between", "col_vals_equal", "col_vals_expr",
+      "col_vals_gt", "col_vals_gte", "col_vals_in_set", "col_vals_lt",
+      "col_vals_lte", "col_vals_not_between", "col_vals_not_equal",
+      "col_vals_not_in_set", "col_vals_not_null", "col_vals_null",
+      "col_vals_regex", "conjointly", "rows_distinct"
+    )
+
+  for (i in seq(function_icons)) {
+
+    expect_match(
+      add_icon_img(icon = function_icons[i]),
+      regexp = "^<img src=\"data:image/png;base64,"
+    )
+  }
+
+  for (i in seq(function_icons)) {
+
+    expect_match(
+      add_icon_svg(icon = function_icons[i]),
+      regexp = paste0(
+        "<div style=\"margin:0;padding:0;display:inline-block;height:30px;",
+        "vertical-align:middle;\"><svg width=\"30px\" height=\"30px\".*",
+        "</svg></div>"
+      )
+    )
+  }
+  
+  #
+  # glue_safely
+  #
+  
+  one <- 1
+  two <- 2
+  three <- 3
+  
+  expect_equal(
+    glue_safely("Easy as {one}, {two}, {three}."),
+    "Easy as 1, 2, 3."
+  )
+  expect_error(regexp = NA, glue_safely("Easy as {one}, {two}, {three}."))
+  expect_error(regexp = NA, glue_safely("Easy as {LETTERS[1]}, B, C."))
 })
