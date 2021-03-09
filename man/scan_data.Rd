@@ -40,6 +40,7 @@ an \emph{agent} to validate the data, it's a good idea to understand the data wi
 some level of precision. Make this the initial step of a well-balanced
 \emph{data quality reporting} workflow. The reporting output contains several
 sections to make everything more digestible, and these are:
+
 \describe{
 \item{Overview}{Table dimensions, duplicate row counts, column types, and
 reproducibility information}
@@ -52,6 +53,7 @@ variables}
 across variables}
 \item{Sample}{A table that provides the head and tail rows of the dataset}
 }
+
 The output HTML report will appear in the RStudio Viewer and can also be
 integrated in R Markdown HTML output. If you need the output HTML as a
 string, it's possible to get that by using \code{as.character()} (e.g.,
@@ -59,24 +61,36 @@ string, it's possible to get that by using \code{as.character()} (e.g.,
 complete HTML document where \strong{Bootstrap} and \strong{jQuery} are embedded
 within.
 }
+\section{Figures}{
+
+\if{html}{\figure{man_scan_data_1.png}{options: width=100\%}}
+}
+
 \section{Function ID}{
 
 1-1
 }
 
 \examples{
-# Get an HTML report that describes all of
+if (interactive()) {
+
+# Get an HTML document that describes all of
 # the data in the `dplyr::storms` dataset
-# scan_data(tbl = dplyr::storms)
+tbl_scan <- scan_data(tbl = dplyr::storms)
+
+}
 
 }
 \seealso{
 Other Planning and Prep: 
 \code{\link{action_levels}()},
-\code{\link{col_schema}()},
 \code{\link{create_agent}()},
 \code{\link{create_informant}()},
 \code{\link{db_tbl}()},
+\code{\link{file_tbl}()},
+\code{\link{tbl_get}()},
+\code{\link{tbl_source}()},
+\code{\link{tbl_store}()},
 \code{\link{validate_rmd}()}
 }
 \concept{Planning and Prep}

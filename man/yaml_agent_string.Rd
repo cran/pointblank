@@ -4,13 +4,23 @@
 \alias{yaml_agent_string}
 \title{Display \strong{pointblank} YAML using an agent or a YAML file}
 \usage{
-yaml_agent_string(agent = NULL, path = NULL)
+yaml_agent_string(agent = NULL, filename = NULL, path = NULL, expanded = FALSE)
 }
 \arguments{
-\item{agent}{An \emph{agent} object of class \code{ptblank_agent}.}
+\item{agent}{An \emph{agent} object of class \code{ptblank_agent}. If an object is
+provided here, then \code{filename} must not be provided.}
 
-\item{path}{A path to a YAML file that specifies a validation plan for an
-\emph{agent}.}
+\item{filename}{The name of the YAML file that contains fields related to an
+\emph{agent}. If a file name is provided here, then \emph{agent} object must not be
+provided in \code{agent}.}
+
+\item{path}{An optional path to the YAML file (combined with \code{filename}).}
+
+\item{expanded}{Should the written validation expressions for an \emph{agent} be
+expanded such that \strong{tidyselect} and \code{\link[=vars]{vars()}} expressions for columns are
+evaluated, yielding a validation function per column? By default, this is
+\code{FALSE} so expressions as written will be retained in the YAML
+representation.}
 }
 \description{
 With \strong{pointblank} YAML, we can serialize an agent's validation plan (with
@@ -25,14 +35,16 @@ without needing to write the YAML to disk beforehand.
 }
 \section{Function ID}{
 
-9-5
+11-5
 }
 
 \examples{
+if (interactive()) {
+
 # Let's create a validation plan for the
 # data quality analysis of the `small_table`
 # dataset; we need an agent and its
-# table-reading function enables retrieval
+# table-prep formula enables retrieval
 # of the target table
 agent <- 
   create_agent(
@@ -46,11 +58,12 @@ agent <-
   ) \%>\%
   col_exists(vars(date, date_time)) \%>\%
   col_vals_regex(
-    vars(b), "[0-9]-[a-z]{3}-[0-9]{3}"
+    vars(b),
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(vars(d), 100) \%>\%
-  col_vals_lte(vars(c), 5)
+  col_vals_gt(vars(d), value = 100) \%>\%
+  col_vals_lte(vars(c), value = 5)
 
 # We can view the YAML file in the console
 # with the `yaml_agent_string()` function,
@@ -59,34 +72,38 @@ yaml_agent_string(agent = agent)
 
 # The agent can be written to a pointblank
 # YAML file with `yaml_write()`
-# yaml_write(
-#   agent = agent,
-#   filename = "agent-small_table.yml"
-# )
+yaml_write(
+  agent = agent,
+  filename = "agent-small_table.yml"
+)
 
 # The 'agent-small_table.yml' file is
-# available in the package through `system.file()`
+# available in the package through
+# `system.file()`
 yml_file <- 
   system.file(
-    "agent-small_table.yml",
+    "yaml", "agent-small_table.yml",
     package = "pointblank"
   )
 
 # The `yaml_agent_string()` function can
 # be used with the YAML file as well
-yaml_agent_string(path = yml_file)
+yaml_agent_string(filename = yml_file)
 
 # At a later time, the YAML file can
 # be read into a new agent with the
 # `yaml_read_agent()` function
-agent <- yaml_read_agent(path = yml_file)
+agent <- yaml_read_agent(filename = yml_file)
 class(agent)
+
+}
   
 }
 \seealso{
 Other pointblank YAML: 
 \code{\link{yaml_agent_interrogate}()},
 \code{\link{yaml_agent_show_exprs}()},
+\code{\link{yaml_exec}()},
 \code{\link{yaml_informant_incorporate}()},
 \code{\link{yaml_read_agent}()},
 \code{\link{yaml_read_informant}()},

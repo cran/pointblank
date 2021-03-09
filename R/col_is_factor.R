@@ -19,6 +19,7 @@
 
 #' Do the columns contain R `factor` objects?
 #'
+#' @description
 #' The `col_is_factor()` validation function, the `expect_col_is_factor()`
 #' expectation function, and the `test_col_is_factor()` test function all check
 #' whether one or more columns in a table is of the factor type. Like many of
@@ -31,6 +32,7 @@
 #' (`tbl_spark`). Each validation step or expectation will operate over a single
 #' test unit, which is whether the column is a factor-type column or not.
 #' 
+#' @section Column Names:
 #' If providing multiple column names, the result will be an expansion of
 #' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
 #' will result in the entry of two validation steps). Aside from column names in
@@ -38,6 +40,7 @@
 #' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
 #' `matches()`, and `everything()`.
 #' 
+#' @section Actions:
 #' Often, we will want to specify `actions` for the validation. This argument,
 #' present in every validation function, takes a specially-crafted list
 #' object that is best produced by the [action_levels()] function. Read that
@@ -51,11 +54,50 @@
 #' depending on the situation (the first produces a warning, the other
 #' `stop()`s).
 #' 
+#' @section Briefs:
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
 #' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
 #' then be automatically generated.
+#' 
+#' @section YAML:
+#' A **pointblank** agent can be written to YAML with [yaml_write()] and the
+#' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
+#' or interrogate the target table (via [yaml_agent_interrogate()]). When
+#' `col_is_factor()` is represented in YAML (under the top-level `steps` key as
+#' a list member), the syntax closely follows the signature of the validation
+#' function. Here is an example of how a complex call of `col_is_factor()` as a
+#' validation step is expressed in R code and in the corresponding YAML
+#' representation.
+#' 
+#' ```
+#' # R statement
+#' agent %>% 
+#'   col_is_factor(
+#'     vars(a),
+#'     actions = action_levels(warn_at = 0.1, stop_at = 0.2),
+#'     label = "The `col_is_factor()` step.",
+#'     active = FALSE
+#'   )
+#' 
+#' # YAML representation
+#' steps:
+#' - col_is_factor:
+#'     columns: vars(a)
+#'     actions:
+#'       warn_fraction: 0.1
+#'       stop_fraction: 0.2
+#'     label: The `col_is_factor()` step.
+#'     active: false
+#' ```
+#' 
+#' In practice, both of these will often be shorter as only the `columns`,
+#' argument requires a value. Arguments with default values won't be written to
+#' YAML when using [yaml_write()] (though it is acceptable to include them with
+#' their default when generating the YAML by other means). It is also possible
+#' to preview the transformation of an agent to YAML without any writing to disk
+#' by using the [yaml_agent_string()] function.
 #'
 #' @inheritParams col_vals_gt
 #' 
@@ -127,7 +169,7 @@
 #' 
 #' @family validation functions
 #' @section Function ID:
-#' 2-22
+#' 2-27
 #' 
 #' @name col_is_factor
 NULL
@@ -145,6 +187,11 @@ col_is_factor <- function(x,
   
   preconditions <- NULL
   values <- NULL
+  
+  # Get `columns` as a label
+  columns_expr <- 
+    rlang::as_label(rlang::quo(!!enquo(columns))) %>%
+    gsub("^\"|\"$", "", .)
   
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
@@ -180,6 +227,9 @@ col_is_factor <- function(x,
   # Normalize any provided `step_id` value(s)
   step_id <- normalize_step_id(step_id, columns, agent)
   
+  # Get the next step number for the `validation_set` tibble
+  i_o <- get_next_validation_set_row(agent)
+  
   # Check `step_id` value(s) against all other `step_id`
   # values in earlier validation steps
   check_step_id_duplicates(step_id, agent)
@@ -192,6 +242,8 @@ col_is_factor <- function(x,
       create_validation_step(
         agent = agent,
         assertion_type = "col_is_factor",
+        i_o = i_o,
+        columns_expr = columns_expr,
         column = columns[i],
         preconditions = NULL,
         actions = covert_actions(actions, agent),

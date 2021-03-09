@@ -4,11 +4,13 @@
 \alias{yaml_agent_show_exprs}
 \title{Display validation expressions using \strong{pointblank} YAML}
 \usage{
-yaml_agent_show_exprs(path)
+yaml_agent_show_exprs(filename, path = NULL)
 }
 \arguments{
-\item{path}{A path to a \strong{pointblank} YAML file that contains fields related
-to an \emph{agent}.}
+\item{filename}{The name of the YAML file that contains fields related to an
+\emph{agent}.}
+
+\item{path}{An optional path to the YAML file (combined with \code{filename}).}
 }
 \description{
 The \code{yaml_agent_show_exprs()} function follows the specifications of a
@@ -21,14 +23,16 @@ written by hand.
 }
 \section{Function ID}{
 
-9-6
+11-6
 }
 
 \examples{
+if (interactive()) {
+
 # Let's create a validation plan for the
 # data quality analysis of the `small_table`
 # dataset; we need an agent and its
-# table-reading function enables retrieval
+# table-prep formula enables retrieval
 # of the target table
 agent <- 
   create_agent(
@@ -42,45 +46,50 @@ agent <-
   ) \%>\%
   col_exists(vars(date, date_time)) \%>\%
   col_vals_regex(
-    vars(b), "[0-9]-[a-z]{3}-[0-9]{3}"
+    vars(b),
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(vars(d), 100) \%>\%
-  col_vals_lte(vars(c), 5)
+  col_vals_gt(vars(d), value = 100) \%>\%
+  col_vals_lte(vars(c), value = 5)
 
 # The agent can be written to a pointblank
 # YAML file with `yaml_write()`
-# yaml_write(
-#   agent = agent,
-#   filename = "agent-small_table.yml"
-# )
+yaml_write(
+  agent = agent,
+  filename = "agent-small_table.yml"
+)
 
 # The 'agent-small_table.yml' file is
 # available in the package through
 # `system.file()`
 yml_file <- 
   system.file(
-    "agent-small_table.yml",
+    "yaml", "agent-small_table.yml",
     package = "pointblank"
   )
 
 # At a later time, the YAML file can
 # be read into a new agent with the
 # `yaml_read_agent()` function
-agent <- yaml_read_agent(path = yml_file)
+agent <- 
+  yaml_read_agent(filename = yml_file)
 
 class(agent)
 
 # To get a sense of which expressions are
 # being used to generate the new agent, we
 # can use `yaml_agent_show_exprs()`
-yaml_agent_show_exprs(path = yml_file)
+yaml_agent_show_exprs(filename = yml_file)
+
+}
   
 }
 \seealso{
 Other pointblank YAML: 
 \code{\link{yaml_agent_interrogate}()},
 \code{\link{yaml_agent_string}()},
+\code{\link{yaml_exec}()},
 \code{\link{yaml_informant_incorporate}()},
 \code{\link{yaml_read_agent}()},
 \code{\link{yaml_read_informant}()},

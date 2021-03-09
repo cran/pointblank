@@ -40,7 +40,7 @@ those types of validation steps can provide data extracts.
 }
 \section{Function ID}{
 
-7-2
+8-2
 }
 
 \examples{
@@ -71,6 +71,7 @@ agent \%>\% get_data_extracts(i = 1)
 Other Post-interrogation: 
 \code{\link{all_passed}()},
 \code{\link{get_agent_x_list}()},
-\code{\link{get_sundered_data}()}
+\code{\link{get_sundered_data}()},
+\code{\link{write_testthat_file}()}
 }
 \concept{Post-interrogation}

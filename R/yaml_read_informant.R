@@ -24,11 +24,14 @@
 #' function. What's returned is a new *informant* object with the information
 #' intact. The *informant* object can be given more information through use of
 #' the `info_*()` functions.
-#' 
-#' @param path A path to a **pointblank** YAML file that contains fields related
-#'   to an *informant*.
+#'   
+#' @param filename The name of the YAML file that contains fields related to an
+#'   *informant*.
+#' @param path An optional path to the YAML file (combined with `filename`).
 #' 
 #' @examples 
+#' if (interactive()) {
+#' 
 #' # Create a pointblank `informant`
 #' # object with `create_informant()`
 #' # and the `small_table` dataset
@@ -114,7 +117,7 @@
 #' # `system.file()`
 #' yml_file <- 
 #'   system.file(
-#'     "informant-small_table.yml",
+#'     "yaml", "informant-small_table.yml",
 #'     package = "pointblank"
 #'   )
 #' 
@@ -122,19 +125,43 @@
 #' # as an `informant` object by using
 #' # `yaml_read_informant()`
 #' informant <- 
-#'   yaml_read_informant(path = yml_file)
+#'   yaml_read_informant(filename = yml_file)
 #' 
 #' class(informant)
 #' 
+#' }
+#' 
 #' @family pointblank YAML
 #' @section Function ID:
-#' 9-3
+#' 11-3
 #' 
 #' @export
-yaml_read_informant <- function(path) {
+yaml_read_informant <- function(filename,
+                                path = NULL) {
 
+  if (!is.null(path)) {
+    filename <- file.path(path, filename)
+  }
+  
+  initial_wd <- fs::path_abs(fs::path_wd())
+  wd_path <- fs::as_fs_path(dirname(filename))
+  
+  if (!fs::dir_exists(wd_path)) {
+    stop(
+      "The `path` provided (", as.character(wd_path), ") does not exist.",
+      call. = FALSE
+    )
+  }
+  
+  if (initial_wd != wd_path) {
+    setwd(as.character(wd_path))
+    on.exit(setwd(as.character(initial_wd)))
+  }
+  
+  file_to_read <- basename(filename)
+  
   informant_list <- 
-    expr_from_informant_yaml(path = path, incorporate = FALSE)
+    expr_from_informant_yaml(path = file_to_read, incorporate = FALSE)
 
   informant <- 
     informant_list$expr_str %>%
@@ -151,16 +178,19 @@ yaml_read_informant <- function(path) {
 #' [yaml_read_informant()] function (reading a **pointblank** YAML file and
 #' generating an *informant* with all information in place). The key difference
 #' is that this function takes things a step further and incorporates aspects
-#' from the the target table (defined by table-reading, `read_fn`, function that
-#' is required in the YAML file). The additional auto-invocation of
-#' [incorporate()] uses the default options of that function. As with
-#' [yaml_read_informant()] the informant is returned except, this time, it has
-#' been updated with the latest information from the target table.
+#' from the the target table (defined by table-prep formula that is required in
+#' the YAML file). The additional auto-invocation of [incorporate()] uses the
+#' default options of that function. As with [yaml_read_informant()] the
+#' informant is returned except, this time, it has been updated with the latest
+#' information from the target table.
 #'
-#' @param path A path to a YAML file that specifies a information for an
+#' @param filename The name of the YAML file that contains fields related to an
 #'   *informant*.
+#' @param path An optional path to the YAML file (combined with `filename`).
 #'
 #' @examples
+#' if (interactive()) {
+#' 
 #' # Let's go through the process of
 #' # developing an informant with information
 #' # about the `small_table` dataset and then
@@ -210,17 +240,17 @@ yaml_read_informant <- function(path) {
 #'
 #' # The informant can be written to a pointblank
 #' # YAML file with `yaml_write()`
-#' # yaml_write(
-#' #   informant = informant,
-#' #   filename = "informant-small_table.yml"
-#' # )
+#' yaml_write(
+#'   informant = informant,
+#'   filename = "informant-small_table.yml"
+#' )
 #' 
 #' # The 'informant-small_table.yml' file
 #' # is available in the package through
 #' # `system.file()`
 #' yml_file <- 
 #'   system.file(
-#'     "informant-small_table.yml",
+#'     "yaml", "informant-small_table.yml",
 #'     package = "pointblank"
 #'   )
 #' 
@@ -230,7 +260,7 @@ yaml_read_informant <- function(path) {
 #' # use of the YAML file with
 #' # `yaml_informant_incorporate()`
 #' informant <- 
-#'   yaml_informant_incorporate(path = yml_file)
+#'   yaml_informant_incorporate(filename = yml_file)
 #' 
 #' class(informant)
 #'
@@ -240,19 +270,26 @@ yaml_read_informant <- function(path) {
 #' # `yaml_read_informant()` function will
 #' # be useful
 #' informant <- 
-#'   yaml_read_informant(path = yml_file)
+#'   yaml_read_informant(filename = yml_file)
 #' 
 #' class(informant)
+#' 
+#' }
 #'
 #' @family pointblank YAML
 #' @section Function ID:
-#' 9-7
+#' 11-7
 #'
 #' @export
-yaml_informant_incorporate <- function(path) {
+yaml_informant_incorporate <- function(filename,
+                                       path = NULL) {
+
+  if (!is.null(path)) {
+    filename <- file.path(path, filename)
+  }
   
   informant_list <- 
-    expr_from_informant_yaml(path = path)
+    expr_from_informant_yaml(path = filename)
   
   informant <- 
     informant_list$expr_str %>%
@@ -260,7 +297,7 @@ yaml_informant_incorporate <- function(path) {
     rlang::eval_tidy()
   
   informant$metadata <- informant_list$metadata
-  
+
   informant <- informant %>% incorporate()
   informant
 }
@@ -275,7 +312,7 @@ expr_from_informant_yaml <- function(path,
   check_info_yaml_table(y)
   check_info_yaml_columns(y)
   check_info_yaml_others(y)
-
+  
   if ("read_fn" %in% names(y)) {
     read_fn <- paste0("  read_fn = ", y$read_fn)
   } else {
@@ -334,6 +371,9 @@ expr_from_informant_yaml <- function(path,
   y$lang <- NULL
   y$locale <- NULL
   y$meta_snippets <- NULL
+  y$type <- NULL
+  y$tbl_name <- NULL
+  y$info_label <- NULL
 
   list(
     expr_str = expr_str,

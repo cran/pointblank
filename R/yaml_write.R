@@ -17,34 +17,55 @@
 #
 
 
-#' Write an *agent* and *informant* to a **pointblank** YAML file
+#' Write **pointblank** objects to YAML files
 #' 
-#' @description 
-#' With `yaml_write()` we can take an existing *agent* and write that *agent*'s
-#' validation plan to a YAML file. With **pointblank** YAML, we can modify the
-#' YAML markup if so desired, or, use as is to create a new agent with the
-#' [yaml_read_agent()] function. That *agent* will have a validation plan and is
-#' ready to [interrogate()] the data. We can go a step further and perform an
-#' interrogation directly from the YAML file with the [yaml_agent_interrogate()]
-#' function. That returns an agent with intel (having already interrogated the
-#' target data table). An *informant* object can also be written to YAML with
-#' `yaml_write()`.
+#' @description
+#' With `yaml_write()` we can take different **pointblank** objects (these are
+#' the `ptblank_agent`, `ptblank_informant`, and `tbl_store`) and write them to
+#' YAML. With an *agent*, for example, `yaml_write()` will write that everything
+#' that is needed to specify an *agent* and it's validation plan to a YAML file.
+#' With YAML, we can modify the YAML markup if so desired, or, use as is to
+#' create a new agent with the [yaml_read_agent()] function. That *agent* will
+#' have a validation plan and is ready to [interrogate()] the data. We can go a
+#' step further and perform an interrogation directly from the YAML file with
+#' the [yaml_agent_interrogate()] function. That returns an agent with intel
+#' (having already interrogated the target data table). An *informant* object
+#' can also be written to YAML with `yaml_write()`.
 #'
-#' One requirement for writing the *agent* to YAML is that we need to have a
-#' table-reading function (`read_fn`) specified (it's a function that is used to
-#' read the target table when [interrogate()] is called). This option can be set
-#' when using [create_agent()] or with [set_read_fn()] (for use with an existing
-#' *agent*).
+#' One requirement for writing an *agent* or an *informant* to YAML is that we
+#' need to have a table-prep formula (`read_fn`) specified (it's an R formula
+#' that is used to read the target table when [interrogate()] or [incorporate()]
+#' is called). This option can be set when using
+#' [create_agent()]/[create_informant()] or with [set_read_fn()] (useful with an
+#' existing agent or informant object).
 #' 
-#' @param agent An *agent* object of class `ptblank_agent`.
-#' @param informant An *informant* object of class `ptblank_informant`.
+#' @param ... Any mix of **pointblank** objects such as the *agent*
+#'   (`ptblank_agent`), the *informant* (`ptblank_informant`), or the table
+#'   store (`tbl_store`). The agent and informant can be combined into a single
+#'   YAML file (so as both objects have the same value for `read_fn`). A table
+#'   store cannot be combined with either an agent or an informant so it must
+#'   undergo conversion alone.
+#' @param .list Allows for the use of a list as an input alternative to `...`.
 #' @param filename The name of the YAML file to create on disk. It is
 #'   recommended that either the `.yaml` or `.yml` extension be used for this
-#'   file.
+#'   file. If not provided then default names will be used (`"tbl_store.yml"`)
+#'   for a table store and the other objects will get default naming to the
+#'   effect of `"<object>-<tbl_name>.yml"`.
 #' @param path An optional path to which the YAML file should be saved (combined
 #'   with `filename`).
+#' @param expanded Should the written validation expressions for an *agent* be
+#'   expanded such that **tidyselect** and [vars()] expressions for columns are
+#'   evaluated, yielding a validation function per column? By default, this is
+#'   `FALSE` so expressions as written will be retained in the YAML
+#'   representation.
+#' @param quiet Should the function *not* inform when the file is written? By
+#'   default this is `FALSE`.
+#'   
+#' @return Invisibly returns `TRUE` if the YAML file has been written. 
 #'   
 #' @examples
+#' if (interactive()) {
+#' 
 #' # Let's go through the process of
 #' # developing an agent with a validation
 #' # plan (to be used for the data quality
@@ -52,9 +73,9 @@
 #' # and then offloading that validation
 #' # plan to a pointblank YAML file
 #' 
-#' # We ought to think about what's
-#' # tolerable in terms of data quality so
-#' # let's designate proportional failure
+#' # Creating an `action_levels` object is a
+#' # common workflow step when creating a
+#' # pointblank agent; we designate failure
 #' # thresholds to the `warn`, `stop`, and
 #' # `notify` states using `action_levels()`
 #' al <- 
@@ -85,31 +106,31 @@
 #'   agent %>% 
 #'   col_exists(vars(date, date_time)) %>%
 #'   col_vals_regex(
-#'     vars(b), "[0-9]-[a-z]{3}-[0-9]{3}"
+#'     vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}"
 #'   ) %>%
 #'   rows_distinct() %>%
-#'   col_vals_gt(vars(d), 100) %>%
-#'   col_vals_lte(vars(c), 5)
+#'   col_vals_gt(vars(d), value = 100) %>%
+#'   col_vals_lte(vars(c), value = 5)
 #'
 #' # The agent can be written to a pointblank
 #' # YAML file with `yaml_write()`
-#' # yaml_write(
-#' #   agent = agent,
-#' #   filename = "agent-small_table.yml"
-#' # )
+#' yaml_write(
+#'   agent,
+#'   filename = "agent-small_table.yml"
+#' )
 #' 
 #' # The 'agent-small_table.yml' file is
 #' # available in the package through
 #' # `system.file()`
 #' yml_file <- 
 #'   system.file(
-#'     "agent-small_table.yml",
+#'     "yaml", "agent-small_table.yml",
 #'     package = "pointblank"
 #'   )
 #' 
 #' # We can view the YAML file in the console
 #' # with the `yaml_agent_string()` function
-#' yaml_agent_string(path = yml_file)
+#' yaml_agent_string(filename = yml_file)
 #' 
 #' # The YAML can also be printed in the console
 #' # by supplying the agent as the input
@@ -119,7 +140,7 @@
 #' # be read into a new agent with the
 #' # `yaml_read_agent()` function
 #' agent <- 
-#'   yaml_read_agent(path = yml_file)
+#'   yaml_read_agent(filename = yml_file)
 #' 
 #' class(agent)
 #' 
@@ -130,37 +151,146 @@
 #' # interrogate directly from the YAML
 #' # file with `yaml_agent_interrogate()`
 #' agent <- 
-#'   yaml_agent_interrogate(path = yml_file)
+#'   yaml_agent_interrogate(filename = yml_file)
 #' 
 #' class(agent)
 #' 
+#' }
+#' 
 #' @family pointblank YAML
 #' @section Function ID:
-#' 9-1
+#' 11-1
 #' 
 #' @export
-yaml_write <- function(agent = NULL,
-                       informant = NULL,
-                       filename,
-                       path = NULL) {
+yaml_write <- function(...,
+                       .list = list2(...),
+                       filename = NULL,
+                       path = NULL,
+                       expanded = FALSE,
+                       quiet = FALSE) {
 
-  if (!is.null(path)) {
-    filename <- file.path(path, filename)
+  # Collect a list of pointblank objects
+  obj_list <- .list
+  
+  # Determine which types of pointblank objects
+  # are available in `obj_list`
+  object_types <- 
+    vapply(
+      obj_list,
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        if (inherits(x, "ptblank_agent")) {
+          x <- "agent"
+        } else if (inherits(x, "ptblank_informant")) {
+          x <- "informant"
+        } else if (inherits(x, "tbl_store")) {
+          x <- "tbl_store"
+        } else {
+          x <- NA_character_
+        }
+      }
+    )
+  
+  if ("tbl_store" %in% object_types) {
+    tbl_store <- obj_list[[object_types == "tbl_store"]]
+    
+    x <- as_tbl_store_yaml_list(tbl_store = tbl_store)
+    
+    if (is.null(filename)) {
+      filename <- "tbl_store.yml"
+    }
+    
+    if (!is.null(path)) {
+      filename <- file.path(path, filename)
+    }
+    
+    yaml::write_yaml(
+      x = x,
+      file = filename,
+      handlers = list(
+        logical = function(x) {
+          result <- ifelse(x, "true", "false")
+          class(result) <- "verbatim"
+          result
+        }
+      )
+    )
+    
+    # Generate cli message w.r.t. written YAML file
+    if (!quiet) {
+      cli_bullet_msg(
+        msg = "The table store YAML file has been written to `{filename}`",
+        bullet = cli::symbol$tick,
+        color = "green"
+      )
+    }
+    
+    return(invisible(NULL))
+  }
+  
+  if ("agent" %in% object_types) {
+    agent <- obj_list[[object_types == "agent"]]
+  } else {
+    agent <- NULL
+  }
+  if ("informant" %in% object_types) {
+    informant <- obj_list[[object_types == "informant"]]
+  } else {
+    informant <- NULL
   }
   
   if (is.null(agent) && is.null(informant)) {
     stop("An agent or informant object must be supplied to `yaml_write()`.",
          call. = FALSE)
   }
-  
+
   if (!is.null(agent) && !is.null(informant)) {
-    x <- c(as_agent_yaml_list(agent), as_informant_yaml_list(informant))
+    x <- 
+      c(
+        as_agent_yaml_list(agent = agent, expanded = expanded),
+        as_informant_yaml_list(informant = informant)
+      )
+    
+    # TODO: combine with tbl name (e.g., `pointblank-<tbl_name>.yml`)
+    
+    if (is.null(filename)) {
+      filename <- "pointblank.yml"
+    }
+    
+    yaml_type <- "agent and informant"
+    
     # TODO: manage conflicts between both YAML representations
     
   } else if (!is.null(agent)) {
-    x <- as_agent_yaml_list(agent)
+    x <- as_agent_yaml_list(agent = agent, expanded = expanded)
+    
+    if (is.null(filename)) {
+      if (!is.null(agent$tbl_name) && !is.na(agent$tbl_name)) {
+        filename <- paste0("agent-", agent$tbl_name, ".yml")
+      } else {
+        filename <- "agent.yml"
+      }
+    }
+    
+    yaml_type <- "agent"
+    
   } else {
-    x <- as_informant_yaml_list(informant)
+    x <- as_informant_yaml_list(informant = informant)
+    
+    if (is.null(filename)) {
+      if (!is.null(informant$tbl_name) && !is.na(informant$tbl_name)) {
+        filename <- paste0("informant-", informant$tbl_name, ".yml")
+      } else {
+        filename <- "informant.yml"
+      }
+    }
+    
+    yaml_type <- "informant"
+  }
+  
+  if (!is.null(path)) {
+    filename <- file.path(path, filename)
   }
   
   yaml::write_yaml(
@@ -174,6 +304,17 @@ yaml_write <- function(agent = NULL,
       }
     )
   )
+  
+  # Generate cli message w.r.t. written YAML file
+  if (!quiet) {
+    cli_bullet_msg(
+      msg = "The {yaml_type} YAML file has been written to `{filename}`",
+      bullet = cli::symbol$tick,
+      color = "green"
+    )
+  }
+  
+  invisible(TRUE)
 }
 
 #' Display **pointblank** YAML using an agent or a YAML file
@@ -188,15 +329,25 @@ yaml_write <- function(agent = NULL,
 #' `yaml_agent_string()` and view the YAML representation of the validation plan
 #' without needing to write the YAML to disk beforehand.
 #'
-#' @param agent An *agent* object of class `ptblank_agent`.
-#' @param path A path to a YAML file that specifies a validation plan for an
-#'   *agent*.
+#' @param agent An *agent* object of class `ptblank_agent`. If an object is
+#'   provided here, then `filename` must not be provided.
+#' @param filename The name of the YAML file that contains fields related to an
+#'   *agent*. If a file name is provided here, then *agent* object must not be
+#'   provided in `agent`.
+#' @param path An optional path to the YAML file (combined with `filename`).
+#' @param expanded Should the written validation expressions for an *agent* be
+#'   expanded such that **tidyselect** and [vars()] expressions for columns are
+#'   evaluated, yielding a validation function per column? By default, this is
+#'   `FALSE` so expressions as written will be retained in the YAML
+#'   representation.
 #'   
 #' @examples 
+#' if (interactive()) {
+#' 
 #' # Let's create a validation plan for the
 #' # data quality analysis of the `small_table`
 #' # dataset; we need an agent and its
-#' # table-reading function enables retrieval
+#' # table-prep formula enables retrieval
 #' # of the target table
 #' agent <- 
 #'   create_agent(
@@ -210,11 +361,12 @@ yaml_write <- function(agent = NULL,
 #'   ) %>%
 #'   col_exists(vars(date, date_time)) %>%
 #'   col_vals_regex(
-#'     vars(b), "[0-9]-[a-z]{3}-[0-9]{3}"
+#'     vars(b),
+#'     regex = "[0-9]-[a-z]{3}-[0-9]{3}"
 #'   ) %>%
 #'   rows_distinct() %>%
-#'   col_vals_gt(vars(d), 100) %>%
-#'   col_vals_lte(vars(c), 5)
+#'   col_vals_gt(vars(d), value = 100) %>%
+#'   col_vals_lte(vars(c), value = 5)
 #'
 #' # We can view the YAML file in the console
 #' # with the `yaml_agent_string()` function,
@@ -223,52 +375,57 @@ yaml_write <- function(agent = NULL,
 #'
 #' # The agent can be written to a pointblank
 #' # YAML file with `yaml_write()`
-#' # yaml_write(
-#' #   agent = agent,
-#' #   filename = "agent-small_table.yml"
-#' # )
+#' yaml_write(
+#'   agent = agent,
+#'   filename = "agent-small_table.yml"
+#' )
 #' 
 #' # The 'agent-small_table.yml' file is
-#' # available in the package through `system.file()`
+#' # available in the package through
+#' # `system.file()`
 #' yml_file <- 
 #'   system.file(
-#'     "agent-small_table.yml",
+#'     "yaml", "agent-small_table.yml",
 #'     package = "pointblank"
 #'   )
 #' 
 #' # The `yaml_agent_string()` function can
 #' # be used with the YAML file as well
-#' yaml_agent_string(path = yml_file)
+#' yaml_agent_string(filename = yml_file)
 #' 
 #' # At a later time, the YAML file can
 #' # be read into a new agent with the
 #' # `yaml_read_agent()` function
-#' agent <- yaml_read_agent(path = yml_file)
+#' agent <- yaml_read_agent(filename = yml_file)
 #' class(agent)
+#' 
+#' }
 #'   
 #' @family pointblank YAML
 #' @section Function ID:
-#' 9-5
+#' 11-5
 #' 
 #' @export
 yaml_agent_string <- function(agent = NULL,
-                              path = NULL) {
+                              filename = NULL,
+                              path = NULL,
+                              expanded = FALSE) {
   
-  if (is.null(agent) && is.null(path)) {
+  if (is.null(agent) && is.null(filename)) {
     stop(
       "An `agent` object or a `path` to a YAML file must be specified.",
       call. = FALSE
     )
   }
   
-  if (!is.null(agent) && !is.null(path)) {
+  if (!is.null(agent) && !is.null(filename)) {
     stop("Only one of `agent` or `path` should be specified.", call. = FALSE)
   }
   
   if (!is.null(agent)) {
     
     message(
-      as_agent_yaml_list(agent) %>%
+      as_agent_yaml_list(agent = agent, expanded = expanded) %>%
         yaml::as.yaml(
           handlers = list(
             logical = function(x) {
@@ -281,7 +438,12 @@ yaml_agent_string <- function(agent = NULL,
     )
     
   } else {
-    message(readLines(path) %>% paste(collapse = "\n"))
+    
+    if (!is.null(path)) {
+      filename <- file.path(path, filename)
+    }
+    
+    message(readLines(filename) %>% paste(collapse = "\n"))
   }
 }
 
@@ -294,6 +456,15 @@ as_list_preconditions <- function(preconditions) {
     return(NULL)
   } else {
     return(as.character(preconditions))
+  }
+}
+
+as_list_active <- function(active) {
+
+  if (is.logical(active[[1]])) {
+    return(active[[1]])
+  } else {
+    return(as.character(active))
   }
 }
 
@@ -380,7 +551,16 @@ to_list_label <- function(label) {
   list(label = label)
 }
 
+to_list_info_label <- function(label) {
+  list(info_label = label)
+}
+
 to_list_tbl_name <- function(tbl_name) {
+
+  if (is.na(tbl_name)) {
+    tbl_name <- NULL
+  }
+  
   list(tbl_name = tbl_name)
 }
 
@@ -411,7 +591,7 @@ get_arg_value_lr <- function(value) {
 }
 
 prune_lst_step <- function(lst_step) {
-  
+
   if ("preconditions" %in% names(lst_step[[1]]) &&
       is.null(lst_step[[1]][["preconditions"]])) {
     lst_step[[1]]["preconditions"] <- NULL
@@ -421,12 +601,16 @@ prune_lst_step <- function(lst_step) {
     lst_step[[1]]["na_pass"] <- NULL
   }
   if ("active" %in% names(lst_step[[1]]) &&
-      lst_step[[1]][["active"]]) {
+      lst_step[[1]][["active"]] == "TRUE") {
     lst_step[[1]]["active"] <- NULL
   }
   if ("complete" %in% names(lst_step[[1]]) &&
       lst_step[[1]][["complete"]]) {
     lst_step[[1]]["complete"] <- NULL
+  }
+  if ("inclusive" %in% names(lst_step[[1]]) &&
+      (lst_step[[1]][["inclusive"]][1] & lst_step[[1]][["inclusive"]][2])) {
+    lst_step[[1]]["inclusive"] <- NULL
   }
   if ("in_order" %in% names(lst_step[[1]]) &&
       lst_step[[1]][["in_order"]]) {
@@ -435,6 +619,18 @@ prune_lst_step <- function(lst_step) {
   if ("is_exact" %in% names(lst_step[[1]]) &&
       lst_step[[1]][["is_exact"]]) {
     lst_step[[1]]["is_exact"] <- NULL
+  }
+  if ("allow_stationary" %in% names(lst_step[[1]]) &&
+      !lst_step[[1]][["allow_stationary"]]) {
+    lst_step[[1]]["allow_stationary"] <- NULL
+  }
+  if ("decreasing_tol" %in% names(lst_step[[1]]) &&
+      is.null(lst_step[[1]][["decreasing_tol"]])) {
+    lst_step[[1]]["decreasing_tol"] <- NULL
+  }
+  if ("increasing_tol" %in% names(lst_step[[1]]) &&
+      is.null(lst_step[[1]][["increasing_tol"]])) {
+    lst_step[[1]]["increasing_tol"] <- NULL
   }
   if ("actions" %in% names(lst_step[[1]])) {
     if (length(lst_step[[1]][["actions"]][["action_levels"]]) == 1 &&
@@ -445,11 +641,16 @@ prune_lst_step <- function(lst_step) {
       lst_step[[1]][["actions"]] <- NULL
     }
   }
+  if ("label" %in% names(lst_step[[1]]) &&
+      is.na(lst_step[[1]][["label"]])) {
+    lst_step[[1]]["label"] <- NULL
+  }
   
   lst_step
 }
 
-as_agent_yaml_list <- function(agent) {
+as_agent_yaml_list <- function(agent,
+                               expanded) {
 
   if (is.null(agent$read_fn)) {
     stop(
@@ -484,33 +685,57 @@ as_agent_yaml_list <- function(agent) {
     lst_embed_report <- list(embed_report = agent$embed_report)
   }
 
-  if (is.null(agent$lang) || 
-      (!is.null(agent$lang) && agent$lang == "en")) {
-    lst_lang <- NULL
+  if (is.null(agent$lang)) {
+    lst_lang <- "en"
   } else {
     lst_lang <- list(lang = agent$lang)
   }
   
   if (is.null(agent$locale)) {
-    lst_locale <- NULL
+    lst_locale <- "en"
   } else {
     lst_locale <- list(locale = agent$locale)
   }
 
-  # Select only the necessary columns from the agent's `validation_set` 
-  agent_validation_set <- 
-    agent$validation_set %>% 
-    dplyr::select(
-      assertion_type, column, values, na_pass,
-      preconditions, actions, brief, active
-    )
+  # Select only the necessary columns from the agent's `validation_set`
+  if (!expanded) {
+    
+    # This subset of `agent$validation_set` will depend on the value of
+    # `expanded` (default is FALSE, which preserves tidyselect expressions
+    # and doesn't split `vars()`)
+  
+    agent_validation_set <- 
+      agent$validation_set %>% 
+      dplyr::select(
+        i_o, assertion_type, columns_expr, column, values, na_pass,
+        preconditions, actions, label, brief, active
+      ) %>%
+      dplyr::group_by(i_o) %>%
+      dplyr::filter(dplyr::row_number() == 1) %>%
+      dplyr::ungroup() %>%
+      dplyr::rename(i = i_o)
+  
+  } else {
+    
+    # This subset of `agent$validation_set` has the same number of
+    # validation steps (i) as the agent report; in this, tidyselect
+    # expressions and `vars()` expressions with multiple columns are
+    # evaluated and split into a validation step per target column
+    
+    agent_validation_set <- 
+      agent$validation_set %>% 
+      dplyr::select(
+        i, assertion_type, columns_expr, column, values, na_pass,
+        preconditions, actions, label, brief, active
+      )
+  }
   
   all_steps <- list()
   
   for (i in seq_len(nrow(agent_validation_set))) {
     
     step_list <- agent_validation_set[i, ] %>% as.list()
-    
+
     validation_fn <- step_list$assertion_type
     
     if (validation_fn %in% c(
@@ -519,10 +744,16 @@ as_agent_yaml_list <- function(agent) {
       "col_vals_gte", "col_vals_gt"
     )) {
       
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
       lst_step <- 
         list(
           validation_fn = list(
-            columns = as_vars_fn(step_list$column[[1]]),
+            columns = column_text,
             value = get_arg_value(step_list$values),
             na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
@@ -530,22 +761,29 @@ as_agent_yaml_list <- function(agent) {
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
     } else if (grepl("between", validation_fn)) {
 
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+
       lst_step <- 
         list(
           validation_fn = list(
-            columns = as_vars_fn(step_list$column[[1]]),
+            columns = column_text,
             left = get_arg_value_lr(step_list$values[[1]][[1]]),
             right = get_arg_value_lr(step_list$values[[1]][[2]]),
             inclusive = as.logical(
               c(
                 names(step_list$values[[1]][1]),
-                names(step_list$values[[1]][1])
+                names(step_list$values[[1]][2])
               )
             ),
             na_pass = step_list$na_pass,
@@ -554,69 +792,165 @@ as_agent_yaml_list <- function(agent) {
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
-    } else if (grepl("in_set", validation_fn)) {
+    } else if (grepl("(in_set|make_set|make_subset)", validation_fn)) {
 
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
       lst_step <- 
         list(
           validation_fn = list(
-            columns = as_vars_fn(step_list$column[[1]]),
+            columns = column_text,
             set = step_list$values[[1]],
             preconditions = as_list_preconditions(step_list$preconditions),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
 
     } else if (grepl("null", validation_fn)) {
       
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
       lst_step <- 
         list(
           validation_fn = list(
-            columns = as_vars_fn(step_list$column[[1]]),
+            columns = column_text,
             preconditions = as_list_preconditions(step_list$preconditions),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
+      
+    } else if (validation_fn == "col_vals_increasing") {
+      
+      if (step_list$values[[1]][2] == 0) {
+        decreasing_tol <- NULL
+      } else {
+        decreasing_tol <- step_list$values[[1]][2]
+      }
+      
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
+      lst_step <- 
+        list(
+          validation_fn = list(
+            columns = column_text,
+            allow_stationary = ifelse(
+              step_list$values[[1]][1] == 1, TRUE, FALSE
+            ),
+            decreasing_tol = decreasing_tol,
+            na_pass = step_list$na_pass,
+            preconditions = as_list_preconditions(step_list$preconditions),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
+      
+    } else if (validation_fn == "col_vals_decreasing") {
+      
+      if (step_list$values[[1]][2] == 0) {
+        increasing_tol <- NULL
+      } else {
+        increasing_tol <- step_list$values[[1]][2]
+      }
+      
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
+      lst_step <- 
+        list(
+          validation_fn = list(
+            columns = column_text,
+            allow_stationary = ifelse(
+              step_list$values[[1]][1] == 1, TRUE, FALSE
+            ),
+            increasing_tol = increasing_tol,
+            na_pass = step_list$na_pass,
+            preconditions = as_list_preconditions(step_list$preconditions),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
     } else if (validation_fn == "col_vals_regex") {
 
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
       lst_step <- 
         list(
           validation_fn = list(
-            columns = as_vars_fn(step_list$column[[1]]),
+            columns = column_text,
             regex = get_arg_value(step_list$values),
+            na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
     } else if (grepl("col_is_", validation_fn) ||
                validation_fn == "col_exists") {
 
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
       lst_step <- 
         list(
           validation_fn = list(
-            columns = as_vars_fn(step_list$column[[1]]),
+            columns = column_text,
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
@@ -631,7 +965,8 @@ as_agent_yaml_list <- function(agent) {
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
@@ -652,7 +987,8 @@ as_agent_yaml_list <- function(agent) {
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
     
@@ -671,7 +1007,8 @@ as_agent_yaml_list <- function(agent) {
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
       
@@ -686,7 +1023,8 @@ as_agent_yaml_list <- function(agent) {
               step_list$actions[[1]],
               action_levels_default
             ),
-            active = step_list$active
+            label = step_list$label,
+            active = as_list_active(step_list$active)
           )
         )
     }
@@ -701,16 +1039,35 @@ as_agent_yaml_list <- function(agent) {
   }
   
   c(
-    lst_read_fn,
-    lst_tbl_name,
-    lst_label,
-    lst_action_levels,
-    lst_end_fns,
-    lst_embed_report,
-    lst_lang,
-    lst_locale,
-    list(steps = all_steps)
+    type = "agent",               # YAML type: `agent`
+    lst_read_fn,                  # table-prep formula
+    lst_tbl_name,                 # table name
+    lst_label,                    # agent label
+    lst_lang,                     # agent language
+    lst_locale,                   # agent locale
+    lst_action_levels,            # agent action levels stmt
+    lst_end_fns,                  # agent end functions stmt
+    lst_embed_report,             # agent embed report in saved file
+    list(steps = all_steps)       # list of validation steps
   )
+}
+
+get_column_text <- function(step_list, expanded) {
+  
+  if (!expanded) {
+    
+    if (step_list$column[[1]] == step_list$columns_expr) {
+      column_text <- as_vars_fn(step_list$column[[1]])
+    } else {
+      column_text <- step_list$columns_expr
+    }
+    
+  } else {
+    
+    column_text <- as_vars_fn(columns = step_list$column[[1]])
+  }
+  
+  column_text
 }
 
 as_informant_yaml_list <- function(informant) {
@@ -722,7 +1079,9 @@ as_informant_yaml_list <- function(informant) {
     )
   }
   
+  lst_tbl_name <- to_list_tbl_name(informant$tbl_name)
   lst_read_fn <- to_list_read_fn(informant$read_fn)
+  lst_info_label <- to_list_info_label(informant$info_label)
   
   if (length(informant$meta_snippets) > 0) {
     
@@ -740,24 +1099,49 @@ as_informant_yaml_list <- function(informant) {
     lst_meta_snippets <- NULL
   }
   
-  if (is.null(informant$lang) || 
-      (!is.null(informant$lang) && informant$lang == "en")) {
-    lst_lang <- NULL
+  if (is.null(informant$lang)) {
+    lst_lang <- "en"
   } else {
     lst_lang <- list(lang = informant$lang)
   }
   
   if (is.null(informant$locale)) {
-    lst_locale <- NULL
+    lst_locale <- "en"
   } else {
     lst_locale <- list(locale = informant$locale)
   }
   
   c(
-    lst_read_fn,
-    lst_lang,
-    lst_locale,
-    lst_meta_snippets,
-    informant$metadata
+    type = "informant",           # YAML type: `informant`
+    lst_read_fn,                  # table-prep formula
+    lst_tbl_name,                 # table name
+    lst_info_label,               # informant label
+    lst_lang,                     # informant language
+    lst_locale,                   # informant locale
+    lst_meta_snippets,            # informant metadata snippet stmts
+    informant$metadata            # informant metadata entries
+  )
+}
+
+as_tbl_store_yaml_list <- function(tbl_store) {
+
+  tbl_list <- list()
+  
+  for (i in seq_along(tbl_store)) {
+    
+    formula_rhs <- capture_formula(tbl_store[[i]])[2]
+    tbl_name <- names(tbl_store[i])
+    
+    list_element <- list(formula_rhs)
+    tbl_list[i] <- list_element
+    
+    names(tbl_list)[i] <- tbl_name
+  }
+  
+  lst_tbls <- list(tbls = tbl_list)
+  
+  c(
+    type = "tbl_store",           # YAML type: `tbl_store`
+    lst_tbls                      # table store list of table-prep formulas
   )
 }

@@ -19,13 +19,107 @@
 
 #' Create a **pointblank** *informant* object
 #'
+#' @description
 #' The `create_informant()` function creates an *informant* object, which is
 #' used in an *information management* workflow. The overall aim of this
 #' workflow is to record, collect, and generate useful information on data
 #' tables. We can supply as information that is useful for describing a
 #' particular data table. The *informant* object created by the
-#' `create_informant()` function takes information-focused functions (the
-#' `info_*()` series of functions).
+#' `create_informant()` function takes information-focused functions:
+#' [info_columns()], [info_tabular()], [info_section()], and [info_snippet()].
+#'
+#' The `info_*()` series of functions allows for a progressive build up of
+#' information about the target table. The [info_columns()] and [info_tabular()]
+#' functions facilitate the entry of *info text* that concerns the table columns
+#' and the table proper; the [info_section()] function allows for the creation
+#' of arbitrary sections that can have multiple subsections full of additional
+#' *info text*. The system allows for dynamic values culled from the target
+#' table by way of [info_snippet()], for getting named text extracts from
+#' queries, and the use of `{<snippet_name>}` in the *info text*. To make the
+#' use of [info_snippet()] more convenient for common queries, a set of
+#' `snip_*()` functions are provided in the package ([snip_list()],
+#' [snip_stats()], [snip_lowest()], and [snip_highest()]) though you are free to
+#' use your own expressions.
+#' 
+#' Because snippets need to query the target table to return fragments of *info
+#' text*, the [incorporate()] function needs to be used to initiate this action.
+#' This is also necessary for the *informant* to update other metadata elements
+#' such as row and column counts. Once the incorporation process is complete,
+#' snippets and other metadata will be updated. Calling the *informant* itself
+#' will result in a reporting table. This reporting can also be accessed with
+#' the [get_informant_report()] function, where there are more reporting
+#' options.
+#' 
+#' @section YAML: 
+#' A **pointblank** informant can be written to YAML with [yaml_write()] and the
+#' resulting YAML can be used to regenerate an informant (with
+#' [yaml_read_informant()]) or perform the 'incorporate' action using the target
+#' table (via [yaml_informant_incorporate()]). Here is an example of how a
+#' complex call of `create_informant()` is expressed in R code and in the
+#' corresponding YAML representation.
+#' 
+#' ```
+#' # R statement
+#' create_informant(
+#'   read_fn = ~ small_table,
+#'   tbl_name = "small_table",
+#'   label = "An example.",
+#'   lang = "fr", 
+#'   locale = "fr_CA"
+#' )
+#' 
+#' # YAML representation
+#' type: informant
+#' read_fn: ~small_table
+#' tbl_name: small_table
+#' info_label: An example.
+#' lang: fr
+#' locale: fr_CA
+#' table:
+#'   name: small_table
+#'   _columns: 8
+#'   _rows: 13.0
+#'   _type: tbl_df
+#' columns:
+#'   date_time:
+#'     _type: POSIXct, POSIXt
+#'   date:
+#'     _type: Date
+#'   a:
+#'     _type: integer
+#'   b:
+#'     _type: character
+#'   c:
+#'     _type: numeric
+#'   d:
+#'     _type: numeric
+#'   e:
+#'     _type: logical
+#'   f:
+#'     _type: character
+#' ```
+#' 
+#' The generated YAML includes some top-level keys where `type` and `read_fn`
+#' are mandatory, and, two metadata sections: `table` and `columns`. Keys that
+#' begin with an underscore character are those that are updated whenever
+#' [incorporate()] is called on an *informant*. The `table` metadata section can
+#' have multiple subsections with *info text*. The `columns` metadata section
+#' can similarly have have multiple subsections, so long as they are children to
+#' each of the column keys (in the above YAML example, `date_time` and `date`
+#' are column keys and they match the table's column names). Additional sections
+#' can be added but they must have key names on the top level that don't
+#' duplicate the default set (i.e., `type`, `table`, `columns`, etc. are treated
+#' as reserved keys).
+#' 
+#' @section Writing an Informant to Disk:
+#' An *informant* object can be written to disk with the [x_write_disk()]
+#' function. Informants are stored in the serialized RDS format and can be
+#' easily retrieved with the [x_read_disk()] function.
+#'
+#' It's recommended that table-prep formulas are supplied to the `read_fn`
+#' argument of `create_informant()`. In this way, when an *informant* is read
+#' from disk through [x_read_disk()], it can be reused to access the target
+#' table (which may changed, hence the need to use an expression for this).
 #'
 #' @param tbl The input table. This can be a data frame, a tibble, a `tbl_dbi`
 #'   object, or a `tbl_spark` object. Alternatively, a function can be used to
@@ -37,7 +131,7 @@
 #'   (1) using a function (e.g., `function() { <table reading code> }`) or, (2)
 #'   with an R formula expression.
 #' @param agent A pointblank *agent* object. This object can be used instead of
-#'   supplying a table in `tbl` or a table-reading function in `read_fn`.
+#'   supplying a table in `tbl` or a table-prep formula in `read_fn`.
 #' @param tbl_name A optional name to assign to the input table object. If no
 #'   value is provided, a name will be generated based on whatever information
 #'   is available.
@@ -120,10 +214,10 @@ create_informant <- function(tbl = NULL,
   if (is.null(tbl) && is.null(read_fn) && is.null(agent)) {
     
     stop(
-      "A table object, table-reading function, or agent must be supplied:\n",
+      "A table object, table-prep formula, or agent must be supplied:\n",
       " * Use a table object in the `tbl` argument.\n",
-      " * Or supply a table-reading function in `read_fn`.\n",
-      " * Or even an agent with some connection to a table.",
+      " * Or supply a table-prep formula in `read_fn`.\n",
+      " * Or even an agent with some association to a table.",
       call. = FALSE
     )
   }
@@ -149,10 +243,30 @@ create_informant <- function(tbl = NULL,
   # TODO: Verify that the table is a table object
   # and provide an error if it isn't
   if (!is.null(read_fn)) {
+    
     if (inherits(read_fn, "function")) {
+      
       tbl <- rlang::exec(read_fn)
+    
     } else if (rlang::is_formula(read_fn)) {
-      tbl <- read_fn %>% rlang::f_rhs() %>% rlang::eval_tidy()
+
+      tbl <- 
+        read_fn %>% 
+        rlang::f_rhs() %>% 
+        rlang::eval_tidy(env = caller_env(n = 1))
+      
+      if (inherits(tbl, "read_fn")) {
+        
+        if (inherits(tbl, "with_tbl_name") && is.na(tbl_name)) {
+          tbl_name <- tbl %>% rlang::f_lhs() %>% as.character()
+        }
+        
+        tbl <-
+          tbl %>%
+          rlang::f_rhs() %>%
+          rlang::eval_tidy(env = caller_env(n = 1))
+      }
+      
     } else {
       stop(
         "The `read_fn` object must be a function or an R formula.\n",
@@ -188,10 +302,14 @@ create_informant <- function(tbl = NULL,
   
   table.columns <- length(column_names)
   
-  table.rows <- 
-    dplyr::count(.tbl, name = "n") %>%
-    dplyr::pull(n) %>%
-    as.numeric()
+  if (inherits(.tbl, "ArrowObject")) {
+    table.rows <- nrow(.tbl)
+  } else {
+    table.rows <- 
+      dplyr::count(.tbl, name = "n") %>%
+      dplyr::pull(n) %>%
+      as.numeric()
+  }
   
   column_list <- list(columns = lapply(col_schema(.tbl = .tbl), as.list))
   
@@ -219,7 +337,6 @@ create_informant <- function(tbl = NULL,
   metadata_list <-
     c(
       list(
-        info_label = label,
         table = list(
           name = table.name,
           `_columns` = table.columns,

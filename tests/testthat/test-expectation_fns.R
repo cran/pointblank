@@ -1,3 +1,5 @@
+skip_on_cran()
+
 tbl <- 
   small_table %>%
   dplyr::mutate(g = as.factor(f))
@@ -7,6 +9,22 @@ tbl_conjointly <-
     a = c(5, 7, 6, 5, 8, 7),
     b = c(3, 4, 6, 8, 9, 11),
     c = c(2, 6, 8, NA, 3, 8)
+  )
+
+increasing_tbl <-
+  dplyr::tibble(
+    a = c(5, 6, 7, 8, 9, 12),
+    b = c(1, 2, NA,3, 4, 5),
+    c = c(1, 2, 2, 4, 5, 7),
+    d = c(1, 2, 1.9999, 4, 5, 7)
+  )
+
+decreasing_tbl <-
+  dplyr::tibble(
+    a = c(12, 9, 8, 7, 6, 5),
+    b = c(6, 5, NA,4, 3, 1),
+    c = c(7, 5, 5, 4, 2, 1),
+    d = c(7, 5, 4, 4.0001, 3, 1)
   )
 
 tbl_equal_c_3 <- tbl %>% dplyr::filter(c == 3)
@@ -240,6 +258,105 @@ test_that("pointblank expectation function produce the correct results", {
   expect_failure(
     expect_col_vals_not_in_set(tbl, columns = vars(b), set = tbl$b),
     "failure level \\(13\\) >= failure threshold \\(1\\)"
+  )
+  
+  #
+  # expect_col_vals_make_set()
+  #
+  
+  expect_col_vals_make_set(tbl, columns = vars(c), set = tbl$c %>% unique())
+  expect_col_vals_make_set(tbl, columns = vars(c), set = tbl$c)
+  expect_success(expect_col_vals_make_set(tbl, columns = vars(b), set = tbl$b))
+  expect_success(expect_col_vals_make_set(tbl, columns = vars(c), set = c(2, 3, 4, 7, 9, NA), threshold = 3))
+  
+  expect_failure(expect_col_vals_make_set(tbl, columns = vars(c), set = c(2, 3, 4, 7, 9, NA)))
+  expect_failure(expect_col_vals_make_set(tbl, columns = vars(e), set = TRUE))
+  
+  expect_error(expect_col_vals_make_set(tbl, columns = vars(e), set = TRUE), class = "expectation_failure")
+  
+  expect_failure(expect_col_vals_make_set(tbl, columns = vars(e), set = TRUE, threshold = 1), failed_beyond_absolute)
+  expect_failure(expect_col_vals_make_set(tbl, columns = vars(e), set = TRUE, threshold = 0.01), failed_beyond_proportional)
+  
+  expect_failure(
+    expect_col_vals_make_set(tbl, columns = vars(e), set = TRUE),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  #
+  # expect_col_vals_make_subset()
+  #
+  
+  expect_col_vals_make_subset(tbl, columns = vars(c), set = tbl$c %>% unique())
+  expect_col_vals_make_subset(tbl, columns = vars(c), set = c(3, 8, 7))
+  expect_col_vals_make_subset(tbl, columns = vars(c), set = c(3, 8, 7, NA))
+  expect_success(expect_col_vals_make_subset(tbl, columns = vars(b), set = tbl$b))
+  expect_success(expect_col_vals_make_subset(tbl, columns = vars(c), set = c(2, 3, 4, 7, 9, NA), threshold = 3))
+  
+  expect_failure(expect_col_vals_make_subset(tbl, columns = vars(c), set = c(2, 3, 4, 7, 25, NA)))
+  expect_failure(expect_col_vals_make_subset(tbl, columns = vars(e), set = 99))
+  
+  expect_error(expect_col_vals_make_subset(tbl, columns = vars(e), set = ""), class = "expectation_failure")
+  
+  expect_failure(expect_col_vals_make_subset(tbl, columns = vars(e), set = "", threshold = 1), failed_beyond_absolute)
+  expect_failure(expect_col_vals_make_subset(tbl, columns = vars(e), set = "", threshold = 0.01), failed_beyond_proportional)
+  
+  expect_failure(
+    expect_col_vals_make_subset(tbl, columns = vars(e), set = ""),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  #
+  # expect_col_vals_increasing()
+  #
+  
+  expect_col_vals_increasing(increasing_tbl, vars(a))
+  expect_col_vals_increasing(increasing_tbl, vars(b), na_pass = TRUE)
+  expect_col_vals_increasing(increasing_tbl, vars(c), allow_stationary = TRUE)
+  expect_col_vals_increasing(increasing_tbl, vars(d), decreasing_tol = 0.001)
+  expect_col_vals_increasing(increasing_tbl, vars(d), decreasing_tol = 0.0001)
+  expect_col_vals_increasing(increasing_tbl, vars(d), allow_stationary = TRUE, decreasing_tol = 0.001)
+  
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(d), allow_stationary = TRUE, decreasing_tol = 0.00001))
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(b)))
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(c)))
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(d), allow_stationary = TRUE))
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(d), decreasing_tol = 0.00001))
+  
+  expect_error(expect_col_vals_increasing(increasing_tbl, vars(b)), class = "expectation_failure")
+  
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(b), threshold = 1), failed_beyond_absolute)
+  expect_failure(expect_col_vals_increasing(increasing_tbl, vars(b), threshold = 0.01), failed_beyond_proportional)
+  
+  expect_failure(
+    expect_col_vals_increasing(increasing_tbl, vars(b)),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  #
+  # expect_col_vals_decreasing()
+  #
+  
+  expect_col_vals_decreasing(decreasing_tbl, vars(a))
+  expect_col_vals_decreasing(decreasing_tbl, vars(b), na_pass = TRUE)
+  expect_col_vals_decreasing(decreasing_tbl, vars(c), allow_stationary = TRUE)
+  expect_col_vals_decreasing(decreasing_tbl, vars(d), increasing_tol = 0.001)
+  expect_col_vals_decreasing(decreasing_tbl, vars(d), increasing_tol = 0.0001)
+  expect_col_vals_decreasing(decreasing_tbl, vars(d), allow_stationary = TRUE, increasing_tol = 0.001)
+  
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(d), allow_stationary = TRUE, increasing_tol = 0.00001))
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(b)))
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(c)))
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(d), allow_stationary = TRUE))
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(d), increasing_tol = 0.00001))
+  
+  expect_error(expect_col_vals_decreasing(decreasing_tbl, vars(b)), class = "expectation_failure")
+  
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(b), threshold = 1), failed_beyond_absolute)
+  expect_failure(expect_col_vals_decreasing(decreasing_tbl, vars(b), threshold = 0.01), failed_beyond_proportional)
+  
+  expect_failure(
+    expect_col_vals_decreasing(decreasing_tbl, vars(b)),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
   )
   
   #

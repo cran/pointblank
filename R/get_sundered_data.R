@@ -71,9 +71,9 @@
 #' # `interrogate()` immediately
 #' agent <-
 #'   create_agent(tbl = small_table) %>%
-#'   col_vals_gt(vars(d), 100) %>%
+#'   col_vals_gt(vars(d), value = 100) %>%
 #'   col_vals_equal(
-#'     vars(d), vars(d),
+#'     vars(d), value = vars(d),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   col_vals_between(
@@ -89,7 +89,7 @@
 #' 
 #' @family Post-interrogation
 #' @section Function ID:
-#' 7-3
+#' 8-3
 #' 
 #' @export
 get_sundered_data <- function(agent,

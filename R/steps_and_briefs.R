@@ -19,6 +19,8 @@
 
 create_validation_step <- function(agent,
                                    assertion_type,
+                                   i_o = NULL,
+                                   columns_expr = NULL,
                                    column = NULL,
                                    values = NULL,
                                    na_pass = NULL,
@@ -30,11 +32,7 @@ create_validation_step <- function(agent,
                                    active = NULL) {
   
   # Get the next step number (i)
-  if (nrow(agent$validation_set) == 0) {
-    i <- 1L
-  } else {
-    i <- max(agent$validation_set$i) + 1L
-  }
+  i <- get_next_validation_set_row(agent)
   
   # Calculate the SHA1 hash for the validation step
   sha1 <-
@@ -49,14 +47,18 @@ create_validation_step <- function(agent,
         )
       )
     )
-  
+
   # Create a validation step as a single-row `tbl_df` object
   validation_step_df <-
     dplyr::tibble(
       i = i,
+      i_o = ifelse(is.null(i_o), NA_integer_, as.integer(i_o)),
       step_id = step_id,
       sha1 = sha1,
       assertion_type = assertion_type,
+      columns_expr = ifelse(
+        is.null(columns_expr), NA_character_, as.character(columns_expr)
+      ),
       column = ifelse(is.null(column), list(NULL), list(column)),
       values = ifelse(is.null(values), list(NULL), list(values)),
       na_pass = ifelse(is.null(na_pass), as.logical(NA), as.logical(na_pass)),
@@ -66,7 +68,8 @@ create_validation_step <- function(agent,
       actions = ifelse(is.null(actions), list(NULL), list(actions)),
       label = ifelse(is.null(label), NA_character_, as.character(label)),
       brief = ifelse(is.null(brief), NA_character_, as.character(brief)),
-      active = ifelse(is.null(active), NA, active),
+      active = ifelse(is.null(active), list(NULL), list(active)),
+      eval_active = NA,
       eval_error = NA,
       eval_warning = NA,
       capture_stack = list(NULL),
@@ -184,6 +187,32 @@ create_autobrief <- function(agent,
     autobrief <- finalize_autobrief(expectation_text, precondition_text)
   }
   
+  if (assertion_type == "col_vals_make_set") {
+    
+    expectation_text <- 
+      prep_make_set_expectation_text(
+        column_text,
+        column_computed_text,
+        values_text,
+        lang = lang
+      )
+    
+    autobrief <- finalize_autobrief(expectation_text, precondition_text)
+  }
+  
+  if (assertion_type == "col_vals_make_subset") {
+    
+    expectation_text <- 
+      prep_make_subset_expectation_text(
+        column_text,
+        column_computed_text,
+        values_text,
+        lang = lang
+      )
+    
+    autobrief <- finalize_autobrief(expectation_text, precondition_text)
+  }
+  
   if (assertion_type %in% c("col_vals_null", "col_vals_not_null")) {
     
     expectation_text <- 
@@ -210,6 +239,30 @@ create_autobrief <- function(agent,
         value_2,
         not = grepl("not", assertion_type),
         lang = lang
+      )
+    
+    autobrief <- finalize_autobrief(expectation_text, precondition_text)
+  }
+  
+  if (assertion_type == "col_vals_increasing") {
+    
+    expectation_text <-
+      prep_increasing_expectation_text(
+        column_text,
+        column_computed_text,
+        lang
+      )
+    
+    autobrief <- finalize_autobrief(expectation_text, precondition_text)
+  }
+  
+  if (assertion_type == "col_vals_decreasing") {
+    
+    expectation_text <-
+      prep_decreasing_expectation_text(
+        column_text,
+        column_computed_text,
+        lang
       )
     
     autobrief <- finalize_autobrief(expectation_text, precondition_text)
@@ -430,6 +483,22 @@ prep_in_set_expectation_text <- function(column_text,
   }
 }
 
+prep_make_set_expectation_text <- function(column_text,
+                                           column_computed_text,
+                                           values_text,
+                                           lang) {
+  
+  glue::glue(get_lsv("autobriefs/make_set_expectation_text")[[lang]])
+}
+
+prep_make_subset_expectation_text <- function(column_text,
+                                              column_computed_text,
+                                              values_text,
+                                              lang) {
+  
+  glue::glue(get_lsv("autobriefs/make_subset_expectation_text")[[lang]])
+}
+
 prep_between_expectation_text <- function(column_text,
                                           column_computed_text,
                                           value_1,
@@ -455,6 +524,21 @@ prep_null_expectation_text <- function(column_text,
     glue::glue(get_lsv("autobriefs/not_null_expectation_text")[[lang]])
   }
 }
+
+prep_increasing_expectation_text <- function(column_text,
+                                             column_computed_text,
+                                             lang) {
+  
+  glue::glue(get_lsv("autobriefs/increasing_expectation_text")[[lang]])
+}
+
+prep_decreasing_expectation_text <- function(column_text,
+                                             column_computed_text,
+                                             lang) {
+  
+  glue::glue(get_lsv("autobriefs/decreasing_expectation_text")[[lang]])
+}
+
 
 prep_regex_expectation_text <- function(column_text,
                                         column_computed_text,
@@ -533,6 +617,8 @@ failure_message_gluestring <- function(fn_name,
       "expect_col_vals_not_in_set" = get_lsv("autobriefs/not_in_set_failure_text")[[lang]],
       "expect_col_vals_null" = get_lsv("autobriefs/null_failure_text")[[lang]],
       "expect_col_vals_not_null" = get_lsv("autobriefs/not_null_failure_text")[[lang]],
+      "expect_col_vals_increasing" = get_lsv("autobriefs/increasing_failure_text")[[lang]],
+      "expect_col_vals_decreasing" = get_lsv("autobriefs/decreasing_failure_text")[[lang]],
       "expect_col_vals_regex" = get_lsv("autobriefs/regex_failure_text")[[lang]],
       "expect_conjointly" = get_lsv("autobriefs/conjointly_failure_text")[[lang]],
       "expect_col_exists" = get_lsv("autobriefs/col_exists_failure_text")[[lang]],

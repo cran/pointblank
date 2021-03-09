@@ -4,29 +4,33 @@
 \alias{yaml_informant_incorporate}
 \title{Get an \emph{informant} from \strong{pointblank} YAML and \code{incorporate()}}
 \usage{
-yaml_informant_incorporate(path)
+yaml_informant_incorporate(filename, path = NULL)
 }
 \arguments{
-\item{path}{A path to a YAML file that specifies a information for an
+\item{filename}{The name of the YAML file that contains fields related to an
 \emph{informant}.}
+
+\item{path}{An optional path to the YAML file (combined with \code{filename}).}
 }
 \description{
 The \code{yaml_informant_incorporate()} function operates much like the
 \code{\link[=yaml_read_informant]{yaml_read_informant()}} function (reading a \strong{pointblank} YAML file and
 generating an \emph{informant} with all information in place). The key difference
 is that this function takes things a step further and incorporates aspects
-from the the target table (defined by table-reading, \code{read_fn}, function that
-is required in the YAML file). The additional auto-invocation of
-\code{\link[=incorporate]{incorporate()}} uses the default options of that function. As with
-\code{\link[=yaml_read_informant]{yaml_read_informant()}} the informant is returned except, this time, it has
-been updated with the latest information from the target table.
+from the the target table (defined by table-prep formula that is required in
+the YAML file). The additional auto-invocation of \code{\link[=incorporate]{incorporate()}} uses the
+default options of that function. As with \code{\link[=yaml_read_informant]{yaml_read_informant()}} the
+informant is returned except, this time, it has been updated with the latest
+information from the target table.
 }
 \section{Function ID}{
 
-9-7
+11-7
 }
 
 \examples{
+if (interactive()) {
+
 # Let's go through the process of
 # developing an informant with information
 # about the `small_table` dataset and then
@@ -76,17 +80,17 @@ informant <-
 
 # The informant can be written to a pointblank
 # YAML file with `yaml_write()`
-# yaml_write(
-#   informant = informant,
-#   filename = "informant-small_table.yml"
-# )
+yaml_write(
+  informant = informant,
+  filename = "informant-small_table.yml"
+)
 
 # The 'informant-small_table.yml' file
 # is available in the package through
 # `system.file()`
 yml_file <- 
   system.file(
-    "informant-small_table.yml",
+    "yaml", "informant-small_table.yml",
     package = "pointblank"
   )
 
@@ -96,7 +100,7 @@ yml_file <-
 # use of the YAML file with
 # `yaml_informant_incorporate()`
 informant <- 
-  yaml_informant_incorporate(path = yml_file)
+  yaml_informant_incorporate(filename = yml_file)
 
 class(informant)
 
@@ -106,9 +110,11 @@ class(informant)
 # `yaml_read_informant()` function will
 # be useful
 informant <- 
-  yaml_read_informant(path = yml_file)
+  yaml_read_informant(filename = yml_file)
 
 class(informant)
+
+}
 
 }
 \seealso{
@@ -116,6 +122,7 @@ Other pointblank YAML:
 \code{\link{yaml_agent_interrogate}()},
 \code{\link{yaml_agent_show_exprs}()},
 \code{\link{yaml_agent_string}()},
+\code{\link{yaml_exec}()},
 \code{\link{yaml_read_agent}()},
 \code{\link{yaml_read_informant}()},
 \code{\link{yaml_write}()}

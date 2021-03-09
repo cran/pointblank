@@ -2,45 +2,76 @@
 % Please edit documentation in R/yaml_write.R
 \name{yaml_write}
 \alias{yaml_write}
-\title{Write an \emph{agent} and \emph{informant} to a \strong{pointblank} YAML file}
+\title{Write \strong{pointblank} objects to YAML files}
 \usage{
-yaml_write(agent = NULL, informant = NULL, filename, path = NULL)
+yaml_write(
+  ...,
+  .list = list2(...),
+  filename = NULL,
+  path = NULL,
+  expanded = FALSE,
+  quiet = FALSE
+)
 }
 \arguments{
-\item{agent}{An \emph{agent} object of class \code{ptblank_agent}.}
+\item{...}{Any mix of \strong{pointblank} objects such as the \emph{agent}
+(\code{ptblank_agent}), the \emph{informant} (\code{ptblank_informant}), or the table
+store (\code{tbl_store}). The agent and informant can be combined into a single
+YAML file (so as both objects have the same value for \code{read_fn}). A table
+store cannot be combined with either an agent or an informant so it must
+undergo conversion alone.}
 
-\item{informant}{An \emph{informant} object of class \code{ptblank_informant}.}
+\item{.list}{Allows for the use of a list as an input alternative to \code{...}.}
 
 \item{filename}{The name of the YAML file to create on disk. It is
 recommended that either the \code{.yaml} or \code{.yml} extension be used for this
-file.}
+file. If not provided then default names will be used (\code{"tbl_store.yml"})
+for a table store and the other objects will get default naming to the
+effect of \code{"<object>-<tbl_name>.yml"}.}
 
 \item{path}{An optional path to which the YAML file should be saved (combined
 with \code{filename}).}
+
+\item{expanded}{Should the written validation expressions for an \emph{agent} be
+expanded such that \strong{tidyselect} and \code{\link[=vars]{vars()}} expressions for columns are
+evaluated, yielding a validation function per column? By default, this is
+\code{FALSE} so expressions as written will be retained in the YAML
+representation.}
+
+\item{quiet}{Should the function \emph{not} inform when the file is written? By
+default this is \code{FALSE}.}
+}
+\value{
+Invisibly returns \code{TRUE} if the YAML file has been written.
 }
 \description{
-With \code{yaml_write()} we can take an existing \emph{agent} and write that \emph{agent}'s
-validation plan to a YAML file. With \strong{pointblank} YAML, we can modify the
-YAML markup if so desired, or, use as is to create a new agent with the
-\code{\link[=yaml_read_agent]{yaml_read_agent()}} function. That \emph{agent} will have a validation plan and is
-ready to \code{\link[=interrogate]{interrogate()}} the data. We can go a step further and perform an
-interrogation directly from the YAML file with the \code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}}
-function. That returns an agent with intel (having already interrogated the
-target data table). An \emph{informant} object can also be written to YAML with
-\code{yaml_write()}.
+With \code{yaml_write()} we can take different \strong{pointblank} objects (these are
+the \code{ptblank_agent}, \code{ptblank_informant}, and \code{tbl_store}) and write them to
+YAML. With an \emph{agent}, for example, \code{yaml_write()} will write that everything
+that is needed to specify an \emph{agent} and it's validation plan to a YAML file.
+With YAML, we can modify the YAML markup if so desired, or, use as is to
+create a new agent with the \code{\link[=yaml_read_agent]{yaml_read_agent()}} function. That \emph{agent} will
+have a validation plan and is ready to \code{\link[=interrogate]{interrogate()}} the data. We can go a
+step further and perform an interrogation directly from the YAML file with
+the \code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}} function. That returns an agent with intel
+(having already interrogated the target data table). An \emph{informant} object
+can also be written to YAML with \code{yaml_write()}.
 
-One requirement for writing the \emph{agent} to YAML is that we need to have a
-table-reading function (\code{read_fn}) specified (it's a function that is used to
-read the target table when \code{\link[=interrogate]{interrogate()}} is called). This option can be set
-when using \code{\link[=create_agent]{create_agent()}} or with \code{\link[=set_read_fn]{set_read_fn()}} (for use with an existing
-\emph{agent}).
+One requirement for writing an \emph{agent} or an \emph{informant} to YAML is that we
+need to have a table-prep formula (\code{read_fn}) specified (it's an R formula
+that is used to read the target table when \code{\link[=interrogate]{interrogate()}} or \code{\link[=incorporate]{incorporate()}}
+is called). This option can be set when using
+\code{\link[=create_agent]{create_agent()}}/\code{\link[=create_informant]{create_informant()}} or with \code{\link[=set_read_fn]{set_read_fn()}} (useful with an
+existing agent or informant object).
 }
 \section{Function ID}{
 
-9-1
+11-1
 }
 
 \examples{
+if (interactive()) {
+
 # Let's go through the process of
 # developing an agent with a validation
 # plan (to be used for the data quality
@@ -48,9 +79,9 @@ when using \code{\link[=create_agent]{create_agent()}} or with \code{\link[=set_
 # and then offloading that validation
 # plan to a pointblank YAML file
 
-# We ought to think about what's
-# tolerable in terms of data quality so
-# let's designate proportional failure
+# Creating an `action_levels` object is a
+# common workflow step when creating a
+# pointblank agent; we designate failure
 # thresholds to the `warn`, `stop`, and
 # `notify` states using `action_levels()`
 al <- 
@@ -81,31 +112,31 @@ agent <-
   agent \%>\% 
   col_exists(vars(date, date_time)) \%>\%
   col_vals_regex(
-    vars(b), "[0-9]-[a-z]{3}-[0-9]{3}"
+    vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(vars(d), 100) \%>\%
-  col_vals_lte(vars(c), 5)
+  col_vals_gt(vars(d), value = 100) \%>\%
+  col_vals_lte(vars(c), value = 5)
 
 # The agent can be written to a pointblank
 # YAML file with `yaml_write()`
-# yaml_write(
-#   agent = agent,
-#   filename = "agent-small_table.yml"
-# )
+yaml_write(
+  agent,
+  filename = "agent-small_table.yml"
+)
 
 # The 'agent-small_table.yml' file is
 # available in the package through
 # `system.file()`
 yml_file <- 
   system.file(
-    "agent-small_table.yml",
+    "yaml", "agent-small_table.yml",
     package = "pointblank"
   )
 
 # We can view the YAML file in the console
 # with the `yaml_agent_string()` function
-yaml_agent_string(path = yml_file)
+yaml_agent_string(filename = yml_file)
 
 # The YAML can also be printed in the console
 # by supplying the agent as the input
@@ -115,7 +146,7 @@ yaml_agent_string(agent = agent)
 # be read into a new agent with the
 # `yaml_read_agent()` function
 agent <- 
-  yaml_read_agent(path = yml_file)
+  yaml_read_agent(filename = yml_file)
 
 class(agent)
 
@@ -126,9 +157,11 @@ class(agent)
 # interrogate directly from the YAML
 # file with `yaml_agent_interrogate()`
 agent <- 
-  yaml_agent_interrogate(path = yml_file)
+  yaml_agent_interrogate(filename = yml_file)
 
 class(agent)
+
+}
 
 }
 \seealso{
@@ -136,6 +169,7 @@ Other pointblank YAML:
 \code{\link{yaml_agent_interrogate}()},
 \code{\link{yaml_agent_show_exprs}()},
 \code{\link{yaml_agent_string}()},
+\code{\link{yaml_exec}()},
 \code{\link{yaml_informant_incorporate}()},
 \code{\link{yaml_read_agent}()},
 \code{\link{yaml_read_informant}()}

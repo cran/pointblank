@@ -41,6 +41,10 @@ is_tbl_dbi <- function(x) {
   inherits(x, "tbl_dbi")
 }
 
+is_arrow_object <- function(x) {
+  inherits(x, "ArrowObject")
+}
+
 has_agent_intel <- function(agent) {
   inherits(agent, "has_intel")
 }
@@ -91,6 +95,21 @@ interrogation_time <- function(agent) {
 
 number_of_validation_steps <- function(agent) {
   if (is_ptblank_agent(agent)) agent$validation_set %>% nrow() else NA
+}
+
+# Get the next step number for the `validation_set` tibble
+get_next_validation_set_row <- function(agent) {
+  
+  if (nrow(agent$validation_set) == 0) {
+    step <- 1L
+  } else {
+    step <- max(agent$validation_set$i) + 1L
+  }
+  step
+}
+
+exported_tidyselect_fns <- function() {
+  c("starts_with", "ends_with", "contains", "matches", "everything")
 }
 
 get_assertion_type_at_idx <- function(agent, idx) {
@@ -292,9 +311,13 @@ row_based_step_fns_vector <- function() {
     "col_vals_between",
     "col_vals_not_between",
     "col_vals_in_set",
+    "col_vals_make_set",
+    "col_vals_make_subset",
     "col_vals_not_in_set",
     "col_vals_null",
     "col_vals_not_null",
+    "col_vals_increasing",
+    "col_vals_decreasing",
     "col_vals_regex",
     "col_vals_expr",
     "conjointly",
@@ -347,6 +370,14 @@ get_tbl_information <- function(tbl) {
   } else if (is_tbl_dbi(tbl)) {
     
     tbl_information <- get_tbl_information_dbi(tbl)
+    
+  } else if (is_arrow_object(tbl)) {
+    
+    # nocov start
+
+    tbl_information <- get_tbl_information_arrow(tbl)
+    
+    # nocov end
     
   } else {
     
@@ -543,6 +574,48 @@ get_tbl_information_dbi <- function(tbl) {
   )
 }
 
+get_tbl_information_arrow <- function(tbl) {
+
+  schema_cap <- utils::capture.output(tbl$schema)[-1][seq_len(ncol(tbl))]
+  
+  col_names <-
+    vapply(
+      schema_cap,
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        unlist(strsplit(x, split = ": "))[1]
+      }
+    )
+  
+  db_col_types <-
+    vapply(
+      schema_cap,
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        unlist(strsplit(x, split = ": "))[2]
+      }
+    )
+  
+  r_col_types <-
+    vapply(
+      dplyr::as_tibble(utils::head(tbl, 1)),
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) class(x)[1]
+    )
+  
+  list(
+    tbl_src = "Arrow",
+    tbl_src_details = class(tbl)[1],
+    db_tbl_name = NA_character_,
+    col_names = col_names,
+    r_col_types = r_col_types,
+    db_col_types = db_col_types
+  )
+} 
+
 pb_fmt_number <- function(x,
                           decimals = 2,
                           n_sigfig = NULL,
@@ -566,7 +639,7 @@ pb_fmt_number <- function(x,
   ((dplyr::tibble(a = x) %>%
       gt::gt() %>%
       gt::fmt_number(
-        vars(a),
+        columns = "a",
         decimals = decimals,
         n_sigfig = n_sigfig,
         drop_trailing_zeros = drop_trailing_zeros,
@@ -652,23 +725,114 @@ tidy_gsub <- function(x,
   gsub(pattern, replacement, x, fixed = fixed)
 }
 
-pb_str_catalog <- function(item_vector,
-                           conj = "and",
-                           more = "more",
-                           surround = c("\"", "`"),
-                           sep = ",",
-                           limit = 5,
-                           oxford = TRUE) {
+capture_formula <- function(formula, separate = TRUE) {
   
-  item_count <- length(item_vector)
+  attributes(formula) <- NULL
   
-  if (item_count > 2 && item_count > limit) {
-    n_overlimit <- paste0("(+", paste(item_count - limit, more), ")")
-    item_vector <- item_vector[1:limit]
-  } else {
-    n_overlimit <- ""
+  output <- utils::capture.output(formula) %>% 
+    gsub("^\\s+", "", .) %>%
+    paste(collapse = "")
+
+  if (separate) {
+    if (grepl("^~", output)) {
+      output <- c(NA_character_, output)
+    } else {
+      output <- strsplit(output, " ~ ") %>% unlist()
+      output[2] <- paste("~", output[2])
+    }
   }
   
+  output
+}
+
+pb_str_catalog <- function(item_vector,
+                           limit = 5,
+                           sep = ",",
+                           and_or = NULL,
+                           oxford = TRUE,
+                           as_code = TRUE,
+                           quot_str = NULL,
+                           lang = NULL) {
+  
+  if (is.null(lang)) lang <- "en"
+  
+  item_count <- length(item_vector)
+
+  # If there is nothing in the `item_vector`, return
+  # a text string with three hyphens
+  if (item_count < 1) {
+    return("---")
+  }
+  
+  if (item_count > 2 && item_count > limit) {
+    
+    n_items <- item_count - limit
+    
+    more <- glue::glue(get_lsv("informant_report/snip_list_more")[[lang]])
+    
+    n_overlimit <- paste0("(", more, ")")
+    
+    item_vector <- item_vector[1:limit]
+    
+  } else {
+    
+    n_overlimit <- ""
+  }
+
+  if (is.null(quot_str)) {
+    
+    if (is.numeric(item_vector) || 
+        is.logical(item_vector) ||
+        inherits(item_vector, "Date") ||
+        inherits(item_vector, "POSIXct")) {
+      
+      quot_str <- FALSE
+    } else {
+      quot_str <- TRUE
+    }
+  }
+
+  surround <- c()
+  
+  if (quot_str) {
+    surround <- "\""
+  }
+  
+  if (as_code) {
+    surround <- c(surround, "`")
+  }
+
+  if (is.null(and_or)) {
+    and_or <- "and"
+  }
+  
+  if (!(and_or %in% c("and", "or", ""))) {
+    stop(
+      "The value for `and_or` must be one of the following:\n",
+      "* `\"and\"`, `\"or\"`, or an empty string",
+      call. = FALSE
+    )
+  }
+  
+  if (and_or == "") {
+    
+    # Force the use of all possible commas where the conjunction
+    # is not used (this is technically not using an Oxford comma but
+    # this proceeds down the same codepath)
+    oxford <- TRUE
+    
+  } else {
+    
+    and_or <- get_lsv(paste0("informant_report/snip_list_", and_or))[[lang]]
+    
+    # If a conjunction (the and/or types) is used in any language
+    # other than English (where its use is definitely incorrect),
+    # then force `oxford` to be FALSE (default is TRUE)
+    if (lang != "en" && n_overlimit == "") {
+      oxford <- FALSE
+    }
+  }
+
   surround_str_1 <- rev(surround) %>% paste(collapse = "")
   surround_str_2 <- surround %>% paste(collapse = "")
   
@@ -680,29 +844,297 @@ pb_str_catalog <- function(item_vector,
     
   } else if (item_count == 2) {
     
-    return(paste(cat_str[1], conj, cat_str[2]))
+    return(paste0(cat_str[1], and_or, cat_str[2]))
     
   } else {
     
     separators <- rep(paste0(sep, " "), length(item_vector) - 1)
     
     if (!oxford) {
-      separators[length(separators)] <- ""
+      separators[length(separators)] <- " "
     }
-    
+
     if (n_overlimit == "") {
       separators[length(separators)] <- 
-        paste0(separators[length(separators)], conj, " ")
+        paste0(
+          separators[length(separators)],
+          gsub("(^ | $)", "", and_or),
+          " "
+        )
     }
     
     separators[length(separators) + 1] <- ""
     
-    cat_str <-
-      paste0(cat_str, separators) %>%
-      paste(collapse = "")
+    if (length(cat_str) == 2) {
+      
+      cat_str <- 
+        paste0(cat_str[1], ", ", cat_str[2])
+      
+    } else {
+      
+      cat_str <-
+        paste0(cat_str, separators) %>%
+        paste(collapse = "")
+    }
     
     cat_str <- paste(cat_str, n_overlimit)
     
+    cat_str <- gsub("\\s+$", "", cat_str)
+    
     return(cat_str)
   }
+}
+
+pb_str_summary <- function(column,
+                           type) {
+
+  if (type == "5num") {
+    
+    color <- "dodgerblue"
+    
+    min_max <- pb_min_max_stats(column)
+    
+    minimum <- min_max$min
+    q1 <- pb_quantile_stats(column, quantile = 0.25)
+    median <- pb_quantile_stats(column, quantile = 0.5)
+    q3 <- pb_quantile_stats(column, quantile = 0.75)
+    maximum <- min_max$max
+    
+    summary_str <-
+      htmltools::tags$span(
+        class = "pb_label",
+        style = htmltools::css(
+          padding = "0 5px 0 5px",
+          font_size = "smaller",
+          border_color = "lightgray"
+        ),
+        htmltools::HTML(
+          paste(
+            generate_number(1, color, "Minimum"), minimum,
+            generate_number(2, color, "Q1"), q1,
+            generate_number(3, color, "Median"), median,
+            generate_number(4, color, "Q3"), q3,
+            generate_number(5, color, "Maximum"), maximum
+          )
+        )
+      )
+    
+  } else if (type == "7num") {
+    
+    color <- "darkviolet"
+    
+    p2 <- pb_quantile_stats(column, quantile = 0.02)
+    p9 <- pb_quantile_stats(column, quantile = 0.09)
+    q1 <- pb_quantile_stats(column, quantile = 0.25)
+    median <- pb_quantile_stats(column, quantile = 0.5)
+    q3 <- pb_quantile_stats(column, quantile = 0.75)
+    p91 <- pb_quantile_stats(column, quantile = 0.91)
+    p98 <- pb_quantile_stats(column, quantile = 0.98)
+    
+    summary_str <-
+      htmltools::tags$span(
+        class = "pb_label",
+        style = htmltools::css(
+          padding = "0 5px 0 5px",
+          font_size = "smaller",
+          border_color = "lightgray"
+        ),
+        htmltools::HTML(
+          paste(
+            generate_number(1, color, "P2"), p2,
+            generate_number(2, color, "P9"), p9,
+            generate_number(3, color, "Q1"), q1,
+            generate_number(4, color, "Median"), median,
+            generate_number(5, color, "Q3"), q3,
+            generate_number(6, color, "P91"), p91,
+            generate_number(7, color, "P98"), p98
+          )
+        )
+      )
+    
+  } else if (type == "bowley") {
+    
+    color <- "orangered"
+    
+    min_max <- pb_min_max_stats(column)
+    
+    minimum <- min_max$min
+    p10 <- pb_quantile_stats(column, quantile = 0.10)
+    q1 <- pb_quantile_stats(column, quantile = 0.25)
+    median <- pb_quantile_stats(column, quantile = 0.5)
+    q3 <- pb_quantile_stats(column, quantile = 0.75)
+    p90 <- pb_quantile_stats(column, quantile = 0.90)
+    maximum <- min_max$max
+    
+    summary_str <-
+      htmltools::tags$span(
+        class = "pb_label",
+        style = htmltools::css(
+          padding = "0 5px 0 5px",
+          font_size = "smaller",
+          border_color = "lightgray"
+        ),
+        htmltools::HTML(
+          paste(
+            generate_number(1, color, "Minimum"), minimum,
+            generate_number(2, color, "P10"), p10,
+            generate_number(3, color, "Q1"), q1,
+            generate_number(4, color, "Median"), median,
+            generate_number(5, color, "Q3"), q3,
+            generate_number(6, color, "P90"), p90,
+            generate_number(7, color, "Maximum"), maximum
+          )
+        )
+      )
+  }
+  
+  summary_str
+}
+
+generate_number <- function(number,
+                            color,
+                            title) {
+  
+  number <- as.character(number)
+  
+  u_char <-
+    switch(
+      number,
+      "1" = "&#10122;",
+      "2" = "&#10123;",
+      "3" = "&#10124;",
+      "4" = "&#10125;",
+      "5" = "&#10126;",
+      "6" = "&#10127;",
+      "7" = "&#10128;",
+      "8" = "&#10129;",
+      "9" = "&#10130;",
+      "10" = "&#10131;"
+    )
+
+  as.character(
+    htmltools::tags$span(
+      style = paste0("color: ", color, "; cursor: default;"),
+      title = title,
+      htmltools::HTML(u_char)
+    )
+  )
+}
+
+pb_quantile_stats <- function(data_column,
+                              quantile) {
+  
+  if (is_tbl_spark(data_column)) {
+    
+    column_name <- colnames(data_column)
+    
+    quantile <- 
+      sparklyr::sdf_quantile(
+        data_column, column_name,
+        probabilities = quantile
+      ) %>% 
+      unname() %>%
+      round(2)
+    
+    return(quantile)
+    
+  } else if (inherits(data_column, "data.frame")) {
+    
+    quantile <- 
+      data_column %>%
+      stats::quantile(probs = quantile, na.rm = TRUE) %>%
+      unname() %>%
+      round(2)
+    
+  } else if (is_tbl_dbi(data_column)) {
+    
+    data_column <- data_column %>% dplyr::filter(!is.na(1))
+    
+    n_rows <- 
+      data_column %>%
+      dplyr::count(name = "n") %>%
+      dplyr::pull(n) %>%
+      as.numeric()
+    
+    if (n_rows <= 5000) {
+      
+      data_column <- data_column %>% dplyr::collect()
+      
+      quantile <- 
+        data_column %>%
+        stats::quantile(probs = quantile, na.rm = TRUE) %>%
+        unname() %>%
+        round(2)
+      
+    } else {
+      
+      data_arranged <- 
+        data_column %>%
+        dplyr::rename(a = 1) %>%
+        dplyr::filter(!is.na(a)) %>%
+        dplyr::arrange(a) %>%
+        utils::head(6E8)
+      
+      n_rows_data <-  
+        data_arranged %>%
+        dplyr::count(name = "n") %>%
+        dplyr::pull(n) %>%
+        as.numeric()
+      
+      quantile_row <- floor(quantile * n_rows_data)
+      
+      quantile <- 
+        data_arranged %>%
+        utils::head(quantile_row) %>%
+        dplyr::arrange(desc(a)) %>%
+        utils::head(1) %>%
+        dplyr::pull(a) %>%
+        as.numeric() %>%
+        round(2)
+    }
+  } else {
+    stop("The table type isn't yet supported", call. = FALSE)
+  }
+  
+  quantile
+}
+
+pb_min_max_stats <- function(data_column) {
+  
+  data_column %>%
+    dplyr::summarize_all(
+      .funs = list(
+        ~ min(., na.rm = TRUE),
+        ~ max(., na.rm = TRUE)
+      )
+    ) %>%
+    dplyr::collect() %>%
+    dplyr::summarize_all(~ round(., 2)) %>%
+    dplyr::mutate_all(.funs = as.numeric) %>%
+    as.list()
+}
+
+cli_bullet_msg <- function(msg,
+                           bullet = cli::symbol$bullet,
+                           color = NULL,
+                           .envir = parent.frame()) {
+  
+  msg <- glue::glue_collapse(msg, "\n")
+  msg <- glue::glue(msg, .envir = .envir)
+  
+  if (!is.null(color) && requireNamespace("crayon", quietly = TRUE)) {
+    color_style <- crayon::make_style(color)
+    bullet <- color_style(bullet)
+  }
+
+  bullet <- paste0(bullet, " ")
+  msg <- cli_ident(msg, bullet, "  ")
+  rlang::inform(msg)
+}
+
+cli_ident <- function(x,
+                      initial = "  ",
+                      indent = initial) {
+
+  paste0(initial, gsub("\n", paste0("\n", indent), x))
 }

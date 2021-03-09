@@ -94,7 +94,7 @@ HTML has inlined styles, making it more suitable for email message bodies
 }
 \section{Function ID}{
 
-7-1
+8-1
 }
 
 \examples{
@@ -121,7 +121,7 @@ agent <-
     tbl = tbl,
     actions = al
   ) \%>\%
-  col_vals_gt(vars(a), 7) \%>\%
+  col_vals_gt(vars(a), value = 7) \%>\%
   col_is_numeric(vars(a)) \%>\%
   interrogate()
   
@@ -140,6 +140,7 @@ x$f_passed
 Other Post-interrogation: 
 \code{\link{all_passed}()},
 \code{\link{get_data_extracts}()},
-\code{\link{get_sundered_data}()}
+\code{\link{get_sundered_data}()},
+\code{\link{write_testthat_file}()}
 }
 \concept{Post-interrogation}

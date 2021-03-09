@@ -124,7 +124,7 @@
 #'     tbl = tbl,
 #'     actions = al
 #'   ) %>%
-#'   col_vals_gt(vars(a), 7) %>%
+#'   col_vals_gt(vars(a), value = 7) %>%
 #'   col_is_numeric(vars(a)) %>%
 #'   interrogate()
 #'   
@@ -140,7 +140,7 @@
 #' 
 #' @family Post-interrogation
 #' @section Function ID:
-#' 7-1
+#' 8-1
 #' 
 #' @export
 get_agent_x_list <- function(agent,

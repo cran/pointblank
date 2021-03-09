@@ -4,11 +4,13 @@
 \alias{x_read_disk}
 \title{Read a \strong{pointblank} \emph{agent} or \emph{informant} from disk}
 \usage{
-x_read_disk(path)
+x_read_disk(filename, path = NULL)
 }
 \arguments{
-\item{path}{The path to a file that was previously written by
+\item{filename}{The name of a file that was previously written by
 \code{\link[=x_write_disk]{x_write_disk()}}.}
+
+\item{path}{An optional path to the file (combined with \code{filename}).}
 }
 \description{
 An \emph{agent} or \emph{informant} that has been written to disk (with
@@ -24,8 +26,8 @@ available data extracts with \code{\link[=get_data_extracts]{get_data_extracts()
 last interrogation).
 }
 \details{
-Should the \emph{agent} or \emph{informant} possess a table-reading function (can be
-set any time with \code{\link[=set_read_fn]{set_read_fn()}}) or a specific table (settable with
+Should the \emph{agent} or \emph{informant} possess a table-prep formula (can be set
+any time with \code{\link[=set_read_fn]{set_read_fn()}}) or a specific table (settable with
 \code{\link[=set_tbl]{set_tbl()}}) we could use the \code{\link[=interrogate]{interrogate()}} or \code{\link[=incorporate]{incorporate()}} function
 again. For a \emph{data quality reporting} workflow, it is useful to
 \code{\link[=interrogate]{interrogate()}} target tables that evolve over time. While the same
@@ -36,12 +38,15 @@ table dimensions, and info snippets/text will be regenerated.
 }
 \section{Function ID}{
 
-8-2
+9-2
 }
 
 \seealso{
 Other Object Ops: 
+\code{\link{activate_steps}()},
+\code{\link{deactivate_steps}()},
 \code{\link{remove_read_fn}()},
+\code{\link{remove_steps}()},
 \code{\link{remove_tbl}()},
 \code{\link{set_read_fn}()},
 \code{\link{set_tbl}()},

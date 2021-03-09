@@ -33,6 +33,8 @@
 #' @return A `ptblank_informant` object.
 #' 
 #' @examples 
+#' if (interactive()) {
+#' 
 #' # Take the `small_table` and
 #' # assign it to `test_table`; we'll
 #' # modify it later
@@ -95,17 +97,24 @@
 #' # have been updated to reflect the
 #' # changed `test_table`
 #' 
+#' }
+#' 
 #' @family Incorporate and Report
 #' @section Function ID:
-#' 6-1
+#' 7-1
 #' 
 #' @export
 incorporate <- function(informant) {
-  
+
   # Get the target table for this informant object
   # TODO: Use the same scheme that the `agent` does
   tbl <- informant$tbl
+  tbl_name <- informant$tbl_name
   read_fn <- informant$read_fn
+  
+  # Extract the informant's `lang` and `locale` values
+  lang <- informant$lang
+  locale <- informant$locale
   
   # TODO: Verify that either `tbl` or `read_fn` is available
   
@@ -121,9 +130,21 @@ incorporate <- function(informant) {
     } else if (rlang::is_formula(read_fn)) {
       
       tbl <- 
-        read_fn %>%
-        rlang::f_rhs() %>%
+        read_fn %>% 
+        rlang::f_rhs() %>% 
         rlang::eval_tidy(env = caller_env(n = 1))
+      
+      if (inherits(tbl, "read_fn")) {
+        
+        if (inherits(tbl, "with_tbl_name") && is.na(tbl_name)) {
+          tbl_name <- tbl %>% rlang::f_lhs() %>% as.character()
+        }
+        
+        tbl <-
+          tbl %>%
+          rlang::f_rhs() %>%
+          rlang::eval_tidy(env = caller_env(n = 1))
+      }
       
     } else {
       
@@ -165,8 +186,47 @@ incorporate <- function(informant) {
 
     snippet_fn <- 
       informant$meta_snippets[[i]] %>%
+      rlang::f_rhs()
+    
+    snippet_f_rhs_str <-
+      informant$meta_snippets[[i]] %>%
       rlang::f_rhs() %>%
-      rlang::eval_tidy()
+      as.character()
+
+    if (any(grepl("pb_str_catalog", snippet_f_rhs_str)) &&
+        any(grepl("lang = NULL", snippet_f_rhs_str)) &&
+        lang != "en") {
+
+      # We are inside this conditional because the snippet involves
+      # the use of `pb_str_catalog()` and it requires a resetting
+      # of the `lang` value (from `NULL` to the informant `lang`)
+      
+      select_call_idx <-
+        which(grepl("select", snippet_f_rhs_str))
+      
+      pb_str_catalog_call_idx <-
+        which(grepl("pb_str_catalog", snippet_f_rhs_str))
+      
+      snippet_f_rhs_str[pb_str_catalog_call_idx] <-
+        gsub(
+          "lang = NULL", paste0("lang = \"", lang, "\""),
+          snippet_f_rhs_str[pb_str_catalog_call_idx]
+        )
+      
+      # Put the snippet back together as a formula and
+      # get only the RHS
+      snippet_fn <-
+        paste0(
+          "~",
+          snippet_f_rhs_str[select_call_idx],
+          " %>% ",
+          snippet_f_rhs_str[pb_str_catalog_call_idx]
+        ) %>%
+        stats::as.formula() %>%
+        rlang::f_rhs()
+    }
+    
+    snippet_fn <- snippet_fn %>% rlang::eval_tidy()
     
     if (inherits(snippet_fn, "fseq")) {
       
@@ -181,13 +241,13 @@ incorporate <- function(informant) {
           
           snippet <- 
             snippet %>%
-            pb_fmt_number(locale = informant$locale, decimals = 0)
+            pb_fmt_number(locale = locale, decimals = 0)
           
         } else {
           
           snippet <- 
             snippet %>%
-            pb_fmt_number(locale = informant$locale)
+            pb_fmt_number(locale = locale)
         }
       }
       
@@ -198,17 +258,17 @@ incorporate <- function(informant) {
   metadata_meta_label <- 
     glue_safely(
       informant$metadata[["info_label"]],
-      .otherwise = "(SNIPPET MISSING)"
+      .otherwise = "~SNIPPET MISSING~"
     )
   
   metadata_table <-
     lapply(informant$metadata[["table"]], function(x) {
-      glue_safely(x, .otherwise = "(SNIPPET MISSING)")
+      glue_safely(x, .otherwise = "~SNIPPET MISSING~")
     })
   
   metadata_columns <- 
     lapply(informant$metadata[["columns"]], lapply, function(x) {
-      glue_safely(x, .otherwise = "(SNIPPET MISSING)")
+      glue_safely(x, .otherwise = "~SNIPPET MISSING~")
     })
   
   extra_sections <- 
@@ -220,11 +280,13 @@ incorporate <- function(informant) {
   metadata_extra <- informant$metadata[extra_sections]
   
   for (i in seq_along(extra_sections)) {
-    
-    metadata_extra[[i]] <-
-      lapply(metadata_extra[[i]], function(x) {
-        glue_safely(x, .otherwise = "(SNIPPET MISSING)")
-      })
+    for (j in seq_along(metadata_extra[[i]])) {
+      
+      metadata_extra[[i]][[j]] <-
+        lapply(metadata_extra[[i]][[j]], function(x) {
+          glue_safely(x, .otherwise = "(SNIPPET MISSING)")
+        })
+    }
   }
   
   metadata_rev <-

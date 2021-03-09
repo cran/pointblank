@@ -17,8 +17,10 @@
 #
 
 
-#' Are column data greater than or equal to a specified value?
+#' Are column data greater than or equal to a fixed value or data in another
+#' column?
 #'
+#' @description
 #' The `col_vals_gte()` validation function, the `expect_col_vals_gte()`
 #' expectation function, and the `test_col_vals_gte()` test function all check
 #' whether column values in a table are *greater than or equal to* a specified
@@ -33,6 +35,7 @@
 #' units that is equal to the number of rows in the table (after any
 #' `preconditions` have been applied).
 #'
+#' @section Column Names:
 #' If providing multiple column names to `columns`, the result will be an
 #' expansion of validation steps to that number of column names (e.g.,
 #' `vars(col_a, col_b)` will result in the entry of two validation steps). Aside
@@ -40,11 +43,13 @@
 #' are available for specifying columns. They are: `starts_with()`,
 #' `ends_with()`, `contains()`, `matches()`, and `everything()`.
 #'
+#' @section Missing Values:
 #' This validation function supports special handling of `NA` values. The
 #' `na_pass` argument will determine whether an `NA` value appearing in a test
 #' unit should be counted as a *pass* or a *fail*. The default of `na_pass =
 #' FALSE` means that any `NA`s encountered will accumulate failing test units.
 #' 
+#' @section Preconditions:
 #' Having table `preconditions` means **pointblank** will mutate the table just
 #' before interrogation. Such a table mutation is isolated in scope to the
 #' validation step(s) produced by the validation function call. Using
@@ -56,6 +61,7 @@
 #' instead be supplied (e.g., 
 #' `function(x) dplyr::mutate(x, col_a = col_b + 10)`).
 #' 
+#' @section Actions:
 #' Often, we will want to specify `actions` for the validation. This argument,
 #' present in every validation function, takes a specially-crafted list object
 #' that is best produced by the [action_levels()] function. Read that function's
@@ -69,15 +75,61 @@
 #' situation (the first produces a warning when a quarter of the total test
 #' units fails, the other `stop()`s at the same threshold level).
 #' 
+#' @section Briefs:
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
 #' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
 #' then be automatically generated.
+#' 
+#' @section YAML:
+#' A **pointblank** agent can be written to YAML with [yaml_write()] and the
+#' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
+#' or interrogate the target table (via [yaml_agent_interrogate()]). When
+#' `col_vals_gte()` is represented in YAML (under the top-level `steps` key as a
+#' list member), the syntax closely follows the signature of the validation
+#' function. Here is an example of how a complex call of `col_vals_gte()` as a
+#' validation step is expressed in R code and in the corresponding YAML
+#' representation.
+#' 
+#' ```
+#' # R statement
+#' agent %>% 
+#'   col_vals_gte(
+#'     columns = vars(a),
+#'     value = 1,
+#'     na_pass = TRUE,
+#'     preconditions = ~ . %>% dplyr::filter(a < 10),
+#'     actions = action_levels(warn_at = 0.1, stop_at = 0.2),
+#'     label = "The `col_vals_gte()` step.",
+#'     active = FALSE
+#'   )
+#' 
+#' # YAML representation
+#' steps:
+#' - col_vals_gte:
+#'     columns: vars(a)
+#'     value: 1.0
+#'     na_pass: true
+#'     preconditions: ~. %>% dplyr::filter(a < 10)
+#'     actions:
+#'       warn_fraction: 0.1
+#'       stop_fraction: 0.2
+#'     label: The `col_vals_gte()` step.
+#'     active: false
+#' ```
+#' 
+#' In practice, both of these will often be shorter as only the `columns` and
+#' `value` arguments require values. Arguments with default values won't be
+#' written to YAML when using [yaml_write()] (though it is acceptable to include
+#' them with their default when generating the YAML by other means). It is also
+#' possible to preview the transformation of an agent to YAML without any
+#' writing to disk by using the [yaml_agent_string()] function.
 #'   
 #' @inheritParams col_vals_gt
-#' @param value A numeric value used for this test. Any column values `>=
-#'   value` are considered passing.
+#' @param value A value used for this comparison. This can be a single value or
+#'   a compatible column given in `vars()`. Any column values greater than or
+#'   equal to what is specified here will pass validation.
 #'   
 #' @return For the validation function, the return value is either a
 #'   `ptblank_agent` object or a table object (depending on whether an agent
@@ -175,6 +227,11 @@ col_vals_gte <- function(x,
                          brief = NULL,
                          active = TRUE) {
   
+  # Get `columns` as a label
+  columns_expr <- 
+    rlang::as_label(rlang::quo(!!enquo(columns))) %>%
+    gsub("^\"|\"$", "", .)
+  
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
   
@@ -212,6 +269,9 @@ col_vals_gte <- function(x,
   # Normalize any provided `step_id` value(s)
   step_id <- normalize_step_id(step_id, columns, agent)
   
+  # Get the next step number for the `validation_set` tibble
+  i_o <- get_next_validation_set_row(agent)
+  
   # Check `step_id` value(s) against all other `step_id`
   # values in earlier validation steps
   check_step_id_duplicates(step_id, agent)
@@ -224,6 +284,8 @@ col_vals_gte <- function(x,
       create_validation_step(
         agent = agent,
         assertion_type = "col_vals_gte",
+        i_o = i_o,
+        columns_expr = columns_expr,
         column = columns[i],
         values = value,
         na_pass = na_pass,

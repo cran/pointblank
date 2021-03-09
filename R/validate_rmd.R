@@ -77,6 +77,13 @@ validate_rmd <- function(summary = TRUE,
   
   if (test_options$perform_logging) {
     
+    if (!requireNamespace("log4r", quietly = TRUE)) {
+      stop("Using the `log4r_step()` function requires ", 
+           "the log4r package:\n",
+           " * It can be installed with `install.packages(\"log4r\")`.",
+           call. = FALSE)
+    }
+    
     # Create a log4r `logger` object and store it in `test_options`
     test_options$logger <- 
       log4r::logger(
@@ -175,7 +182,11 @@ render_template <- function(template_name, data) {
   
   if (template_name == "chunk") {
     
-    text <- pb_glue_data(data, "{error_count} {noun} failed")
+    text <- 
+      pb_glue_data(
+        data,
+        "{error_count} {noun} failed"
+      )
     
     if (data$agent_report) {
       
@@ -190,11 +201,18 @@ render_template <- function(template_name, data) {
     } else {
       
       state <- "danger"
-      text <- pb_glue_data(data, "{error_count} {noun} failed.")
+      text <- 
+        pb_glue_data(
+          data,
+          "{error_count} {noun} failed."
+        )
     }
     
     rendered <- 
-      pb_glue_data(c(data, list(state = state, text = text)), template)
+      pb_glue_data(
+        c(data, list(state = state, text = text)),
+        template
+      )
     
   } else if (template_name == "document") {
     
@@ -203,7 +221,7 @@ render_template <- function(template_name, data) {
       alert <- 
         pb_glue_data(
           data, 
-          htmltools::htmlPreserve(
+          as.character(
             htmltools::tags$div(
               class = "alert alert-danger",
               htmltools::tags$strong("Warning:"),
@@ -217,7 +235,9 @@ render_template <- function(template_name, data) {
     }
     
     rendered <-
-      pb_glue_data(c(data, list(alert = alert)), template)
+      pb_glue_data(
+        c(data, list(alert = alert)), template
+      )
   }
   
   rendered
@@ -316,20 +336,21 @@ knitr_chunk_hook <- function(x, options) {
   
   extract_output <- function(x) {
     
-    if (grepl("<!--html_preserve-->", x)) {
+    if (grepl("`.*?`\\{=html\\}", x)) {
       
-      matches <- 
-        gregexpr(
-          pattern = "<!--html_preserve-->(.|\n)*?<!--/html_preserve-->",
-          x
-        )
+      # This is an HTML report for a validation
 
-      output <- regmatches(x = x, m = matches) %>% unlist()
+      output <- 
+        x %>%
+        tidy_gsub("^\n\n(.|\n)*?```\\{=html\\}", "") %>%
+        tidy_gsub("```\n", "")
       
     } else {
       
-      matches <- gregexpr(pattern = "```\n##(.|\n)*?```", x)
+      # This is conventional, non-HTML output content
       
+      matches <- gregexpr(pattern = "```\n##(.|\n)*?```", x)
+
       output <- 
         regmatches(x = x, m = matches) %>%
         unlist() %>%
@@ -344,7 +365,7 @@ knitr_chunk_hook <- function(x, options) {
   }
   
   is_agent_tbl_output <- function(output_vec) {
-    grepl("<!--html_preserve-->", output_vec)
+    grepl("#report .gt_table", output_vec, fixed = TRUE)
   }
   
   code_vec <- extract_code(x)
@@ -596,7 +617,11 @@ knitr_chunk_hook <- function(x, options) {
 #' # You're not bound to using tabular
 #' # data here, any statements that
 #' # evaluate to logical vectors will work
-#' stop_if_not(1:5 < 20:25)
+#' stop_if_not(1 < 20:25 - 18)
+#' 
+#' @family Utility and Helper Functions
+#' @section Function ID:
+#' 12-5
 #' 
 #' @export
 stop_if_not <- function(...) {

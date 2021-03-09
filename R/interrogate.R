@@ -65,12 +65,12 @@
 #' # the whole process
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'   col_vals_gt(vars(a), 5) %>%
+#'   col_vals_gt(vars(a), value = 5) %>%
 #'   interrogate()
 #' 
 #' @family Interrogate and Report
 #' @section Function ID:
-#' 5-1
+#' 6-1
 #' 
 #' @export
 interrogate <- function(agent,
@@ -90,12 +90,13 @@ interrogate <- function(agent,
       "We can't `interrogate()` because the agent doesn't have a data table ",
       "or a function to obtain one:\n",
       "* Use the `set_tbl()` function to specify a table, or\n",
-      "* Use `set_read_fn()` to supply a table-reading function.",
+      "* Use `set_read_fn()` to supply a table-prep formula.",
       call. = FALSE
     )
   }
 
   if (is.null(agent$tbl) && !is.null(agent$read_fn)) {
+    
     if (inherits(agent$read_fn, "function")) {
       agent$tbl <- rlang::exec(agent$read_fn)
     } else if (rlang::is_formula(agent$read_fn)) {
@@ -140,9 +141,29 @@ interrogate <- function(agent,
   )
   
   for (i in validation_steps) {
+    
+    # Get the table object for interrogation 
+    table <- get_tbl_object(agent = agent)
+    
+    # Evaluate any expression in `agent$validation_set$active`
+    if (rlang::is_formula(agent$validation_set[[i, "active"]][[1]])) {
+      
+      is_active <- 
+        agent$validation_set[[i, "active"]][[1]] %>%
+        rlang::f_rhs() %>%
+        rlang::eval_tidy()
+      
+      agent$validation_set[[i, "eval_active"]] <- is_active(table)
+      rm(is_active)
+      
+    } else {
+      
+      agent$validation_set[[i, "eval_active"]] <- 
+        agent$validation_set[[i, "active"]][[1]]
+    }
 
     # Skip the validation step if `active = FALSE`
-    if (!agent$validation_set[[i, "active"]]) {
+    if (!agent$validation_set[[i, "eval_active"]]) {
       cli::cli_alert_info(
         "Step {.field {i}} is not set as {.field active}. Skipping."
       )
@@ -151,9 +172,6 @@ interrogate <- function(agent,
     
     # Get the starting time for the validation step
     validation_start_time <- Sys.time()
-    
-    # Get the table object for interrogation 
-    table <- get_tbl_object(agent = agent)
     
     # Use preconditions to modify the table
     table <- apply_preconditions_to_tbl(agent = agent, idx = i, tbl = table)
@@ -350,6 +368,9 @@ interrogate <- function(agent,
   
   class(agent) <- c("has_intel", "ptblank_agent")
   
+  # Add the ending time to the `agent` object
+  agent$time_end <- Sys.time()
+  
   # nocov start
   
   # Generate gt-based reporting objects
@@ -373,7 +394,7 @@ interrogate <- function(agent,
   # Add closing rule of interrogation console status
   create_cli_footer(quiet)
   
-  # Add the ending time to the `agent` object
+  # Update the ending time to the `agent` object
   agent$time_end <- Sys.time()
   
   agent
@@ -570,6 +591,8 @@ check_table_with_assertion <- function(agent,
         assertion_type = assertion_type
       ),
       "col_vals_in_set" =,
+      "col_vals_make_set" =,
+      "col_vals_make_subset" =,
       "col_vals_not_in_set" = interrogate_set(
         agent = agent,
         idx = idx,
@@ -585,6 +608,13 @@ check_table_with_assertion <- function(agent,
         agent = agent,
         idx = idx,
         table = table
+      ),
+      "col_vals_increasing" =,
+      "col_vals_decreasing" = interrogate_direction(
+        agent = agent,
+        idx = idx,
+        table = table,
+        assertion_type = assertion_type
       ),
       "col_vals_regex" = interrogate_regex(
         agent = agent,
@@ -1033,7 +1063,7 @@ interrogate_set <- function(agent,
   
   if (assertion_type == "col_vals_in_set") {
     
-    # Create function for validating the `col_vals_in_set()` step function
+    # Create function for validating the `col_vals_in_set()` step
     tbl_val_in_set <- function(table,
                                column,
                                na_pass) {
@@ -1055,6 +1085,132 @@ interrogate_set <- function(agent,
     tbl_evaled <- 
       pointblank_try_catch(
         tbl_val_in_set(
+          table = table,
+          column = {{ column }},
+          na_pass = na_pass
+        )
+      )
+  }
+  
+  if (assertion_type == "col_vals_make_set") {
+    
+    # Create function for validating the `col_vals_make_set()` step
+    tbl_vals_make_set <- function(table,
+                                  column,
+                                  na_pass) {
+      
+      column_validity_checks_column(table = table, column = {{ column }})
+      
+      # Define function to get distinct values from a column in the
+      # order of first appearance
+      table_col_distinct_values <-
+        table %>%
+        dplyr::select({{ column }}) %>%
+        dplyr::distinct({{ column }}) %>%
+        dplyr::collect() %>%
+        dplyr::pull({{ column }})
+
+      if (na_pass) {
+        # Remove any NA values from the vector
+        table_col_distinct_values <-
+          table_col_distinct_values[!is.na(table_col_distinct_values)]
+        
+        # Remove any NA values from the set
+        set <- set[!is.na(set)]
+      }
+      
+      extra_variables <- 
+        base::setdiff(table_col_distinct_values, set)
+      
+      table_col_distinct_set <-
+        base::intersect(table_col_distinct_values, set)
+
+      dplyr::bind_rows(
+        dplyr::tibble(set_element = as.character(set)) %>%
+          dplyr::left_join(
+            dplyr::tibble(
+              col_element = as.character(table_col_distinct_set),
+              pb_is_good_ = TRUE
+            ),
+            by = c("set_element" = "col_element")
+          ) %>%
+          dplyr::mutate(
+            pb_is_good_ = ifelse(is.na(pb_is_good_), FALSE, pb_is_good_)
+          ),
+        dplyr::tibble(
+          set_element = "::outside_values::",
+          pb_is_good_ = NA
+        ) %>%
+          dplyr::mutate(pb_is_good_ = length(extra_variables) == 0)
+      ) %>%
+        dplyr::mutate(pb_is_good_ = dplyr::case_when(
+          is.na(pb_is_good_) ~ na_pass,
+          TRUE ~ pb_is_good_
+        ))
+    }
+    
+    # Perform rowwise validations for the column
+    tbl_evaled <- 
+      pointblank_try_catch(
+        tbl_vals_make_set(
+          table = table,
+          column = {{ column }},
+          na_pass = na_pass
+        )
+      )
+  }
+  
+  if (assertion_type == "col_vals_make_subset") {
+    
+    # Create function for validating the `col_vals_make_subset()` step
+    tbl_vals_make_subset <- function(table,
+                                     column,
+                                     na_pass) {
+      
+      column_validity_checks_column(table = table, column = {{ column }})
+      
+      # Define function to get distinct values from a column in the
+      # order of first appearance
+      table_col_distinct_values <-
+        table %>%
+        dplyr::select({{ column }}) %>%
+        dplyr::distinct({{ column }}) %>%
+        dplyr::collect() %>%
+        dplyr::pull({{ column }})
+      
+      if (na_pass) {
+        # Remove any NA values from the vector
+        table_col_distinct_values <-
+          table_col_distinct_values[!is.na(table_col_distinct_values)]
+        
+        # Remove any NA values from the set
+        set <- set[!is.na(set)]
+      }
+      
+      table_col_distinct_set <-
+        base::intersect(table_col_distinct_values, set)
+      
+      dplyr::tibble(set_element = as.character(set)) %>%
+        dplyr::left_join(
+          dplyr::tibble(
+            col_element = as.character(table_col_distinct_set),
+            pb_is_good_ = TRUE
+          ),
+          by = c("set_element" = "col_element")
+        ) %>%
+        dplyr::mutate(
+          pb_is_good_ = ifelse(is.na(pb_is_good_), FALSE, pb_is_good_)
+        ) %>%
+        dplyr::mutate(pb_is_good_ = dplyr::case_when(
+          is.na(pb_is_good_) ~ na_pass,
+          TRUE ~ pb_is_good_
+        ))
+    }
+    
+    # Perform rowwise validations for the column
+    tbl_evaled <- 
+      pointblank_try_catch(
+        tbl_vals_make_subset(
           table = table,
           column = {{ column }},
           na_pass = na_pass
@@ -1094,6 +1250,132 @@ interrogate_set <- function(agent,
   }
   
   tbl_evaled
+}
+
+interrogate_direction <- function(agent,
+                                  idx,
+                                  table,
+                                  assertion_type) {
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  # Get the values for `allow_stationary` and either of
+  # the tolerance values
+  stat_tol <- get_values_at_idx(agent = agent, idx = idx)
+
+  # Determine whether NAs should be allowed
+  na_pass <- get_column_na_pass_at_idx(agent = agent, idx = idx)
+  
+  if (assertion_type == "col_vals_increasing") {
+    direction <- "increasing"
+  } else {
+    direction <- "decreasing"
+  }
+
+  # Create function for validating the `col_vals_in_set()` step function
+  tbl_val_direction <- function(table,
+                                column,
+                                na_pass,
+                                direction) {
+    
+    column_validity_checks_column(table = table, column = {{ column }})
+
+    tbl <- 
+      table %>%
+      dplyr::mutate(
+        pb_lagged_difference_ = {{ column }} - dplyr::lag({{ column }}))
+    
+    if (stat_tol[1] == 0) {
+      
+      if (direction == "increasing") {
+        
+        tbl <-
+          tbl %>%
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            pb_lagged_difference_ > 0 ~ TRUE,
+            pb_lagged_difference_ <= 0 ~ FALSE,
+            is.na({{ column }}) & !na_pass ~ FALSE
+          ))
+        
+      } else {
+        
+        tbl <-
+          tbl %>%
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            pb_lagged_difference_ < 0 ~ TRUE,
+            pb_lagged_difference_ >= 0 ~ FALSE,
+            is.na({{ column }}) & !na_pass ~ FALSE
+          ))
+      }
+    }
+    
+    if (stat_tol[1] == 1) {
+
+      if (direction == "increasing") {
+        
+        tbl <-
+          tbl %>%
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            pb_lagged_difference_ >= 0 ~ TRUE,
+            pb_lagged_difference_ < 0 ~ FALSE,
+            is.na({{ column }}) & !na_pass ~ FALSE
+          ))
+        
+      } else {
+        
+        tbl <-
+          tbl %>%
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            pb_lagged_difference_ <= 0 ~ TRUE,
+            pb_lagged_difference_ > 0 ~ FALSE,
+            is.na({{ column }}) & !na_pass ~ FALSE
+          ))
+      }
+    }
+    
+    # If a tolerance is set to some non-zero value, then accept
+    # differential values greater than or equal to that tolerance value
+    if (stat_tol[2] != 0) {
+      
+      if (direction == "increasing") {
+        
+        tbl <-
+          tbl %>%
+          dplyr::mutate(pb_is_good_ = ifelse(
+            !is.na(pb_lagged_difference_) & 
+              pb_lagged_difference_ >= (-abs(stat_tol[2])), TRUE, pb_is_good_
+          ))
+        
+      } else {
+
+        tbl <-
+          tbl %>%
+          dplyr::mutate(pb_is_good_ = ifelse(
+            !is.na(pb_lagged_difference_) & 
+              pb_lagged_difference_ <= abs(stat_tol[2]), TRUE, pb_is_good_
+          ))
+      }
+    }
+    
+    tbl <-
+      tbl %>%
+      dplyr::mutate(pb_is_good_ = ifelse(
+        is.na(pb_lagged_difference_) & is.na(pb_is_good_), TRUE, pb_is_good_
+      )) %>%
+      dplyr::select(-pb_lagged_difference_)
+  }
+  
+  # Perform rowwise validations for the column
+  tbl_evaled <- 
+    pointblank_try_catch(
+      tbl_val_direction(
+        table = table,
+        column = {{ column }},
+        na_pass = na_pass,
+        direction = direction
+      )
+    )
 }
 
 interrogate_regex <- function(agent,

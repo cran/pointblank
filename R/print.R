@@ -266,21 +266,17 @@ print.x_list_n <- function(x, ...) {
 #' @export
 print.action_levels <- function(x, ...) {
   
-  has_warn_fns <- if (!is.null(x$fns$warn)) TRUE else FALSE
-  has_stop_fns <- if (!is.null(x$fns$stop)) TRUE else FALSE
-  has_notify_fns <- if (!is.null(x$fns$notify)) TRUE else FALSE
+  # nocov start
   
-  # nocov start 
+  has_warn_fns <- !is.null(x$fns$warn)
+  has_stop_fns <- !is.null(x$fns$stop)
+  has_notify_fns <- !is.null(x$fns$notify)
+  
   cli::cli_div(
     theme = list(
-      span.cyan = list(color = "cyan"),
-      span.red = list(color = "red"),
-      span.blue = list(color = "blue"),
-      span.green = list(color = "green"),
       span.yellow = list(color = "yellow"),
-      span.orange = list(color = "orange"),
-      span.pink = list(color = "pink"),
-      span.brown = list(color = "brown")
+      span.red = list(color = "red"),
+      span.blue = list(color = "blue")
     )
   )
   
@@ -371,6 +367,119 @@ print.action_levels <- function(x, ...) {
   
   cli::cli_rule()
   
+  # nocov end 
+}
+
+#' Print the `ptblank_multiagent` object
+#'
+#' This function will allow the `ptblank_multiagent` to be nicely printed.
+#' 
+#' @param x An object of class `ptblank_multiagent`.
+#' @param view The value for `print()`s `browse` argument.
+#' @param ... Any additional parameters.
+#' 
+#' @keywords internal
+#' @export
+print.ptblank_multiagent <- function(x, view = interactive(), ...) {
+
+  # nocov start 
+  
+  print(get_multiagent_report(x), view = view, ...)
+  
+  # nocov end 
+}
+
+#' Print the `tbl_store` object
+#'
+#' This function will allow the `tbl_store` to be nicely printed.
+#' 
+#' @param x An object of class `tbl_store`.
+#' @param ... Any additional parameters.
+#' 
+#' @keywords internal
+#' @export
+print.tbl_store <- function(x, ...) {
+  
+  # nocov start
+  
+  tbl_names <- names(x)
+  
+  n_tbls <- length(tbl_names)
+  
+  has_given_name <- 
+    vapply(
+      x,
+      FUN.VALUE = logical(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) inherits(x, "with_tbl_name")
+    )
+  
+  tbl_formulas <-
+    vapply(
+      x,
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) capture_formula(x)[2]
+    )
+
+  cli::cli_div(
+    theme = list(
+      span.yellow = list(color = "yellow"),
+      span.red = list(color = "red"),
+      span.blue = list(color = "blue")
+    )
+  )
+  
+  cli::cli_rule(
+    left = "The `table_store` table-prep formulas",
+    right = paste0("n = ", n_tbls)
+  )
+  
+  for (i in seq_len(n_tbls)) {
+    cli::cli_text(
+      paste0(
+        "{.yellow {i}} {.blue {tbl_names[i]}}",
+        "{.red {ifelse(has_given_name[i], '', '*')}} // {tbl_formulas[i]}"
+      )
+    )
+  }
+  
+  cli::cli_rule()
+  
+  # nocov end 
+}
+
+#' Print the `read_fn` object
+#'
+#' This function will allow the `read_fn` to be nicely printed.
+#' 
+#' @param x An object of class `read_fn`.
+#' @param ... Any additional parameters.
+#' 
+#' @keywords internal
+#' @export
+print.read_fn <- function(x, ...) {
+  
+  # nocov start
+  tbl_name <- capture_formula(x)[1]
+  tbl_formula <- capture_formula(x)[2]
+  
+  has_given_name <- inherits(x, "with_tbl_name")
+  
+  cli::cli_div(
+    theme = list(
+      span.red = list(color = "red"),
+      span.blue = list(color = "blue")
+    )
+  )
+  
+  cli::cli_text(
+    paste0(
+      "{.blue {ifelse(is.na(tbl_name), '', tbl_name)}}",
+      "{.red {ifelse(has_given_name, '', '*')}} // {tbl_formula}"
+    )
+  )
+
   # nocov end 
 }
 

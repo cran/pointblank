@@ -4,7 +4,14 @@
 \alias{x_write_disk}
 \title{Write a \strong{pointblank} \emph{agent} or \emph{informant} to disk}
 \usage{
-x_write_disk(x, filename, path = NULL, keep_tbl = FALSE, keep_extracts = FALSE)
+x_write_disk(
+  x,
+  filename,
+  path = NULL,
+  keep_tbl = FALSE,
+  keep_extracts = FALSE,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{x}{An \emph{agent} object of class \code{ptblank_agent}, or, an \emph{informant} of
@@ -26,6 +33,12 @@ database tables of the class \code{tbl_dbi} and for Spark DataFrames
 
 \item{keep_extracts}{An option to keep any collected extract data for failing
 rows. By default, this is \code{FALSE}.}
+
+\item{quiet}{Should the function \emph{not} inform when the file is written? By
+default this is \code{FALSE}.}
+}
+\value{
+Invisibly returns \code{TRUE} if the file has been written.
 }
 \description{
 Writing an \emph{agent} or \emph{informant} to disk with \code{x_write_disk()} can be useful
@@ -37,21 +50,24 @@ this only works in the case where the table is not of the \code{tbl_dbi} or the
 \code{tbl_spark} class.
 }
 \details{
-It is recommended to set a table-reading function for later reuse of the
-\emph{agent} and \emph{informant} after being read from disk through \code{\link[=x_read_disk]{x_read_disk()}}.
-This can be done initially with the \code{read_fn} argument of
+It is recommended to set up a table-prep formula so that the \emph{agent} and
+\emph{informant} can access refreshed data after being read from disk through
+\code{\link[=x_read_disk]{x_read_disk()}}. This can be done initially with the \code{read_fn} argument of
 \code{\link[=create_agent]{create_agent()}}/\code{\link[=create_informant]{create_informant()}} or, later, with \code{\link[=set_read_fn]{set_read_fn()}}.
 Alternatively, we can reintroduce the \emph{agent} or \emph{informant} to a data table
 with the \code{\link[=set_tbl]{set_tbl()}} function.
 }
 \section{Function ID}{
 
-8-1
+9-1
 }
 
 \seealso{
 Other Object Ops: 
+\code{\link{activate_steps}()},
+\code{\link{deactivate_steps}()},
 \code{\link{remove_read_fn}()},
+\code{\link{remove_steps}()},
 \code{\link{remove_tbl}()},
 \code{\link{set_read_fn}()},
 \code{\link{set_tbl}()},

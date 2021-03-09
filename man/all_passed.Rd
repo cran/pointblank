@@ -20,7 +20,7 @@ levels? Using the \code{all_passed()} function will let us know whether that's
 }
 \section{Function ID}{
 
-7-4
+8-4
 }
 
 \examples{
@@ -33,19 +33,20 @@ tbl <-
 # `a` are always greater than 4
 agent <-
   create_agent(tbl = tbl) \%>\%
-  col_vals_gt(vars(a), 4) \%>\%
+  col_vals_gt(vars(a), value = 4) \%>\%
   interrogate()
 
 # Determine if these column
 # validations have all passed
 # by using `all_passed()`
-all_passed(agent)
+all_passed(agent = agent)
 
 }
 \seealso{
 Other Post-interrogation: 
 \code{\link{get_agent_x_list}()},
 \code{\link{get_data_extracts}()},
-\code{\link{get_sundered_data}()}
+\code{\link{get_sundered_data}()},
+\code{\link{write_testthat_file}()}
 }
 \concept{Post-interrogation}

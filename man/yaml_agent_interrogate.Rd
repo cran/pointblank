@@ -4,28 +4,32 @@
 \alias{yaml_agent_interrogate}
 \title{Get an \emph{agent} from \strong{pointblank} YAML and \code{interrogate()}}
 \usage{
-yaml_agent_interrogate(path)
+yaml_agent_interrogate(filename, path = NULL)
 }
 \arguments{
-\item{path}{A path to a \strong{pointblank} YAML file that contains fields related
-to an \emph{agent}.}
+\item{filename}{The name of the YAML file that contains fields related to an
+\emph{agent}.}
+
+\item{path}{An optional path to the YAML file (combined with \code{filename}).}
 }
 \description{
 The \code{yaml_agent_interrogate()} function operates much like the
 \code{\link[=yaml_read_agent]{yaml_read_agent()}} function (reading a \strong{pointblank} YAML file and
 generating an \emph{agent} with a validation plan in place). The key difference is
 that this function takes things a step further and interrogates the target
-table (defined by table-reading, \code{read_fn}, function that is required in the
-YAML file). The additional auto-invocation of \code{\link[=interrogate]{interrogate()}} uses the
-default options of that function. As with \code{\link[=yaml_read_agent]{yaml_read_agent()}} the agent is
-returned except, this time, it has intel from the interrogation.
+table (defined by table-prep formula that is required in the YAML file). The
+additional auto-invocation of \code{\link[=interrogate]{interrogate()}} uses the default options of
+that function. As with \code{\link[=yaml_read_agent]{yaml_read_agent()}} the agent is returned except, this
+time, it has intel from the interrogation.
 }
 \section{Function ID}{
 
-9-4
+11-4
 }
 
 \examples{
+if (interactive()) {
+
 # Let's go through the process of
 # developing an agent with a validation
 # plan (to be used for the data quality
@@ -36,9 +40,9 @@ returned except, this time, it has intel from the interrogation.
 # the target data will be interrogated
 # (one step) with `yaml_agent_interrogate()`
 
-# We ought to think about what's
-# tolerable in terms of data quality so
-# let's designate proportional failure
+# Creating an `action_levels` object is a
+# common workflow step when creating a
+# pointblank agent; we designate failure
 # thresholds to the `warn`, `stop`, and
 # `notify` states using `action_levels()`
 al <- 
@@ -69,30 +73,31 @@ agent <-
   agent \%>\% 
   col_exists(vars(date, date_time)) \%>\%
   col_vals_regex(
-    vars(b), "[0-9]-[a-z]{3}-[0-9]{3}"
+    vars(b),
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(vars(d), 100) \%>\%
-  col_vals_lte(vars(c), 5)
+  col_vals_gt(vars(d), value = 100) \%>\%
+  col_vals_lte(vars(c), value = 5)
 
 # The agent can be written to a pointblank
 # YAML file with `yaml_write()`
-# yaml_write(
-#   agent = agent,
-#   filename = "agent-small_table.yml"
-# )
+yaml_write(
+  agent = agent,
+  filename = "agent-small_table.yml"
+)
 
 # The 'agent-small_table.yml' file is
 # available in the package through `system.file()`
 yml_file <- 
   system.file(
-    "agent-small_table.yml",
+    "yaml", "agent-small_table.yml",
     package = "pointblank"
   )
 
 # We can view the YAML file in the console
 # with the `yaml_agent_string()` function
-yaml_agent_string(path = yml_file)
+yaml_agent_string(filename = yml_file)
 
 # The YAML can also be printed in the console
 # by supplying the agent as the input
@@ -103,7 +108,7 @@ yaml_agent_string(agent = agent)
 # through direct use of the YAML file
 # with `yaml_agent_interrogate()`
 agent <- 
-  yaml_agent_interrogate(path = yml_file)
+  yaml_agent_interrogate(filename = yml_file)
 
 class(agent)
 
@@ -112,14 +117,18 @@ class(agent)
 # (stopping short of interrogating the data),
 # then the `yaml_read_agent()` function
 # will be useful
-agent <- yaml_read_agent(path = yml_file)
+agent <- 
+  yaml_read_agent(filename = yml_file)
 class(agent)
+
+}
 
 }
 \seealso{
 Other pointblank YAML: 
 \code{\link{yaml_agent_show_exprs}()},
 \code{\link{yaml_agent_string}()},
+\code{\link{yaml_exec}()},
 \code{\link{yaml_informant_incorporate}()},
 \code{\link{yaml_read_agent}()},
 \code{\link{yaml_read_informant}()},

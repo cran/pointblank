@@ -2,7 +2,7 @@
 % Please edit documentation in R/emailing.R
 \name{email_create}
 \alias{email_create}
-\title{Create an email object from a \strong{pointblank} \emph{agent}}
+\title{Create an email object from a \strong{pointblank} \emph{agent} or \emph{informant}}
 \usage{
 email_create(
   x,
@@ -30,7 +30,7 @@ The \code{email_create()} function produces an email message object that could b
 sent using the \strong{blastula} package. The \code{x} that we need for this could
 either be a \strong{pointblank} agent, the \emph{agent} x-list (produced from the
 \emph{agent} with the \code{\link[=get_agent_x_list]{get_agent_x_list()}} function), or a \strong{pointblank}
-\emph{informant}. In all casesm, the email message will appear in the Viewer and a
+\emph{informant}. In all cases, the email message will appear in the Viewer and a
 \strong{blastula} \code{email_message} object will be returned.
 }
 \section{Function ID}{
@@ -39,13 +39,7 @@ either be a \strong{pointblank} agent, the \emph{agent} x-list (produced from th
 }
 
 \examples{
-# Create a simple table with two
-# columns of numerical values
-tbl <-
-  dplyr::tibble(
-    a = c(5, 7, 6, 5, 8, 7),
-    b = c(7, 1, 0, 0, 0, 3)
-  )
+if (interactive()) {
 
 # Create an `action_levels()` list
 # with absolute values for the
@@ -67,15 +61,17 @@ al <-
 # to send outside of the pointblank API;
 # the `email_create()` function lets
 # us do this with an `agent` object
-# email_object_1 <-
-#   create_agent(
-#     tbl = tbl,
-#     actions = al
-#   ) \%>\%
-#   col_vals_gt(vars(a), 5) \%>\%
-#   col_vals_lt(vars(b), 5) \%>\%
-#   interrogate() \%>\%
-#   email_create()
+email_object_1 <-
+  create_agent(
+    read_fn = ~ small_table,
+    tbl_name = "small_table",
+    label = "An example.",
+    actions = al
+  ) \%>\%
+  col_vals_gt(vars(a), value = 1) \%>\%
+  col_vals_lt(vars(a), value = 7) \%>\%
+  interrogate() \%>\%
+  email_create()
 
 # We can view the HTML email just
 # by printing `email_object`; it
@@ -84,41 +80,47 @@ al <-
 # The `email_create()` function can
 # also be used on an agent x-list to
 # get the same email message object
-# email_object_2 <-
-#   create_agent(
-#     tbl = tbl,
-#     actions = al
-#   ) \%>\%
-#   col_vals_gt(vars(a), 5) \%>\%
-#   col_vals_lt(vars(b), 5) \%>\%
-#   interrogate() \%>\%
-#   get_agent_x_list() \%>\%
-#   email_create()
+email_object_2 <-
+  create_agent(
+    read_fn = ~ small_table,
+    tbl_name = "small_table",
+    label = "An example.",
+    actions = al
+  ) \%>\%
+  col_vals_gt(vars(a), value = 5) \%>\%
+  col_vals_lt(vars(b), value = 5) \%>\%
+  interrogate() \%>\%
+  get_agent_x_list() \%>\%
+  email_create()
 
 # An information report that's
 # produced by the informant can
 # made into an email message object;
 # let's create an informant and use
 # `email_create()`
-# email_object_3 <-
-#   create_informant(
-#     tbl = tbl
-#   ) \%>\%
-#   info_tabular(
-#     info = "A simple table in the
-#     *Examples* section of the function
-#     called `email_create()`."
-#   ) \%>\%
-#   info_columns(
-#     columns = vars(a),
-#     info = "Numbers. On the high side."
-#   ) \%>\%
-#   info_columns(
-#     columns = vars(b),
-#     info = "Lower numbers. Zeroes, even."
-#   ) \%>\%
-#   incorporate() \%>\%
-#   email_create()
+email_object_3 <-
+  create_informant(
+    read_fn = ~ small_table,
+    tbl_name = "small_table",
+    label = "An example."
+  ) \%>\%
+  info_tabular(
+    info = "A simple table in the
+    *Examples* section of the function
+    called `email_create()`."
+  ) \%>\%
+  info_columns(
+    columns = vars(a),
+    info = "Numbers. On the high side."
+  ) \%>\%
+  info_columns(
+    columns = vars(b),
+    info = "Lower numbers. Zeroes, even."
+  ) \%>\%
+  incorporate() \%>\%
+  email_create()
+
+}
 
 }
 \seealso{

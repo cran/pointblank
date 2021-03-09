@@ -10,6 +10,7 @@ get_agent_report(
   keep = c("all", "fail_states"),
   display_table = TRUE,
   size = "standard",
+  title = ":default:",
   lang = NULL,
   locale = NULL
 )
@@ -33,6 +34,18 @@ available, then a tibble will be returned.}
 \item{size}{The size of the display table, which can be either \code{"standard"}
 (the default) or \code{"small"}. This only applies to a display table (where
 \code{display_table = TRUE}).}
+
+\item{title}{Options for customizing the title of the report. The default is
+the keyword \code{":default:"} which produces generic title text that refers to
+the \strong{pointblank} package in the language governed by the \code{lang} option.
+Another keyword option is \code{":tbl_name:"}, and that presents the name of the
+table as the title for the report. If no title is wanted, then the
+\code{":none:"} keyword option can be used. Aside from keyword options, text can
+be provided for the title and \code{glue::glue()} calls can be used to construct
+the text string. If providing text, it will be interpreted as Markdown text
+and transformed internally to HTML. To circumvent such a transformation,
+use text in \code{\link[=I]{I()}} to explicitly state that the supplied text should not be
+transformed.}
 
 \item{lang}{The language to use for automatic creation of briefs (short
 descriptions for each validation step) and for the \emph{agent report} (a
@@ -124,7 +137,7 @@ available for the validation step
 }
 \section{Function ID}{
 
-5-2
+6-2
 }
 
 \examples{
@@ -137,7 +150,7 @@ tbl <-
 # `a` are always greater than 4
 agent <-
   create_agent(tbl = tbl) \%>\%
-  col_vals_gt(vars(a), 4) \%>\%
+  col_vals_gt(vars(a), value = 4) \%>\%
   interrogate()
 
 # Get a tibble-based report from the
@@ -163,7 +176,11 @@ class(report)
 # table comes in two sizes: "standard"
 # (the default) and "small"
 small_report <- 
-  get_agent_report(agent, size = "small")
+  get_agent_report(
+    agent = agent,
+    size = "small"
+  )
+
 class(small_report)
 
 # The standard report is 875px wide

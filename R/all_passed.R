@@ -19,6 +19,7 @@
 
 #' Did all of the validations fully *pass*?
 #'
+#' @description
 #' Given an agent's validation plan that had undergone interrogation via
 #' `interrogate()`, did every single validation step result in zero *fail*
 #' levels? Using the `all_passed()` function will let us know whether that's
@@ -38,17 +39,17 @@
 #' # `a` are always greater than 4
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'   col_vals_gt(vars(a), 4) %>%
+#'   col_vals_gt(vars(a), value = 4) %>%
 #'   interrogate()
 #' 
 #' # Determine if these column
 #' # validations have all passed
 #' # by using `all_passed()`
-#' all_passed(agent)
+#' all_passed(agent = agent)
 #' 
 #' @family Post-interrogation
 #' @section Function ID:
-#' 7-4
+#' 8-4
 #' 
 #' @export
 all_passed <- function(agent) {

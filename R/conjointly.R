@@ -19,23 +19,30 @@
 
 #' Perform multiple rowwise validations for joint validity
 #'
+#' @description 
 #' The `conjointly()` validation function, the `expect_conjointly()` expectation
 #' function, and the `test_conjointly()` test function all check whether test
-#' units at each index (typically each row) all pass multiple validations with
-#' `col_vals_*()`-type functions. Because of the imposed constraint on the
-#' allowed validation functions, all test units are rows of the table (after any
-#' common `preconditions` have been applied). Each of the functions (composed
-#' with multiple validation function calls) ultimately perform a rowwise test of
-#' whether all sub-validations reported a *pass* for the same test units. In
+#' units at each index (typically each row) all pass multiple validations. We
+#' can use validation functions that validate row units (the `col_vals_*()`
+#' series), check for column existence ([col_exists()]), or validate column type
+#' (the `col_is_*()` series). Because of the imposed constraint on the allowed
+#' validation functions, the ensemble of test units are either comprised rows of
+#' the table (after any common `preconditions` have been applied) or are single
+#' test units (for those functions that validate columns).
+#' 
+#' Each of the functions used in a `conjointly()` validation step (composed
+#' using multiple validation function calls) ultimately perform a rowwise test
+#' of whether all sub-validations reported a *pass* for the same test units. In
 #' practice, an example of a joint validation is testing whether values for
-#' column `a` are greater than a specific value while values for column `b` lie
-#' within a specified range. The validation functions to be part of the conjoint
-#' validation are to be supplied as one-sided **R** formulas (using a leading
-#' `~`, and having a `.` stand in as the data object). The validation function
-#' can be used directly on a data table or with an *agent* object (technically,
-#' a `ptblank_agent` object) whereas the expectation and test functions can only
-#' be used with a data table.
+#' column `a` are greater than a specific value while adjacent values in column
+#' `b` lie within a specified range. The validation functions to be part of the
+#' conjoint validation are to be supplied as one-sided **R** formulas (using a
+#' leading `~`, and having a `.` stand in as the data object). The validation
+#' function can be used directly on a data table or with an *agent* object
+#' (technically, a `ptblank_agent` object) whereas the expectation and test
+#' functions can only be used with a data table.
 #'
+#' @section Column Names:
 #' If providing multiple column names in any of the supplied validation step
 #' functions, the result will be an expansion of sub-validation steps to that
 #' number of column names. Aside from column names in quotes and in `vars()`,
@@ -43,6 +50,7 @@
 #' are: `starts_with()`, `ends_with()`, `contains()`, `matches()`, and
 #' `everything()`.
 #' 
+#' @section Preconditions:
 #' Having table `preconditions` means **pointblank** will mutate the table just
 #' before interrogation. Such a table mutation is isolated in scope to the
 #' validation step(s) produced by the validation function call. Using
@@ -54,6 +62,7 @@
 #' instead be supplied (e.g., 
 #' `function(x) dplyr::mutate(x, col_a = col_b + 10)`).
 #' 
+#' @section Actions:
 #' Often, we will want to specify `actions` for the validation. This argument,
 #' present in every validation function, takes a specially-crafted list
 #' object that is best produced by the [action_levels()] function. Read that
@@ -68,17 +77,64 @@
 #' quarter of the total test units fails, the other `stop()`s at the same
 #' threshold level).
 #' 
+#' @section Briefs:
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
 #' *autobrief* protocol is kicked in when `brief = NULL` and a simple brief will
 #' then be automatically generated.
+#' 
+#' @section YAML:
+#' A **pointblank** agent can be written to YAML with [yaml_write()] and the
+#' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
+#' or interrogate the target table (via [yaml_agent_interrogate()]). When
+#' `conjointly()` is represented in YAML (under the top-level `steps` key as a
+#' list member), the syntax closely follows the signature of the validation
+#' function. Here is an example of how a complex call of `conjointly()` as a
+#' validation step is expressed in R code and in the corresponding YAML
+#' representation.
+#' 
+#' ```
+#' # R statement
+#' agent %>% 
+#'   conjointly(
+#'     ~ col_vals_lt(., vars(a), 8),
+#'     ~ col_vals_gt(., vars(c), vars(a)),
+#'     ~ col_vals_not_null(., vars(b)),
+#'     preconditions = ~ . %>% dplyr::filter(a < 10),
+#'     actions = action_levels(warn_at = 0.1, stop_at = 0.2), 
+#'     label = "The `conjointly()` step.",
+#'     active = FALSE
+#'   )
+#' 
+#' # YAML representation
+#' steps:
+#' - conjointly:
+#'     fns:
+#'     - ~col_vals_lt(., vars(a), 8)
+#'     - ~col_vals_gt(., vars(c), vars(a))
+#'     - ~col_vals_not_null(., vars(b))
+#'     preconditions: ~. %>% dplyr::filter(a < 10)
+#'     actions:
+#'       warn_fraction: 0.1
+#'       stop_fraction: 0.2
+#'     label: The `conjointly()` step.
+#'     active: false
+#' ```
+#' 
+#' In practice, both of these will often be shorter as only the expressions for
+#' validation steps are necessary. Arguments with default values won't be
+#' written to YAML when using [yaml_write()] (though it is acceptable to include
+#' them with their default when generating the YAML by other means). It is also
+#' possible to preview the transformation of an agent to YAML without any
+#' writing to disk by using the [yaml_agent_string()] function.
 #'
 #' @inheritParams col_vals_gt
-#' @param ... a collection one-sided formulas that consist of validation step
-#' functions that validate row units. Specifically, these functions should be
-#' those with the naming pattern `col_vals_*()`. An example of this is
-#' `~ col_vals_gte(., vars(a), 5.5), ~ col_vals_not_null(., vars(b)`).
+#' @param ... a collection one-sided formulas that consist of validation
+#'   functions that validate row units (the `col_vals_*()` series), column
+#'   existence ([col_exists()]), or column type (the `col_is_*()` series). An
+#'   example of this is `~ col_vals_gte(., vars(a), 5.5), ~ col_vals_not_null(.,
+#'   vars(b)`).
 #' @param .list Allows for the use of a list as an input alternative to `...`.
 #'
 #' @return For the validation function, the return value is either a
@@ -111,15 +167,15 @@
 #' # functions of the `col_vals*` type
 #' # (all have the same number of test
 #' # units): (1) values in `a` are less
-#' # than `4`, (2) values in `c` are
+#' # than `8`, (2) values in `c` are
 #' # greater than the adjacent values in
 #' # `a`, and (3) there aren't any NA
 #' # values in `b`
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
 #'   conjointly(
-#'     ~ col_vals_lt(., vars(a), 8),
-#'     ~ col_vals_gt(., vars(c), vars(a)),
+#'     ~ col_vals_lt(., vars(a), value = 8),
+#'     ~ col_vals_gt(., vars(c), value = vars(a)),
 #'     ~ col_vals_not_null(., vars(b))
 #'     ) %>%
 #'   interrogate()
@@ -153,8 +209,8 @@
 #' # customized with the `actions` option
 #' tbl %>%
 #'   conjointly(
-#'     ~ col_vals_lt(., vars(a), 8),
-#'     ~ col_vals_gt(., vars(c), vars(a)),
+#'     ~ col_vals_lt(., vars(a), value = 8),
+#'     ~ col_vals_gt(., vars(c), value = vars(a)),
 #'     ~ col_vals_not_null(., vars(b))
 #'   )
 #'
@@ -166,8 +222,8 @@
 #' # testthat tests
 #' expect_conjointly(
 #'   tbl,
-#'   ~ col_vals_lt(., vars(a), 8),
-#'   ~ col_vals_gt(., vars(c), vars(a)),
+#'   ~ col_vals_lt(., vars(a), value = 8),
+#'   ~ col_vals_gt(., vars(c), value = vars(a)),
 #'   ~ col_vals_not_null(., vars(b))
 #' )
 #' 
@@ -178,14 +234,14 @@
 #' # to us
 #' tbl %>%
 #'   test_conjointly(
-#'     ~ col_vals_lt(., vars(a), 8),
-#'     ~ col_vals_gt(., vars(c), vars(a)),
+#'     ~ col_vals_lt(., vars(a), value = 8),
+#'     ~ col_vals_gt(., vars(c), value = vars(a)),
 #'     ~ col_vals_not_null(., vars(b))
 #'   )
 #'
 #' @family validation functions
 #' @section Function ID:
-#' 2-14
+#' 2-19
 #'
 #' @name conjointly
 NULL
@@ -251,6 +307,9 @@ conjointly <- function(x,
   # Normalize any provided `step_id` value(s)
   step_id <- normalize_step_id(step_id, columns = "column", agent)
   
+  # Get the next step number for the `validation_set` tibble
+  i_o <- get_next_validation_set_row(agent)
+  
   # Check `step_id` value(s) against all other `step_id`
   # values in earlier validation steps
   check_step_id_duplicates(step_id, agent)
@@ -260,6 +319,8 @@ conjointly <- function(x,
     create_validation_step(
       agent = agent,
       assertion_type = "conjointly",
+      i_o = i_o,
+      columns_expr = NULL,
       column = NULL,
       values = validation_formulas,
       na_pass = NULL,

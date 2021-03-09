@@ -20,12 +20,14 @@
 # nocov start
 
 #' Thoroughly scan a table to better understand it
-#' 
+#'
+#' @description
 #' Generate an HTML report that scours the input table data. Before calling up
 #' an *agent* to validate the data, it's a good idea to understand the data with
 #' some level of precision. Make this the initial step of a well-balanced 
 #' *data quality reporting* workflow. The reporting output contains several
 #' sections to make everything more digestible, and these are:
+#' 
 #' \describe{
 #' \item{Overview}{Table dimensions, duplicate row counts, column types, and
 #' reproducibility information}
@@ -38,6 +40,7 @@
 #' across variables}
 #' \item{Sample}{A table that provides the head and tail rows of the dataset}
 #' }
+#' 
 #' The output HTML report will appear in the RStudio Viewer and can also be
 #' integrated in R Markdown HTML output. If you need the output HTML as a
 #' string, it's possible to get that by using `as.character()` (e.g.,
@@ -69,9 +72,16 @@
 #'   Spanish (Spain, same as `"es_ES"`).
 #'   
 #' @examples
-#' # Get an HTML report that describes all of
+#' if (interactive()) {
+#' 
+#' # Get an HTML document that describes all of
 #' # the data in the `dplyr::storms` dataset
-#' # scan_data(tbl = dplyr::storms)
+#' tbl_scan <- scan_data(tbl = dplyr::storms)
+#' 
+#' }
+#' 
+#' @section Figures:
+#' \if{html}{\figure{man_scan_data_1.png}{options: width=100\%}}
 #' 
 #' @family Planning and Prep
 #' @section Function ID:
@@ -131,6 +141,23 @@ scan_data <- function(tbl,
   # Limit components if a `tbl_dbi` object is supplied as the `tbl`
   if (inherits(tbl, "tbl_dbi") || inherits(tbl, "tbl_spark")) {
     sections <- setdiff(sections, c("interactions", "correlations"))
+  }
+  
+  if (any(c("interactions", "correlations") %in% sections)) {
+    
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+      stop("The `interactions` and `correlations` sections require ", 
+           "the ggplot2 package:\n",
+           " * It can be installed with `install.packages(\"ggplot2\")`.",
+           call. = FALSE)
+    }
+    
+    if (!requireNamespace("ggforce", quietly = TRUE)) {
+      stop("The `interactions` and `correlations` sections require ", 
+           "the ggforce package:\n",
+           " * It can be installed with `install.packages(\"ggforce\")`.",
+           call. = FALSE)
+    }
   }
   
   # Normalize the reporting language identifier and stop if necessary
@@ -261,23 +288,24 @@ probe_overview_stats <- function(data,
     dplyr::tibble(r_col_types = r_col_types) %>%
     dplyr::group_by(r_col_types) %>%
     dplyr::summarize(count = dplyr::n()) %>%
-    dplyr::arrange(dplyr::desc(count))
+    dplyr::arrange(dplyr::desc(count)) %>%
+    utils::head(6E8)
   
   data_overview_gt <-
     gt::gt(data_overview_tbl) %>%
-    gt::fmt_markdown(columns = gt::vars(label)) %>%
-    gt::fmt_number(columns = gt::vars(value), decimals = 0, locale = locale) %>%
-    gt::fmt_percent(columns = gt::vars(pct), decimals = 2, locale = locale) %>%
-    gt::cols_merge(columns = gt::vars(value, pct), pattern = "{1} ({2})") %>%
-    gt::cols_align(align = "right", columns = gt::vars(value)) %>%
+    gt::fmt_markdown(columns = "label") %>%
+    gt::fmt_number(columns = "value", decimals = 0, locale = locale) %>%
+    gt::fmt_percent(columns = "pct", decimals = 2, locale = locale) %>%
+    gt::cols_merge(columns = c("value", "pct"), pattern = "{1} ({2})") %>%
+    gt::cols_align(align = "right", columns = "value") %>%
     gt::text_transform(
-      locations = gt::cells_body(columns = gt::vars(value), rows = 1:2),
+      locations = gt::cells_body(columns = "value", rows = 1:2),
       fn = function(x) {
         gsub(" (NA)", "", x, fixed = TRUE)
       }
     ) %>%
     gt::text_transform(
-      locations = gt::cells_body(columns = gt::vars(value), rows = 3:4),
+      locations = gt::cells_body(columns = "value", rows = 3:4),
       fn = function(x) {
         gsub("^0 \\(.*", "0", x)
       }
@@ -291,8 +319,8 @@ probe_overview_stats <- function(data,
   r_col_types_gt <-
     r_col_types_tbl %>%
     gt::gt(r_col_types_tbl) %>%
-    gt::fmt_number(columns = gt::vars(count), decimals = 0, locale = locale) %>%
-    gt::cols_align(align = "right", columns = gt::vars(count)) %>%
+    gt::fmt_number(columns = "count", decimals = 0, locale = locale) %>%
+    gt::cols_align(align = "right", columns = "count") %>%
     gt::tab_options(
       column_labels.hidden = TRUE,
       table.border.top.style = "none",
@@ -319,7 +347,7 @@ probe_overview_stats <- function(data,
       )
     ) %>%
     gt::gt() %>%
-    gt::fmt_markdown(columns = TRUE) %>%
+    gt::fmt_markdown(columns = gt::everything()) %>%
     gt::tab_options(
       column_labels.hidden = TRUE,
       table.border.top.style = "none",
@@ -477,13 +505,13 @@ get_column_description_gt <- function(data_column,
 
   column_description_gt <-
     gt::gt(column_description_tbl) %>%
-    gt::fmt_markdown(columns = gt::vars(label)) %>%
-    gt::fmt_number(columns = gt::vars(value), decimals = 0, locale = locale) %>%
-    gt::fmt_percent(columns = gt::vars(pct), decimals = 2, locale = locale) %>%
-    gt::cols_merge(columns = gt::vars(value, pct), pattern = "{1} ({2})") %>%
-    gt::cols_align(align = "right", columns = gt::vars(value)) %>%
+    gt::fmt_markdown(columns = "label") %>%
+    gt::fmt_number(columns = "value", decimals = 0, locale = locale) %>%
+    gt::fmt_percent(columns = "pct", decimals = 2, locale = locale) %>%
+    gt::cols_merge(columns = c("value", "pct"), pattern = "{1} ({2})") %>%
+    gt::cols_align(align = "right", columns = "value") %>%
     gt::text_transform(
-      locations = gt::cells_body(columns = gt::vars(value)),
+      locations = gt::cells_body(columns = "value"),
       fn = function(x) {
         gsub("^0 \\(.*", "0", x)
       }
@@ -530,9 +558,9 @@ get_numeric_stats_gt <- function(data_column,
 
   column_stats_gt <-
     gt::gt(column_stats_tbl) %>%
-    gt::fmt_markdown(columns = gt::vars(label)) %>%
+    gt::fmt_markdown(columns = "label") %>%
     gt::fmt_number(
-      columns = gt::vars(value),
+      columns = "value",
       decimals = 2,
       drop_trailing_zeros = TRUE,
       locale = locale
@@ -571,7 +599,8 @@ get_quantile_stats_gt <- function(data_column,
         data_column %>%
         dplyr::rename(a = 1) %>%
         dplyr::filter(!is.na(a)) %>%
-        dplyr::arrange(a)
+        dplyr::arrange(a) %>%
+        utils::head(6E8)
       
       n_rows_data <-  
         data_arranged %>%
@@ -589,31 +618,31 @@ get_quantile_stats_gt <- function(data_column,
             as.numeric(),
           p05 = data_arranged %>% 
             utils::head(quantile_rows[1]) %>%
-            dplyr::arrange(desc(a)) %>%
+            dplyr::arrange(dplyr::desc(a)) %>%
             utils::head(1) %>%
             dplyr::pull(a) %>%
             as.numeric(),
           q_1 = data_arranged %>% 
             utils::head(quantile_rows[2]) %>%
-            dplyr::arrange(desc(a)) %>%
+            dplyr::arrange(dplyr::desc(a)) %>%
             utils::head(1) %>%
             dplyr::pull(a) %>%
             as.numeric(),
           med = data_arranged %>% 
             utils::head(quantile_rows[3]) %>%
-            dplyr::arrange(desc(a)) %>%
+            dplyr::arrange(dplyr::desc(a)) %>%
             utils::head(1) %>%
             dplyr::pull(a) %>%
             as.numeric(),
           q_3 = data_arranged %>%
             utils::head(quantile_rows[4]) %>%
-            dplyr::arrange(desc(a)) %>%
+            dplyr::arrange(dplyr::desc(a)) %>%
             utils::head(1) %>%
             dplyr::pull(a) %>%
             as.numeric(),
           p95 = data_arranged %>%
             utils::head(quantile_rows[5]) %>%
-            dplyr::arrange(desc(a)) %>%
+            dplyr::arrange(dplyr::desc(a)) %>%
             utils::head(1) %>%
             dplyr::pull(a) %>%
             as.numeric(),
@@ -662,7 +691,7 @@ get_quantile_stats_gt <- function(data_column,
   quantile_stats_gt <-
     gt::gt(quantile_stats_tbl) %>%
     gt::fmt_number(
-      columns = gt::vars(value),
+      columns = "value",
       decimals = 2,
       locale = locale
     ) %>%
@@ -806,7 +835,7 @@ get_descriptive_stats_gt <- function(data_column,
   
   gt::gt(descriptive_stats_tbl) %>%
     gt::fmt_number(
-      columns = gt::vars(value),
+      columns = "value",
       decimals = 2,
       drop_trailing_zeros = FALSE,
       locale = locale
@@ -831,7 +860,8 @@ get_common_values_gt <- function(data_column,
     data_column %>%
     dplyr::group_by_at(1) %>%
     dplyr::count() %>%
-    dplyr::arrange(desc(n)) %>%
+    dplyr::arrange(dplyr::desc(n)) %>%
+    utils::head(6E8) %>%
     dplyr::ungroup()
   
   n_rows_common_values_tbl <- 
@@ -846,7 +876,8 @@ get_common_values_gt <- function(data_column,
     other_values_tbl <-
       common_values_tbl %>% 
       dplyr::anti_join(top_ten_rows, by = colnames(common_values_tbl)) %>% 
-      dplyr::arrange(desc(n))
+      dplyr::arrange(dplyr::desc(n)) %>%
+      utils::head(6E8)
     
     other_values_distinct <- 
       other_values_tbl %>%
@@ -887,17 +918,17 @@ get_common_values_gt <- function(data_column,
         n = get_lsv("table_scan/tbl_lab_count")[[lang]],
         frequency = get_lsv("table_scan/tbl_lab_frequency")[[lang]],
       ) %>%
-      gt::fmt_missing(columns = gt::vars(value), missing_text = "**NA**") %>%
+      gt::fmt_missing(columns = "value", missing_text = "**NA**") %>%
       gt::text_transform(
-        locations = gt::cells_body(columns = gt::vars(value)),
+        locations = gt::cells_body(columns = "value"),
         fn = function(x) ifelse(x == "**NA**", "<code>NA</code>", x)
       ) %>%
       gt::fmt_percent(
-        columns = gt::vars(frequency),
+        columns = "frequency",
         decimals = 1,
         locale = locale
       ) %>%
-      gt::fmt_markdown(columns = gt::vars(value)) %>%
+      gt::fmt_markdown(columns = "value") %>%
       gt::tab_options(
         table.border.top.style = "none",
         table.width = "100%"
@@ -917,17 +948,17 @@ get_common_values_gt <- function(data_column,
         n = get_lsv("table_scan/tbl_lab_count")[[lang]],
         frequency = get_lsv("table_scan/tbl_lab_frequency")[[lang]],
       ) %>%
-      gt::fmt_missing(columns = gt::vars(value), missing_text = "**NA**") %>%
+      gt::fmt_missing(columns = "value", missing_text = "**NA**") %>%
       gt::text_transform(
-        locations = gt::cells_body(columns = gt::vars(value)),
+        locations = gt::cells_body(columns = "value"),
         fn = function(x) ifelse(x == "**NA**", "<code>NA</code>", x)
       ) %>%
       gt::fmt_percent(
-        columns = gt::vars(frequency),
+        columns = "frequency",
         decimals = 1,
         locale = locale
       ) %>%
-      gt::fmt_markdown(columns = gt::vars(value)) %>%
+      gt::fmt_markdown(columns = "value") %>%
       gt::tab_options(
         table.border.top.style = "none",
         table.width = "100%"
@@ -1039,7 +1070,7 @@ get_character_nchar_stats_gt <- function(data_column,
   ) %>%
     gt::gt() %>%
     gt::fmt_number(
-      columns = gt::vars(value),
+      columns = "value",
       decimals = 1,
       locale = locale
     ) %>%
@@ -1383,7 +1414,7 @@ probe_interactions <- function(data) {
     ggforce::geom_autodensity() +
     ggplot2::geom_density2d() +
     ggforce::facet_matrix(
-      rows = gt::vars(gt::everything()), layer.diag = 2, layer.upper = 3, 
+      rows = ggplot2::vars(gt::everything()), layer.diag = 2, layer.upper = 3, 
       grid.y.diag = FALSE) +
     ggplot2::theme_minimal() + 
     ggplot2::theme(
@@ -1778,9 +1809,9 @@ probe_sample <- function(data) {
   probe_sample <-
     data %>%
     gt::gt_preview(top_n = 5, bottom_n = 5) %>%
-    gt::fmt_missing(columns = TRUE, missing_text = "**NA**") %>%
+    gt::fmt_missing(columns = gt::everything(), missing_text = "**NA**") %>%
     gt::text_transform(
-      locations = gt::cells_body(columns = TRUE),
+      locations = gt::cells_body(columns = gt::everything()),
       fn = function(x) ifelse(x == "**NA**", "<code>NA</code>", x)
     ) %>%
     gt::tab_options(table.width = "100%")
@@ -2776,8 +2807,6 @@ panel_component <- function(size,
     content
   )
 }
-
-
 
 nav_pill_li <- function(label,
                         id,

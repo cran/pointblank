@@ -66,7 +66,7 @@ the input table.
 }
 \section{Function ID}{
 
-7-3
+8-3
 }
 
 \examples{
@@ -76,9 +76,9 @@ the input table.
 # `interrogate()` immediately
 agent <-
   create_agent(tbl = small_table) \%>\%
-  col_vals_gt(vars(d), 100) \%>\%
+  col_vals_gt(vars(d), value = 100) \%>\%
   col_vals_equal(
-    vars(d), vars(d),
+    vars(d), value = vars(d),
     na_pass = TRUE
   ) \%>\%
   col_vals_between(
@@ -97,6 +97,7 @@ agent \%>\% get_sundered_data()
 Other Post-interrogation: 
 \code{\link{all_passed}()},
 \code{\link{get_agent_x_list}()},
-\code{\link{get_data_extracts}()}
+\code{\link{get_data_extracts}()},
+\code{\link{write_testthat_file}()}
 }
 \concept{Post-interrogation}

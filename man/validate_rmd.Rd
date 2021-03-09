@@ -39,10 +39,13 @@ options.
 \seealso{
 Other Planning and Prep: 
 \code{\link{action_levels}()},
-\code{\link{col_schema}()},
 \code{\link{create_agent}()},
 \code{\link{create_informant}()},
 \code{\link{db_tbl}()},
-\code{\link{scan_data}()}
+\code{\link{file_tbl}()},
+\code{\link{scan_data}()},
+\code{\link{tbl_get}()},
+\code{\link{tbl_source}()},
+\code{\link{tbl_store}()}
 }
 \concept{Planning and Prep}

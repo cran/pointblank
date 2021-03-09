@@ -4,11 +4,13 @@
 \alias{yaml_read_informant}
 \title{Read a \strong{pointblank} YAML file to create an \emph{informant} object}
 \usage{
-yaml_read_informant(path)
+yaml_read_informant(filename, path = NULL)
 }
 \arguments{
-\item{path}{A path to a \strong{pointblank} YAML file that contains fields related
-to an \emph{informant}.}
+\item{filename}{The name of the YAML file that contains fields related to an
+\emph{informant}.}
+
+\item{path}{An optional path to the YAML file (combined with \code{filename}).}
 }
 \description{
 With \code{yaml_read_informant()} we can read a \strong{pointblank} YAML file that
@@ -19,10 +21,12 @@ the \verb{info_*()} functions.
 }
 \section{Function ID}{
 
-9-3
+11-3
 }
 
 \examples{
+if (interactive()) {
+
 # Create a pointblank `informant`
 # object with `create_informant()`
 # and the `small_table` dataset
@@ -108,7 +112,7 @@ informant <- create_informant(small_table)
 # `system.file()`
 yml_file <- 
   system.file(
-    "informant-small_table.yml",
+    "yaml", "informant-small_table.yml",
     package = "pointblank"
   )
 
@@ -116,9 +120,11 @@ yml_file <-
 # as an `informant` object by using
 # `yaml_read_informant()`
 informant <- 
-  yaml_read_informant(path = yml_file)
+  yaml_read_informant(filename = yml_file)
 
 class(informant)
+
+}
 
 }
 \seealso{
@@ -126,6 +132,7 @@ Other pointblank YAML:
 \code{\link{yaml_agent_interrogate}()},
 \code{\link{yaml_agent_show_exprs}()},
 \code{\link{yaml_agent_string}()},
+\code{\link{yaml_exec}()},
 \code{\link{yaml_informant_incorporate}()},
 \code{\link{yaml_read_agent}()},
 \code{\link{yaml_write}()}
