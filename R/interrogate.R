@@ -19,6 +19,7 @@
 
 #' Given an agent that has a validation plan, perform an interrogation
 #'
+#' @description 
 #' When the agent has all the information on what to do (i.e., a validation plan
 #' which is a series of validation steps), the interrogation process can occur
 #' according its plan. After that, the agent will have gathered intel, and we
@@ -50,6 +51,8 @@
 #' @return A `ptblank_agent` object.
 #'   
 #' @examples
+#' if (interactive()) {
+#' 
 #' # Create a simple table with two
 #' # columns of numerical values
 #' tbl <-
@@ -68,6 +71,8 @@
 #'   col_vals_gt(vars(a), value = 5) %>%
 #'   interrogate()
 #' 
+#' }
+#' 
 #' @family Interrogate and Report
 #' @section Function ID:
 #' 6-1
@@ -79,7 +84,11 @@ interrogate <- function(agent,
                         sample_n = NULL,
                         sample_frac = NULL,
                         sample_limit = 5000) {
-
+  
+  #
+  # INITIAL PROCESSING OF AGENT
+  #
+  
   # Add the starting time to the `agent` object
   agent$time_start <- Sys.time()
 
@@ -95,6 +104,8 @@ interrogate <- function(agent,
     )
   }
 
+  # Materialization of table given that there is a table-prep formula
+  # available in the agent object
   if (is.null(agent$tbl) && !is.null(agent$read_fn)) {
     
     if (inherits(agent$read_fn, "function")) {
@@ -125,20 +136,30 @@ interrogate <- function(agent,
     agent$extracts <- NULL
   }
 
+  # Quieting of an agent's remarks either when the agent has the
+  # special label `"::QUIET::"` or the session is non-interactive
   if (agent$label == "::QUIET::" || !interactive()) {
     quiet <- TRUE
   } else {
     quiet <- FALSE
   }
   
-  # Get the agent's validation step indices
-  validation_steps <- unique(agent$validation_set$i)
+  # TODO: Handle possible expansion of table through evaluation
+  # of all `seg_expr` values
   
-  # Add start of interrogation console status
-  create_cli_header(
+  
+  # Get the agent's validation step indices
+  validation_steps <- seq_len(nrow(agent$validation_set))
+  
+  # Signal the start of interrogation in the console
+  create_cli_header_a(
     validation_steps = validation_steps,
     quiet = quiet
   )
+  
+  #
+  # PROCESSING OF VALIDATION STEPS AS INDIVIDUAL INTERROGATIONS
+  #
   
   for (i in validation_steps) {
     
@@ -161,6 +182,13 @@ interrogate <- function(agent,
       agent$validation_set[[i, "eval_active"]] <- 
         agent$validation_set[[i, "active"]][[1]]
     }
+    
+    # Set the validation step as `active = FALSE` if there is a
+    # `seg_expr` declared but not resolved `seg_col`
+    if (!is.null(agent$validation_set$seg_expr[[i]]) &&
+        is.na(agent$validation_set$seg_col[i])) {
+      agent$validation_set[[i, "eval_active"]] <- FALSE
+    }
 
     # Skip the validation step if `active = FALSE`
     if (!agent$validation_set[[i, "eval_active"]]) {
@@ -175,7 +203,10 @@ interrogate <- function(agent,
     
     # Use preconditions to modify the table
     table <- apply_preconditions_to_tbl(agent = agent, idx = i, tbl = table)
-
+    
+    # Use segmentation directives to constrain the table
+    table <- apply_segments_to_tbl(agent = agent, idx = i, tbl = table)
+    
     # Get the assertion type for this verification step
     assertion_type <- get_assertion_type_at_idx(agent = agent, idx = i)
 
@@ -358,7 +389,7 @@ interrogate <- function(agent,
     agent$validation_set$time_processed[i] <- validation_start_time
     agent$validation_set$proc_duration_s[i] <- time_diff_s
     
-    create_post_step_cli_output(
+    create_post_step_cli_output_a(
       agent = agent,
       i = i,
       time_diff_s = time_diff_s,
@@ -366,6 +397,12 @@ interrogate <- function(agent,
     )
   }
   
+  #
+  # POST-INTERROGATION PHASE
+  #
+  
+  # Bestowing of the class `"has_intel"` to the agent, given that
+  # all validation steps have been carried out
   class(agent) <- c("has_intel", "ptblank_agent")
   
   # Add the ending time to the `agent` object
@@ -392,7 +429,7 @@ interrogate <- function(agent,
   perform_end_action(agent)
   
   # Add closing rule of interrogation console status
-  create_cli_footer(quiet)
+  create_cli_footer_a(quiet)
   
   # Update the ending time to the `agent` object
   agent$time_end <- Sys.time()
@@ -413,8 +450,8 @@ get_time_duration <- function(start_time,
   )
 }
 
-create_cli_header <- function(validation_steps,
-                              quiet) {
+create_cli_header_a <- function(validation_steps,
+                                quiet) {
   
   if (quiet) return()
   
@@ -433,7 +470,7 @@ create_cli_header <- function(validation_steps,
   cli::cli_h1(interrogation_progress_header)
 }
 
-create_cli_footer <- function(quiet) {
+create_cli_footer_a <- function(quiet) {
   
   if (quiet) return()
   
@@ -442,10 +479,10 @@ create_cli_footer <- function(quiet) {
   cli::cli_h1(interrogation_progress_footer)
 }
 
-create_post_step_cli_output <- function(agent,
-                                        i,
-                                        time_diff_s,
-                                        quiet) {
+create_post_step_cli_output_a <- function(agent,
+                                          i,
+                                          time_diff_s,
+                                          quiet) {
   
   if (quiet) return()
   
@@ -479,21 +516,6 @@ create_post_step_cli_output <- function(agent,
       TRUE ~ "NONE"
     )) %>% 
     dplyr::pull(condition)
-  
-  print_time <- function(time_diff_s) {
-    if (time_diff_s < 1) {
-      return("")
-    } else {
-      return(
-        paste0(
-          " {.time_taken (",
-          round(time_diff_s, 1) %>%
-            formatC(format = "f", drop0trailing = FALSE, digits = 1),
-          " s)}"
-        )
-      )
-    }
-  }
   
   cli::cli_div(
     theme = list(
@@ -621,6 +643,11 @@ check_table_with_assertion <- function(agent,
         idx = idx,
         table = table
       ),
+      "col_vals_within_spec" = interrogate_within_spec(
+        agent = agent,
+        idx = idx,
+        table = table
+      ),
       "col_vals_expr" = interrogate_expr(
         agent = agent,
         idx = idx,
@@ -715,6 +742,10 @@ tbl_val_comparison <- function(table,
                                value,
                                na_pass) {
 
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
+  
+  # Ensure that the value provided is valid 
   column_validity_checks_column_value(
     table = table,
     column = {{ column }},
@@ -884,6 +915,9 @@ tbl_val_ib_incl_incl <- function(table,
                                  right,
                                  na_pass) {
   
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
+  
   column_validity_checks_ib_nb(
     table = table,
     column = {{ column }},
@@ -904,6 +938,9 @@ tbl_val_ib_excl_incl <- function(table,
                                  left,
                                  right,
                                  na_pass) {
+  
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
   
   column_validity_checks_ib_nb(
     table = table,
@@ -926,6 +963,9 @@ tbl_val_ib_incl_excl <- function(table,
                                  right,
                                  na_pass) {
   
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
+  
   column_validity_checks_ib_nb(
     table = table,
     column = {{ column }},
@@ -946,6 +986,9 @@ tbl_val_ib_excl_excl <- function(table,
                                  left,
                                  right,
                                  na_pass) {
+  
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
   
   column_validity_checks_ib_nb(
     table = table,
@@ -968,6 +1011,9 @@ tbl_val_nb_incl_incl <- function(table,
                                  right,
                                  na_pass) {
   
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
+  
   column_validity_checks_ib_nb(
     table = table,
     column = {{ column }},
@@ -988,6 +1034,9 @@ tbl_val_nb_excl_incl <- function(table,
                                  left,
                                  right,
                                  na_pass) {
+  
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
   
   column_validity_checks_ib_nb(
     table = table,
@@ -1010,6 +1059,9 @@ tbl_val_nb_incl_excl <- function(table,
                                  right,
                                  na_pass) {
   
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
+  
   column_validity_checks_ib_nb(
     table = table,
     column = {{ column }},
@@ -1030,6 +1082,9 @@ tbl_val_nb_excl_excl <- function(table,
                                  left,
                                  right,
                                  na_pass) {
+  
+  # Ensure that the input `table` is actually a table object
+  tbl_validity_check(table = table)
   
   column_validity_checks_ib_nb(
     table = table,
@@ -1068,6 +1123,10 @@ interrogate_set <- function(agent,
                                column,
                                na_pass) {
       
+      # Ensure that the input `table` is actually a table object
+      tbl_validity_check(table = table)
+      
+      # Ensure that the `column` provided is valid
       column_validity_checks_column(table = table, column = {{ column }})
       
       table %>%
@@ -1099,6 +1158,10 @@ interrogate_set <- function(agent,
                                   column,
                                   na_pass) {
       
+      # Ensure that the input `table` is actually a table object
+      tbl_validity_check(table = table)
+      
+      # Ensure that the `column` provided is valid
       column_validity_checks_column(table = table, column = {{ column }})
       
       # Define function to get distinct values from a column in the
@@ -1167,6 +1230,10 @@ interrogate_set <- function(agent,
                                      column,
                                      na_pass) {
       
+      # Ensure that the input `table` is actually a table object
+      tbl_validity_check(table = table)
+      
+      # Ensure that the `column` provided is valid
       column_validity_checks_column(table = table, column = {{ column }})
       
       # Define function to get distinct values from a column in the
@@ -1225,6 +1292,10 @@ interrogate_set <- function(agent,
                                    column,
                                    na_pass) {
       
+      # Ensure that the input `table` is actually a table object
+      tbl_validity_check(table = table)
+      
+      # Ensure that the `column` provided is valid
       column_validity_checks_column(table = table, column = {{ column }})
       
       table %>%
@@ -1279,6 +1350,10 @@ interrogate_direction <- function(agent,
                                 na_pass,
                                 direction) {
     
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
+    # Ensure that the `column` provided is valid
     column_validity_checks_column(table = table, column = {{ column }})
 
     tbl <- 
@@ -1400,15 +1475,21 @@ interrogate_regex <- function(agent,
                             regex,
                             na_pass) {
     
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
+    # Ensure that the `column` provided is valid
     column_validity_checks_column(table = table, column = {{ column }})
     
     # nocov start
     
     if (tbl_type == "sqlite") {
       
-      stop("Regex-based validations are currently not supported on SQLite ",
-           "database tables",
-           call. = FALSE)
+      stop(
+        "Regex-based validations are currently not supported on SQLite ",
+        "database tables.",
+        call. = FALSE
+      )
     }
     
     if (tbl_type == "tbl_spark") {
@@ -1479,6 +1560,219 @@ interrogate_regex <- function(agent,
   )
 }
 
+interrogate_within_spec <- function(agent,
+                                    idx,
+                                    table) {
+  
+  # Get the specification text
+  spec <- get_values_at_idx(agent = agent, idx = idx)
+  
+  # Determine whether NAs should be allowed
+  na_pass <- get_column_na_pass_at_idx(agent = agent, idx = idx)
+  
+  # Obtain the target column as a symbol
+  column <- get_column_as_sym_at_idx(agent = agent, idx = idx)
+  
+  tbl_type <- agent$tbl_src
+  
+  # Create function for validating the `col_vals_within_spec()` step function
+  tbl_val_within_spec <- function(table,
+                                  tbl_type,
+                                  column,
+                                  spec,
+                                  na_pass) {
+    
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
+    # Ensure that the `column` provided is valid
+    column_validity_checks_column(table = table, column = {{ column }})
+    
+    # nocov start
+    
+    if (tbl_type == "sqlite") {
+      
+      stop(
+        "Specification-based validations are currently not supported on ",
+        "SQLite database tables.",
+        call. = FALSE
+      )
+    }
+    
+    if (inherits(table, "tbl_dbi") || inherits(table, "tbl_spark")) {
+      
+      # Not possible: `"isbn"`, `"creditcard"`, and `"phone"`
+      if (spec %in% c("isbn", "creditcard", "phone")) {
+        
+        stop(
+          "Validations with the `\"", spec, "\"` specification are currently ",
+          "not supported on `tbl_dbi` or `tbl_spark` tables.",
+          call. = FALSE
+        )
+      }
+      
+      if (grepl("iban", spec)) {
+        country <- toupper(gsub("(iban\\[|\\])", "", spec))
+        spec <- "iban"
+      } else if (grepl("postal", spec)) {
+        country <- toupper(gsub("(postal\\[|\\])", "", spec))
+        spec <- "postal"
+      }
+      
+      # Perform regex-based specification checks
+      if (grepl("iban", spec) || grepl("postal", spec) ||
+          spec %in% c(
+            "swift", "email", "url",
+            "ipv4", "ipv6", "mac"
+          )
+      ) {
+        
+        regex <-
+          switch(
+            spec,
+            iban = regex_iban(country = country),
+            postal = regex_postal_code(country = country),
+            swift = regex_swift_bic(),
+            email = regex_email(),
+            url = regex_url(),
+            ipv4 = regex_ipv4_address(),
+            ipv6 = regex_ipv6_address(),
+            mac = regex_mac()
+          )
+        
+        if (tbl_type == "tbl_spark") {
+          
+          tbl <- 
+            table %>%
+            dplyr::mutate(
+              pb_is_good_ = ifelse(
+                !is.na({{ column }}), RLIKE({{ column }}, regex), NA)
+            ) %>%
+            dplyr::mutate(pb_is_good_ = dplyr::case_when(
+              is.na(pb_is_good_) ~ na_pass,
+              TRUE ~ pb_is_good_
+            ))
+          
+        } else if (tbl_type == "mysql") {
+          
+          tbl <- 
+            table %>%
+            dplyr::mutate(pb_is_good_ = ifelse(
+              !is.na({{ column }}), {{ column }} %REGEXP% regex, NA)
+            ) %>%
+            dplyr::mutate(pb_is_good_ = dplyr::case_when(
+              is.na(pb_is_good_) ~ na_pass,
+              TRUE ~ pb_is_good_
+            ))
+          
+        } else if (tbl_type == "duckdb") {
+          
+          tbl <- 
+            table %>%
+            dplyr::mutate(pb_is_good_ = ifelse(
+              !is.na({{ column }}), regexp_matches({{ column }}, regex), NA)
+            ) %>%
+            dplyr::mutate(pb_is_good_ = dplyr::case_when(
+              is.na(pb_is_good_) ~ na_pass,
+              TRUE ~ pb_is_good_
+            ))
+          
+        } else {
+          
+          # This works for postgres and local tables;
+          # untested so far in other DBs
+          tbl <- 
+            table %>% 
+            dplyr::mutate(pb_is_good_ = ifelse(
+              !is.na({{ column }}), grepl(regex, {{ column }}), NA)
+            ) %>%
+            dplyr::mutate(pb_is_good_ = dplyr::case_when(
+              is.na(pb_is_good_) ~ na_pass,
+              TRUE ~ pb_is_good_
+            ))
+        }
+      }
+      
+      # VIN
+      
+      if (spec == "vin") {
+        
+        tbl <-
+          check_vin_db(table, column = {{ column }}) %>%
+          dplyr::mutate(pb_is_good_ = dplyr::case_when(
+            is.na(pb_is_good_) ~ na_pass,
+            TRUE ~ pb_is_good_
+          ))
+      }
+      
+    } else {
+      
+      # This is for local tables
+      
+      if (grepl("iban", spec)) {
+        country <- toupper(gsub("(iban\\[|\\])", "", spec))
+        fn <- check_iban
+      } else if (grepl("postal", spec)) {
+        country <- toupper(gsub("(postal\\[|\\])", "", spec))
+        fn <- check_postal_code
+      } else {
+        country <- NULL
+        fn <-
+          switch(
+            spec,
+            phone = check_phone,
+            creditcard = check_credit_card,
+            vin = check_vin,
+            isbn = check_isbn,
+            swift = check_swift_bic,
+            email = check_email,
+            url = check_url,
+            ipv4 = check_ipv4_address,
+            ipv6 = check_ipv6_address,
+            mac = check_mac
+          )
+      }
+      
+      if (!is.null(country)) {
+        
+        tbl <-
+          dplyr::mutate(table, pb_is_good_ = ifelse(
+            !is.na({{ column }}), fn({{ column }}, country = country), NA
+          ))
+        
+      } else {
+        
+        tbl <-
+          dplyr::mutate(table, pb_is_good_ = ifelse(
+            !is.na({{ column }}), fn({{ column }}), NA
+          ))
+        
+      }
+      
+      tbl <- 
+        dplyr::mutate(tbl, pb_is_good_ = dplyr::case_when(
+          is.na(pb_is_good_) ~ na_pass,
+          TRUE ~ pb_is_good_
+        ))
+    }
+    
+    # nocov end
+    
+    tbl
+  }
+  
+  # Perform rowwise validations for the column
+  pointblank_try_catch(
+    tbl_val_within_spec(
+      table = table,
+      tbl_type = tbl_type,
+      column = {{ column }},
+      spec = spec,
+      na_pass = na_pass
+    )
+  )
+}
+
 interrogate_expr <- function(agent,
                              idx,
                              table) {
@@ -1489,6 +1783,9 @@ interrogate_expr <- function(agent,
   # Create function for validating the `col_vals_expr()` step function
   tbl_val_expr <- function(table,
                            expr) {
+    
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
     
     expr <- expr[[1]]
 
@@ -1512,6 +1809,10 @@ interrogate_null <- function(agent,
   tbl_val_null <- function(table,
                            column) {
     
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
+    # Ensure that the `column` provided is valid
     column_validity_checks_column(table = table, column = {{ column }})
     
     table %>% dplyr::mutate(pb_is_good_ = is.na({{ column }}))
@@ -1532,6 +1833,10 @@ interrogate_not_null <- function(agent,
   tbl_val_not_null <- function(table,
                                column) {
     
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
+    # Ensure that the `column` provided is valid
     column_validity_checks_column(table = table, column = {{ column }})
     
     table %>% dplyr::mutate(pb_is_good_ = !is.na({{ column }}))
@@ -1555,6 +1860,9 @@ interrogate_col_exists <- function(agent,
   tbl_col_exists <- function(table,
                              column,
                              column_names) {
+    
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
     
     dplyr::tibble(pb_is_good_ = as.character(column) %in% column_names)
   }
@@ -1582,6 +1890,10 @@ interrogate_col_type <- function(agent,
                          column,
                          assertion_type) {
     
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
+    # Ensure that the `column` provided is valid
     column_validity_checks_column(table = table, column = {{ column }})
     
     column_class <-
@@ -1599,6 +1911,7 @@ interrogate_col_type <- function(agent,
         "integer" = ifelse(assertion_type == "col_is_integer", TRUE, FALSE),
         "character" = ifelse(assertion_type == "col_is_character", TRUE, FALSE),
         "logical" = ifelse(assertion_type == "col_is_logical", TRUE, FALSE),
+        "ordered" = ifelse(assertion_type == "col_is_factor", TRUE, FALSE),
         "factor" = ifelse(assertion_type == "col_is_factor", TRUE, FALSE),
         "POSIXct" = ifelse(assertion_type == "col_is_posix", TRUE, FALSE),
         "Date" = ifelse(assertion_type == "col_is_date", TRUE, FALSE),
@@ -1647,6 +1960,9 @@ interrogate_distinct <- function(agent,
                                 column_names,
                                 col_syms) {
     
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
     table %>%
       dplyr::select({{ column_names }}) %>%
       dplyr::group_by(!!!col_syms) %>%
@@ -1656,11 +1972,14 @@ interrogate_distinct <- function(agent,
   
   # nocov start
   
-  # Create another variation of `tbl_rows_distinct_1()` that works for MySQL
+  # Create another variation of `tbl_rows_distinct()` that works for MySQL
   tbl_rows_distinct_mysql <- function(table,
                                       column_names,
                                       col_syms) {
 
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
     unduplicated <- 
       table %>%
       dplyr::select({{ column_names }}) %>%
@@ -1752,6 +2071,9 @@ interrogate_col_schema_match <- function(agent,
                                    table_schema_x,
                                    table_schema_y) {
 
+    # Ensure that the input `table` is actually a table object
+    tbl_validity_check(table = table)
+    
     # nolint start
     
     # Extract options from `table_schema_y`
@@ -1847,6 +2169,17 @@ interrogate_col_schema_match <- function(agent,
   )
 }
 
+# Validity check for the table
+tbl_validity_check <- function(table) {
+  
+  if (!is_a_table_object(table)) {
+    stop(
+      "The 'table' in this validation step is not really a table object.",
+      call. = FALSE
+    )  
+  }  
+}
+
 # nolint start
 
 # Validity checks for the column and value 
@@ -1855,13 +2188,24 @@ column_validity_checks_column_value <- function(table,
                                                 value) {
   
   table_colnames <- colnames(table)
+  
   if (!(as.character(column) %in% table_colnames)) {
-    stop("The value for `column` doesn't correspond to a column name.")
+    
+    stop(
+      "The value for `column` doesn't correspond to a column name.",
+      call. = FALSE
+    )
   }
+  
   if (inherits(value, "name")) {
+    
     if (!(as.character(value) %in% table_colnames)) {
-      stop("The column supplied as the `value` doesn't correspond ",
-           "to a column name.")
+      
+      stop(
+        "The column supplied as the `value` doesn't correspond ",
+        "to a column name.",
+        call. = FALSE
+      )
     }
   }
 }
@@ -1873,8 +2217,13 @@ column_validity_checks_column <- function(table,
                                           column) {
   
   table_colnames <- colnames(table)
+  
   if (!(as.character(column) %in% table_colnames)) {
-    stop("The value for `column` doesn't correspond to a column name.")
+    
+    stop(
+      "The value for `column` doesn't correspond to a column name.",
+      call. = FALSE
+    )
   }
 }
 
@@ -1887,18 +2236,34 @@ column_validity_checks_ib_nb <- function(table,
   table_colnames <- colnames(table)
   
   if (!(as.character(column) %in% table_colnames)) {
-    stop("The value for `column` doesn't correspond to a column name.")
+    
+    stop(
+      "The value for `column` doesn't correspond to a column name.",
+      call. = FALSE
+    )
   }
+  
   if (inherits(left, "name")) {
+    
     if (!(as.character(left) %in% table_colnames)) {
-      stop("The column supplied as the `left` value doesn't correspond ",
-           "to a column name.")
+      
+      stop(
+        "The column supplied as the `left` value doesn't correspond ",
+        "to a column name.",
+        call. = FALSE
+      )
     }
   }
+  
   if (inherits(right, "name")) {
+    
     if (!(as.character(right) %in% table_colnames)) {
-      stop("The column supplied as the `right` value doesn't correspond ",
-           "to a column name.")
+      
+      stop(
+        "The column supplied as the `right` value doesn't correspond ",
+        "to a column name.",
+        call. = FALSE
+      )
     }
   }
 }
@@ -1928,6 +2293,7 @@ add_reporting_data <- function(agent,
                                tbl_checked) {
 
   if (!inherits(tbl_checked, "table_eval")) {
+    
     stop("The validated table must be of class `table_eval`.")
   }
 

@@ -16,9 +16,11 @@
 # https://rich-iannone.github.io/pointblank/LICENSE.html
 #
 
+# nocov start
 
 #' Enable logging of failure conditions at the validation step level
 #' 
+#' @description 
 #' The `log4r_step()` function can be used as an action in the [action_levels()]
 #' function (as a list component for the `fns` list). Place a call to this
 #' function in every failure condition that should produce a log (i.e., `warn`,
@@ -51,13 +53,13 @@ log4r_step <- function(x,
                        append_to = "pb_log_file") {
   
   if (!requireNamespace("log4r", quietly = TRUE)) {
-    stop("Using the `log4r_step()` function requires ", 
-         "the log4r package:\n",
-         " * It can be installed with `install.packages(\"log4r\")`.",
-         call. = FALSE)
+    
+    stop(
+      "Using the `log4r_step()` function requires the log4r package:\n",
+      "* It can be installed with `install.packages(\"log4r\")`.",
+      call. = FALSE
+    )
   }
-  
-  # nocov start
   
   type <- x$this_type
   warn_val <- x$warn
@@ -117,6 +119,6 @@ log4r_step <- function(x,
       (f_failed = {x$f_failed}) ['{x$type}']"
     )
   )
-  
-  # nocov end
 }
+
+# nocov end

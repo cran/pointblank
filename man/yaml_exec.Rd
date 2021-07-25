@@ -8,7 +8,7 @@ yaml_exec(
   path = NULL,
   files = NULL,
   write_to_disk = TRUE,
-  output_path = NULL,
+  output_path = file.path(path, "output"),
   keep_tbl = FALSE,
   keep_extracts = FALSE
 )
@@ -16,23 +16,28 @@ yaml_exec(
 \arguments{
 \item{path}{The path that contains the YAML files for agents and informants.}
 
-\item{files}{A vector of YAML files to use. By default, \code{yaml_exec()} will
-attempt to process every valid YAML file but supplying a vector here limits
-the scope to the specified files.}
+\item{files}{A vector of YAML files to use in the execution workflow. By
+default, \code{yaml_exec()} will attempt to process every valid YAML file in
+\code{path} but supplying a vector here limits the scope to the specified files.}
 
-\item{write_to_disk}{Should the processing include a step that writes output
-files to disk? This uses \code{\link[=x_write_disk]{x_write_disk()}} to write RDS files and uses the
-base filename of the agent/informant YAML file, adding the date-time to the
-output filename.}
+\item{write_to_disk}{Should the execution workflow include a step that writes
+output files to disk? This internally calls \code{\link[=x_write_disk]{x_write_disk()}} to write RDS
+files and uses the base filename of the agent/informant YAML file as part
+of the output filename, appending the date-time to the basename.}
 
 \item{output_path}{The output path for any generated output files. By
 default, this will be a subdirectory of the provided \code{path} called
 \code{"output"}.}
 
 \item{keep_tbl, keep_extracts}{For agents, the table may be kept if it is a
-dataframe object and \emph{extracts} (collections of table rows that failed a
-validation step) may also be stored. By default, both of these options are
-set to \code{FALSE}.}
+data frame object (databases tables will never be pulled for storage) and
+\emph{extracts}, collections of table rows that failed a validation step, may
+also be stored. By default, both of these options are set to \code{FALSE}.}
+}
+\value{
+Invisibly returns a named vector of file paths for the input files
+that were processed; file output paths (for wherever writing occurred) are
+given as the names.
 }
 \description{
 The \code{yaml_exec()} function takes all relevant \strong{pointblank} YAML files in a
@@ -40,7 +45,10 @@ directory and executes them. Execution involves interrogation of agents for
 YAML agents and incorporation of informants for YAML informants. Under the
 hood, this uses \code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}} and \code{\link[=yaml_informant_incorporate]{yaml_informant_incorporate()}}
 and then \code{\link[=x_write_disk]{x_write_disk()}} to save the processed objects to an output
-directory for access to fresh results.
+directory. These written artifacts can be read in at any later time with the
+\code{\link[=x_read_disk]{x_read_disk()}} function or the \code{\link[=read_disk_multiagent]{read_disk_multiagent()}} function. This is
+useful when data in the target tables are changing and the periodic testing
+of such tables is part of a data quality monitoring plan.
 
 The output RDS files are named according to the object type processed, the
 target table, and the date-time of processing. For convenience and
@@ -61,12 +69,62 @@ following contents:
 \item an output folder (default is \code{"output"}) to save serialized versions of
 processed agents and informants
 }
+
+Minimal example files of the aforementioned types can be found in the
+\strong{pointblank} package through the following \code{system.file()} calls:
+\itemize{
+\item \code{system.file("yaml", "agent-small_table.yml", package = "pointblank")}
+\item \code{system.file("yaml", "informant-small_table.yml", package = "pointblank")}
+\item \code{system.file("yaml", "tbl_store.yml", package = "pointblank")}
+}
+
+The directory itself can be accessed using \code{system.file("yaml", package = "pointblank")}.
 }
 \section{Function ID}{
 
 11-8
 }
 
+\examples{
+if (interactive()) {
+
+# The 'yaml' directory that is
+# accessible in the package through
+# `system.file()` contains the files
+# 1. `agent-small_table.yml`
+# 2. `informant-small_table.yml`
+# 3. `tbl_store.yml`
+
+# There are references in YAML files
+# 1 & 2 to the table store YAML file,
+# so, they all work together cohesively
+
+# Let's process the agent and the
+# informant YAML files with `yaml_exec()`;
+# and we'll specify the working directory
+# as the place where the output RDS files
+# are written
+
+output_dir <- getwd()
+
+yaml_exec(
+  path = system.file(
+    "yaml", package = "pointblank"
+  ),
+  output = output_dir
+)
+
+# This generates two RDS files in the
+# working directory: one for the agent
+# and the other for the informant; each
+# of them are automatically time-stamped
+# so that periodic execution can be
+# safely carried out without risk of
+# overwriting 
+
+}
+
+}
 \seealso{
 Other pointblank YAML: 
 \code{\link{yaml_agent_interrogate}()},

@@ -16,6 +16,7 @@
 # https://rich-iannone.github.io/pointblank/LICENSE.html
 #
 
+
 #' Execute all agent and informant YAML tasks
 #' 
 #' @description
@@ -24,7 +25,10 @@
 #' YAML agents and incorporation of informants for YAML informants. Under the
 #' hood, this uses [yaml_agent_interrogate()] and [yaml_informant_incorporate()]
 #' and then [x_write_disk()] to save the processed objects to an output
-#' directory for access to fresh results.
+#' directory. These written artifacts can be read in at any later time with the
+#' [x_read_disk()] function or the [read_disk_multiagent()] function. This is
+#' useful when data in the target tables are changing and the periodic testing
+#' of such tables is part of a data quality monitoring plan.
 #' 
 #' The output RDS files are named according to the object type processed, the
 #' target table, and the date-time of processing. For convenience and
@@ -45,22 +49,75 @@
 #' - an output folder (default is `"output"`) to save serialized versions of
 #' processed agents and informants
 #' 
+#' Minimal example files of the aforementioned types can be found in the
+#' **pointblank** package through the following `system.file()` calls:
+#' 
+#' - `system.file("yaml", "agent-small_table.yml", package = "pointblank")`
+#' - `system.file("yaml", "informant-small_table.yml", package = "pointblank")`
+#' - `system.file("yaml", "tbl_store.yml", package = "pointblank")`
+#' 
+#' The directory itself can be accessed using `system.file("yaml", package =
+#' "pointblank")`.
+#' 
 #' @param path The path that contains the YAML files for agents and informants.
-#' @param files A vector of YAML files to use. By default, `yaml_exec()` will
-#'   attempt to process every valid YAML file but supplying a vector here limits
-#'   the scope to the specified files.
-#' @param write_to_disk Should the processing include a step that writes output
-#'   files to disk? This uses [x_write_disk()] to write RDS files and uses the
-#'   base filename of the agent/informant YAML file, adding the date-time to the
-#'   output filename.
+#' @param files A vector of YAML files to use in the execution workflow. By
+#'   default, `yaml_exec()` will attempt to process every valid YAML file in
+#'   `path` but supplying a vector here limits the scope to the specified files.
+#' @param write_to_disk Should the execution workflow include a step that writes
+#'   output files to disk? This internally calls [x_write_disk()] to write RDS
+#'   files and uses the base filename of the agent/informant YAML file as part
+#'   of the output filename, appending the date-time to the basename.
 #' @param output_path The output path for any generated output files. By
 #'   default, this will be a subdirectory of the provided `path` called
 #'   `"output"`.
 #' @param keep_tbl,keep_extracts For agents, the table may be kept if it is a
-#'   dataframe object and *extracts* (collections of table rows that failed a
-#'   validation step) may also be stored. By default, both of these options are
-#'   set to `FALSE`.
-#'   
+#'   data frame object (databases tables will never be pulled for storage) and
+#'   *extracts*, collections of table rows that failed a validation step, may
+#'   also be stored. By default, both of these options are set to `FALSE`.
+#' 
+#' @return Invisibly returns a named vector of file paths for the input files
+#'   that were processed; file output paths (for wherever writing occurred) are
+#'   given as the names.
+#' 
+#' @examples
+#' if (interactive()) {
+#' 
+#' # The 'yaml' directory that is
+#' # accessible in the package through
+#' # `system.file()` contains the files
+#' # 1. `agent-small_table.yml`
+#' # 2. `informant-small_table.yml`
+#' # 3. `tbl_store.yml`
+#' 
+#' # There are references in YAML files
+#' # 1 & 2 to the table store YAML file,
+#' # so, they all work together cohesively
+#' 
+#' # Let's process the agent and the
+#' # informant YAML files with `yaml_exec()`;
+#' # and we'll specify the working directory
+#' # as the place where the output RDS files
+#' # are written
+#' 
+#' output_dir <- getwd()
+#' 
+#' yaml_exec(
+#'   path = system.file(
+#'     "yaml", package = "pointblank"
+#'   ),
+#'   output = output_dir
+#' )
+#' 
+#' # This generates two RDS files in the
+#' # working directory: one for the agent
+#' # and the other for the informant; each
+#' # of them are automatically time-stamped
+#' # so that periodic execution can be
+#' # safely carried out without risk of
+#' # overwriting 
+#' 
+#' }
+#' 
 #' @family pointblank YAML
 #' @section Function ID:
 #' 11-8
@@ -69,7 +126,7 @@
 yaml_exec <- function(path = NULL,
                       files = NULL,
                       write_to_disk = TRUE, 
-                      output_path = NULL,
+                      output_path = file.path(path, "output"),
                       keep_tbl = FALSE,
                       keep_extracts = FALSE) {
   
@@ -98,14 +155,19 @@ yaml_exec <- function(path = NULL,
   }
   
   # Construct paths to files
-  files_paths <- fs::path(fs::path_wd(), files)
-  
-  # Construct the output path (if not provided) as a
-  # subdirectory of `path`
-  if (is.null(output_path)) {
-    output_path <- fs::path(path, "output")
+  if (!is.null(files)) {
+    files_paths <- fs::path(fs::path_wd(), files)
   } else {
-    output_path <- path
+    files_paths <- fs::path(fs::path_wd(), fs::dir_ls(regexp = ".ya?ml$"))
+  }
+  
+  # Normalize the output path
+  if (is.null(output_path)) {
+    output_path <- fs::path_norm(initial_wd)
+  } else {
+    if (!fs::is_absolute_path(output_path)) {
+      output_path <- fs::path_norm(fs::path(initial_wd, output_path))
+    }
   }
   
   agent_file_paths <- c()
@@ -131,11 +193,38 @@ yaml_exec <- function(path = NULL,
     }
   }
   
+  # Get the total number of files that are candidates for agents/informants
+  total_files <- length(agent_file_paths) + length(informant_file_paths)
+  
+  # If there are no files to process, invisibly return NULL
+  if (total_files == 0) {
+    return(invisible(NULL))
+  }
+  
+  # Create a vector for collecting files that were written and also read in  
+  files_written <- c()
+  files_read <- c()
+  
+  if (total_files == 1) {
+    execution_progress_header <- 
+      "Execution Started - there is a single file to process"
+  } else {
+    execution_progress_header <- 
+      "Execution Started - there are {total_files} files to process"
+  }
+  
+  cli::cli_h1(execution_progress_header)
+  cli::cli_text()
+  
   if (length(agent_file_paths) > 0) {
     
     for (agent_yml_file in agent_file_paths) {
       
+      cli::cli_rule(left = basename(agent_yml_file))
+      
       agent <- yaml_agent_interrogate(agent_yml_file)
+      
+      cli::cli_text()
       
       if (write_to_disk) {
 
@@ -159,7 +248,16 @@ yaml_exec <- function(path = NULL,
           keep_tbl = keep_tbl,
           keep_extracts = keep_extracts
         )
+        
+        files_written <- c(files_written, as.character(file_name))
+      } else {
+        files_written <- c(files_written, "")
       }
+      
+      files_read <- c(files_read, agent_yml_file)
+      
+      cli::cli_rule()
+      cli::cli_text()
     }
   }
 
@@ -167,7 +265,11 @@ yaml_exec <- function(path = NULL,
     
     for (informant_yml_file in informant_file_paths) {
       
+      cli::cli_rule(left = basename(informant_yml_file))
+      
       informant <- yaml_informant_incorporate(informant_yml_file)
+      
+      cli::cli_text()
       
       if (write_to_disk) {
         
@@ -194,9 +296,22 @@ yaml_exec <- function(path = NULL,
             delimiter = "-"
           )
         )
+        
+        files_written <- c(files_written, as.character(file_name))
+      } else {
+        files_written <- c(files_written, "")
       }
+      
+      files_read <- c(files_read, informant_yml_file)
+      
+      cli::cli_rule()
     }
   }
   
-  invisible(NULL)
+  cli::cli_h1("Execution Finished")
+  
+  files_in_out <- files_read
+  names(files_in_out) <- files_written
+  
+  invisible(files_in_out)
 }

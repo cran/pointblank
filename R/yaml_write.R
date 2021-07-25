@@ -93,7 +93,8 @@
 #' # (a requirement for writing to YAML)
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~small_table,
+#'     read_fn = ~ small_table,
+#'     tbl_name = "small_table",
 #'     label = "A simple example with the `small_table`.",
 #'     actions = al
 #'   )
@@ -136,8 +137,8 @@
 #' # by supplying the agent as the input
 #' yaml_agent_string(agent = agent)
 #' 
-#' # At a later time, the YAML file can
-#' # be read into a new agent with the
+#' # At some later time, the YAML file can
+#' # be read as a new agent with the
 #' # `yaml_read_agent()` function
 #' agent <- 
 #'   yaml_read_agent(filename = yml_file)
@@ -226,7 +227,7 @@ yaml_write <- function(...,
       )
     }
     
-    return(invisible(NULL))
+    return(invisible(TRUE))
   }
   
   if ("agent" %in% object_types) {
@@ -241,8 +242,11 @@ yaml_write <- function(...,
   }
   
   if (is.null(agent) && is.null(informant)) {
-    stop("An agent or informant object must be supplied to `yaml_write()`.",
-         call. = FALSE)
+    
+    stop(
+      "An agent or informant object must be supplied to `yaml_write()`.",
+      call. = FALSE
+    )
   }
 
   if (!is.null(agent) && !is.null(informant)) {
@@ -293,6 +297,7 @@ yaml_write <- function(...,
     filename <- file.path(path, filename)
   }
   
+  # Write the YAML to disk
   yaml::write_yaml(
     x = x,
     file = filename,
@@ -319,6 +324,7 @@ yaml_write <- function(...,
 
 #' Display **pointblank** YAML using an agent or a YAML file
 #' 
+#' @description 
 #' With **pointblank** YAML, we can serialize an agent's validation plan (with
 #' [yaml_write()]), read it back later with a new agent (with
 #' [yaml_read_agent()]), or perform an interrogation on the target data table
@@ -351,7 +357,8 @@ yaml_write <- function(...,
 #' # of the target table
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~small_table,
+#'     read_fn = ~ small_table,
+#'     tbl_name = "small_table",
 #'     label = "A simple example with the `small_table`.",
 #'     actions = action_levels(
 #'       warn_at = 0.10,
@@ -380,9 +387,9 @@ yaml_write <- function(...,
 #'   filename = "agent-small_table.yml"
 #' )
 #' 
-#' # The 'agent-small_table.yml' file is
-#' # available in the package through
-#' # `system.file()`
+#' # There's a similar file in the package
+#' # ('agent-small_table.yml') and it's
+#' # accessible with `system.file()`
 #' yml_file <- 
 #'   system.file(
 #'     "yaml", "agent-small_table.yml",
@@ -390,11 +397,12 @@ yaml_write <- function(...,
 #'   )
 #' 
 #' # The `yaml_agent_string()` function can
-#' # be used with the YAML file as well
+#' # be used with the YAML file as well,
+#' # use the `filename` argument instead
 #' yaml_agent_string(filename = yml_file)
 #' 
-#' # At a later time, the YAML file can
-#' # be read into a new agent with the
+#' # At some later time, the YAML file can
+#' # be read as a new agent with the
 #' # `yaml_read_agent()` function
 #' agent <- yaml_read_agent(filename = yml_file)
 #' class(agent)
@@ -413,19 +421,28 @@ yaml_agent_string <- function(agent = NULL,
   
   if (is.null(agent) && is.null(filename)) {
     stop(
-      "An `agent` object or a `path` to a YAML file must be specified.",
+      "An `agent` object or a `filename` for a YAML file must be specified.",
       call. = FALSE
     )
   }
   
   if (!is.null(agent) && !is.null(filename)) {
-    stop("Only one of `agent` or `path` should be specified.", call. = FALSE)
+    stop(
+      "Only `agent` or `filename` should be specified (not both).",
+      call. = FALSE
+    )
   }
   
   if (!is.null(agent)) {
     
+    # Display the agent's YAML as a nicely formatted string by
+    # generating the YAML (`as_agent_yaml_list() %>% as.yaml()`) and
+    # then emitting it to the console via `message()`
     message(
-      as_agent_yaml_list(agent = agent, expanded = expanded) %>%
+      as_agent_yaml_list(
+        agent = agent,
+        expanded = expanded
+      ) %>%
         yaml::as.yaml(
           handlers = list(
             logical = function(x) {
@@ -443,6 +460,9 @@ yaml_agent_string <- function(agent = NULL,
       filename <- file.path(path, filename)
     }
     
+    # Display the agent's YAML as a nicely formatted string by
+    # reading the YAML file specified by `file` (and perhaps `path`)
+    # and then emitting it to the console via `message()`
     message(readLines(filename) %>% paste(collapse = "\n"))
   }
 }
@@ -452,11 +472,49 @@ as_vars_fn <- function(columns) {
 }
 
 as_list_preconditions <- function(preconditions) {
+  
   if (is.null(preconditions[[1]])) {
+    
     return(NULL)
+    
+  } else if (is.function(preconditions[[1]])) {
+    
+    return(
+      paste(deparse(preconditions[[1]]), collapse = "\n") %>%
+        gsub("function (x) \n{", "function(x) {", ., fixed = TRUE)
+    )
+    
   } else {
     return(as.character(preconditions))
   }
+}
+
+as_list_segments <- function(segments) {
+  
+  if (is.null(segments[[1]])) {
+    return(NULL)
+  }
+
+  segments <- unlist(segments)
+  
+  components <- c()
+  
+  for (i in seq_along(segments)) {
+    
+    if (rlang::is_formula(segments[[i]]) &&
+        !inherits(segments[[i]], "quosure")) {
+      
+      components <-
+        c(components, paste(capture_formula(segments[[i]]), collapse = " "))
+      
+    } else if (inherits(segments[[i]], "quosure")) {
+      
+      components <-
+        c(components, paste0("vars(", as_label(segments[[i]]), ")"))
+    }
+  }
+  
+  paste0("list(", paste(components, collapse = ", "), ")")
 }
 
 as_list_active <- function(active) {
@@ -596,6 +654,10 @@ prune_lst_step <- function(lst_step) {
       is.null(lst_step[[1]][["preconditions"]])) {
     lst_step[[1]]["preconditions"] <- NULL
   }
+  if ("segments" %in% names(lst_step[[1]]) &&
+      is.null(lst_step[[1]][["segments"]])) {
+    lst_step[[1]]["segments"] <- NULL
+  }
   if ("na_pass" %in% names(lst_step[[1]]) &&
       !lst_step[[1]][["na_pass"]]) {
     lst_step[[1]]["na_pass"] <- NULL
@@ -708,7 +770,7 @@ as_agent_yaml_list <- function(agent,
       agent$validation_set %>% 
       dplyr::select(
         i_o, assertion_type, columns_expr, column, values, na_pass,
-        preconditions, actions, label, brief, active
+        preconditions, seg_expr, actions, label, brief, active
       ) %>%
       dplyr::group_by(i_o) %>%
       dplyr::filter(dplyr::row_number() == 1) %>%
@@ -726,7 +788,7 @@ as_agent_yaml_list <- function(agent,
       agent$validation_set %>% 
       dplyr::select(
         i, assertion_type, columns_expr, column, values, na_pass,
-        preconditions, actions, label, brief, active
+        preconditions, seg_expr, actions, label, brief, active
       )
   }
   
@@ -757,6 +819,7 @@ as_agent_yaml_list <- function(agent,
             value = get_arg_value(step_list$values),
             na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -788,6 +851,7 @@ as_agent_yaml_list <- function(agent,
             ),
             na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -811,6 +875,7 @@ as_agent_yaml_list <- function(agent,
             columns = column_text,
             set = step_list$values[[1]],
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -833,6 +898,7 @@ as_agent_yaml_list <- function(agent,
           validation_fn = list(
             columns = column_text,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -866,6 +932,7 @@ as_agent_yaml_list <- function(agent,
             decreasing_tol = decreasing_tol,
             na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -899,6 +966,7 @@ as_agent_yaml_list <- function(agent,
             increasing_tol = increasing_tol,
             na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -923,6 +991,32 @@ as_agent_yaml_list <- function(agent,
             regex = get_arg_value(step_list$values),
             na_pass = step_list$na_pass,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
+      
+    } else if (validation_fn == "col_vals_within_spec") {
+      
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
+      
+      lst_step <- 
+        list(
+          validation_fn = list(
+            columns = column_text,
+            spec = get_arg_value(step_list$values),
+            na_pass = step_list$na_pass,
+            preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -961,6 +1055,7 @@ as_agent_yaml_list <- function(agent,
           validation_fn = list(
             expr = paste0("~", rlang::as_label(step_list$values[[1]])),
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -983,6 +1078,7 @@ as_agent_yaml_list <- function(agent,
           validation_fn = list(
             columns = vars_cols,
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default
@@ -1019,6 +1115,7 @@ as_agent_yaml_list <- function(agent,
           validation_fn = list(
             fns = as.character(step_list$values[[1]]),
             preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
               step_list$actions[[1]],
               action_levels_default

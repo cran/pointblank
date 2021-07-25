@@ -13,6 +13,7 @@ col_vals_decreasing(
   increasing_tol = NULL,
   na_pass = FALSE,
   preconditions = NULL,
+  segments = NULL,
   actions = NULL,
   step_id = NULL,
   label = NULL,
@@ -64,9 +65,17 @@ has the effect of setting \code{allow_stationary} to \code{TRUE}.}
 test units? This is by default \code{FALSE}. Set to \code{TRUE} to give \code{NA}s a pass.}
 
 \item{preconditions}{An optional expression for mutating the input table
-before proceeding with the validation. This is ideally as a one-sided R
-formula using a leading \code{~}. In the formula representation, the \code{.} serves
-as the input data table to be transformed (e.g., \code{~ . \%>\% dplyr::mutate(col = col + 10)}.}
+before proceeding with the validation. This can either be provided as a
+one-sided R formula using a leading \code{~} (e.g.,
+\code{~ . \%>\% dplyr::mutate(col = col + 10)} or as a function (e.g.,
+\code{function(x) dplyr::mutate(x, col = col + 10)}. See the \emph{Preconditions}
+section for more information.}
+
+\item{segments}{An optional expression or set of expressions (held in a list)
+that serve to segment the target table by column values. Each expression
+can be given in one of two ways: (1) as column names, or (2) as a two-sided
+formula where the LHS holds a column name and the RHS contains the column
+values to segment on. See the \emph{Segments} section for more details on this.}
 
 \item{actions}{A list containing threshold levels so that the validation step
 can react accordingly when exceeding the set levels. This is to be created
@@ -165,16 +174,53 @@ unit should be counted as a \emph{pass} or a \emph{fail}. The default of \code{n
 
 \section{Preconditions}{
 
-Having table \code{preconditions} means \strong{pointblank} will mutate the table just
-before interrogation. Such a table mutation is isolated in scope to the
-validation step(s) produced by the validation function call. Using
-\strong{dplyr} code is suggested here since the statements can be translated to
-SQL if necessary. The code is most easily supplied as a one-sided \strong{R}
-formula (using a leading \code{~}). In the formula representation, the \code{.} serves
-as the input data table to be transformed (e.g.,
-\code{~ . \%>\% dplyr::mutate(col_a = col_b + 10)}). Alternatively, a function could
-instead be supplied (e.g.,
-\code{function(x) dplyr::mutate(x, col_a = col_b + 10)}).
+Providing expressions as \code{preconditions} means \strong{pointblank} will preprocess
+the target table table during interrogation as a preparatory step. It might
+happen that a particular validation requires a calculated column, some
+filtering of rows, or the addition of columns via a join, etc. Especially for
+an \emph{agent}-based report this can be advantageous since we can develop a large
+validation plan with a single target table and make minor adjustments to it,
+as needed, along the way.
+
+The table mutation is totally isolated in scope to the validation step(s)
+where \code{preconditions} is used. Using \strong{dplyr} code is suggested here since
+the statements can be translated to SQL if necessary (i.e., if the target
+table resides in a database). The code is most easily supplied as a one-sided
+\strong{R} formula (using a leading \code{~}). In the formula representation, the \code{.}
+serves as the input data table to be transformed (e.g., \code{~ . \%>\% dplyr::mutate(col_b = col_a + 10)}). Alternatively, a function could instead
+be supplied (e.g., \code{function(x) dplyr::mutate(x, col_b = col_a + 10)}).
+}
+
+\section{Segments}{
+
+By using the \code{segments} argument, it's possible to define a particular
+validation with segments (or row slices) of the target table. An optional
+expression or set of expressions that serve to segment the target table by
+column values. Each expression can be given in one of two ways: (1) as column
+names, or (2) as a two-sided formula where the LHS holds a column name and
+the RHS contains the column values to segment on.
+
+As an example of the first type of expression that can be used,
+\code{vars(a_column)} will segment the target table in however many unique values
+are present in the column called \code{a_column}. This is great if every unique
+value in a particular column (like different locations, or different dates)
+requires it's own repeating validation.
+
+With a formula, we can be more selective with which column values should be
+used for segmentation. Using \code{a_column ~ c("group_1", "group_2")} will
+attempt to obtain two segments where one is a slice of data where the value
+\code{"group_1"} exists in the column named \code{"a_column"}, and, the other is a
+slice where \code{"group_2"} exists in the same column. Each group of rows
+resolved from the formula will result in a separate validation step.
+
+If there are multiple \code{columns} specified then the potential number of
+validation steps will be \code{m} columns multiplied by \code{n} segments resolved.
+
+Segmentation will always occur after \code{preconditions} (i.e., statements that
+mutate the target table), if any, are applied. With this type of one-two
+combo, it's possible to generate labels for segmentation using an expression
+for \code{preconditions} and refer to those labels in \code{segments} without having to
+generate a separate version of the target table.
 }
 
 \section{Actions}{
@@ -220,6 +266,7 @@ agent \%>\%
     increasing_tol = 0.5,
     na_pass = TRUE,
     preconditions = ~ . \%>\% dplyr::filter(a < 10),
+    segments = b ~ c("group_1", "group_2"),
     actions = action_levels(warn_at = 0.1, stop_at = 0.2),
     label = "The `col_vals_decreasing()` step.",
     active = FALSE
@@ -233,6 +280,7 @@ steps:
     increasing_tol: 0.5
     na_pass: true
     preconditions: ~. \%>\% dplyr::filter(a < 10)
+    segments: b ~ c("group_1", "group_2")
     actions:
       warn_fraction: 0.1
       stop_fraction: 0.2
@@ -284,6 +332,7 @@ Other validation functions:
 \code{\link{col_vals_not_null}()},
 \code{\link{col_vals_null}()},
 \code{\link{col_vals_regex}()},
+\code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
 \code{\link{rows_distinct}()}
 }

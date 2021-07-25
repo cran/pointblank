@@ -250,6 +250,28 @@ test_that("Individual validation steps make the YAML round-trip successfully", {
   )
   expect_equal(
     get_oneline_expr_str(
+      agent %>% 
+        col_vals_lt(
+          vars(a), 1, na_pass = TRUE,
+          preconditions = function(x) { x %>% dplyr::filter(a > 2) }
+        )
+    ),
+    "col_vals_lt(columns = vars(a),value = 1,na_pass = TRUE,preconditions = function(x) {x %>% dplyr::filter(a > 2)})"
+  )
+  expect_equal(
+    get_oneline_expr_str(
+      agent %>% 
+        col_vals_lt(
+          vars(a), 1, na_pass = TRUE,
+          preconditions = function(x) {
+            x %>% dplyr::filter(a > 2)
+          }
+        )
+    ),
+    "col_vals_lt(columns = vars(a),value = 1,na_pass = TRUE,preconditions = function(x) {x %>% dplyr::filter(a > 2)})"
+  )
+  expect_equal(
+    get_oneline_expr_str(
       agent %>%
         col_vals_lt(
           vars(a, c), 1,
@@ -672,6 +694,21 @@ test_that("Individual validation steps make the YAML round-trip successfully", {
   expect_equal(
     get_oneline_expr_str(agent %>% col_vals_regex(vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}", label = "my_label")),
     "col_vals_regex(columns = vars(b),regex = \"[0-9]-[a-z]{3}-[0-9]{3}\",label = \"my_label\")"
+  )
+  
+  #
+  # col_vals_within_spec()
+  #
+  
+  agent_spec <- create_agent(read_fn = ~ specifications, label = "testthat")
+
+  expect_equal(
+    get_oneline_expr_str(agent_spec %>% col_vals_within_spec(columns = vars(isbn_numbers), spec = "isbn13")),
+    "col_vals_within_spec(columns = vars(isbn_numbers),spec = \"isbn\")"
+  )
+  expect_equal(
+    get_oneline_expr_str(agent_spec %>% col_vals_within_spec(columns = vars(vin_numbers), spec = "VIN", label = "my_label")),
+    "col_vals_within_spec(columns = vars(vin_numbers),spec = \"vin\",label = \"my_label\")"
   )
   
   #

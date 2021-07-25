@@ -4,7 +4,14 @@
 \alias{scan_data}
 \title{Thoroughly scan a table to better understand it}
 \usage{
-scan_data(tbl, sections = "OVICMS", navbar = TRUE, lang = NULL, locale = NULL)
+scan_data(
+  tbl,
+  sections = "OVICMS",
+  navbar = TRUE,
+  width = NULL,
+  lang = NULL,
+  locale = NULL
+)
 }
 \arguments{
 \item{tbl}{The input table. This can be a data frame, tibble, a \code{tbl_dbi}
@@ -23,10 +30,14 @@ report. For \code{tbl_dbi} and \code{tbl_spark} objects supplied to \code{tbl}, 
 \item{navbar}{Should there be a navigation bar anchored to the top of the
 report page? By default this is \code{TRUE}.}
 
+\item{width}{An optional fixed width (in pixels) for the HTML report. By
+default, no fixed width is applied.}
+
 \item{lang}{The language to use for label text in the report. By default,
 \code{NULL} will create English (\code{"en"}) text. Other options include French
-(\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}), Portuguese,
-(\code{"pt"}), Chinese (\code{"zh"}), and Russian (\code{"ru"}).}
+(\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}), Portuguese
+(\code{"pt"}), Turkish (\code{"tr"}), Chinese (\code{"zh"}),  Russian (\code{"ru"}), Polish
+(\code{"pl"}), Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch (\code{"nl"}).}
 
 \item{locale}{An optional locale ID to use for formatting values in the
 report according the locale's rules. Examples include \code{"en_US"} for English
@@ -87,6 +98,7 @@ Other Planning and Prep:
 \code{\link{create_agent}()},
 \code{\link{create_informant}()},
 \code{\link{db_tbl}()},
+\code{\link{draft_validation}()},
 \code{\link{file_tbl}()},
 \code{\link{tbl_get}()},
 \code{\link{tbl_source}()},

@@ -16,6 +16,7 @@
 # https://rich-iannone.github.io/pointblank/LICENSE.html
 #
 
+# nocov start
 
 create_rds_tbl <- function(path = NULL, files = NULL) {
   
@@ -144,6 +145,7 @@ create_rds_tbl <- function(path = NULL, files = NULL) {
 get_rds_tbl_val_files_tbl <- function(rds_tbl, tbl_name) {
   
   if (!(tbl_name %in% rds_tbl$tbl_name)) {
+    
     stop("The `tbl_name` is not available in the `rds_tbl`.")
   }
   
@@ -153,8 +155,11 @@ get_rds_tbl_val_files_tbl <- function(rds_tbl, tbl_name) {
 get_rds_tbl_info_files_tbl <- function(rds_tbl, tbl_name) {
   
   if (!(tbl_name %in% rds_tbl$tbl_name)) {
+    
     stop("The `tbl_name` is not available in the `rds_tbl`.")
   }
   
   rds_tbl[rds_tbl$tbl_name == tbl_name, "information_files"][[1]][[1]]
 }
+
+# nocov end

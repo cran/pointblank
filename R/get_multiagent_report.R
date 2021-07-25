@@ -21,39 +21,74 @@
 #' 
 #' @description 
 #' We can get an informative summary table from a collective of agents by using
-#' the `get_multiagent_report()` function. The table can be provided in either
-#' of two very different forms: as a **gt** based display table (the default),
-#' or, as a tibble with packed columns. The display table variant of the
-#' multiagent report, the default form, will have the following columns:
+#' the `get_multiagent_report()` function. Information from multiple agent can
+#' be provided in three very forms: (1) the *Long Display* (stacked reports),
+#' (2) the *Wide Display* (a comparison report), (3) as a tibble with packed
+#' columns.
 #' 
-#' \itemize{
-#' \item STEP: the SHA1 hash for the validation step, possibly shared among
-#' several interrogations.
-#' \item *subsequent columns*: each column beyond `STEP` represents a separate
-#' interrogation from an *agent* object. The time stamp for the completion of
-#' each interrogation is shown as the column label.
-#' }
+#' @section The Long Display:
+#' When displayed as `"long"` the multiagent report will stack individual agent
+#' reports in a single document in the order of the agents in the multiagent
+#' object.
 #' 
-#' Each step is represented with an icon standing in for the name of the
-#' validation function and the associated SHA1 hash. This is a highly
+#' Each validation plan (possibly with interrogation info) will be provided and
+#' the output for each is equivalent to calling [get_agent_report()] on each
+#' of the agents within the multiagent object.
+#' 
+#' @section The Wide Display:
+#' When displayed as `"wide"` the multiagent report will show data from
+#' individual agents as columns, with rows standing as validation steps common
+#' across the agents.
+#'
+#' Each validation step is represented with an icon (standing in for the name of
+#' the validation function) and the associated SHA1 hash. This is a highly
 #' trustworthy way for ascertaining which validation steps are effectively
 #' identical across interrogations. This way of organizing the report is
 #' beneficial because different agents may have used different steps and we want
 #' to track the validation results where the validation step doesn't change but
-#' the target table does.
+#' the target table does (i.e., new rows are added, existing rows are updated,
+#' etc.).
+#' 
+#' The single table from this display mode will have the following columns:
+#' 
+#' - STEP: the SHA1 hash for the validation step, possibly shared among
+#' several interrogations.
+#' - *subsequent columns*: each column beyond `STEP` represents a separate
+#' interrogation from an *agent* object. The time stamp for the completion of
+#' each interrogation is shown as the column label.
 #' 
 #' @param multiagent A multiagent object of class `ptblank_multiagent`.
 #' @param display_table Should a display table be generated? If `TRUE` (the
 #'   default) a display table for the report will be shown in the Viewer. If
 #'   `FALSE` then a tibble will be returned.
-#' @param title Options for customizing the title of the report. The default is
-#'   the keyword `":default:"` which produces generic title text. If no title is
-#'   wanted, then the `":none:"` keyword option can be used. Aside from keyword
-#'   options, text can be provided for the title and `glue::glue()` calls can be
-#'   used to construct the text string. If providing text, it will be
-#'   interpreted as Markdown text and transformed internally to HTML. To
-#'   circumvent such a transformation, use text in [I()] to explicitly state
-#'   that the supplied text should not be transformed.
+#' @param display_mode If we are getting a display table, should the agent data
+#'   be presented in a `"long"` or `"wide"` form? The default is `"long"` but
+#'   when comparing multiple runs where the target table is the same it might be
+#'   preferable to choose `"wide"`.
+#' @param title Options for customizing the title of the report when
+#'   `display_table = TRUE`. The default is the keyword `":default:"` which
+#'   produces generic title text. If no title is wanted, then the `":none:"`
+#'   keyword option can be used. Another keyword option is `":tbl_name:"`, and
+#'   that presents the name of the table as the title for the report (this can
+#'   only be used when `display_mode = "long"`). Aside from keyword options,
+#'   text can be provided for the title and `glue::glue()` calls can be used to
+#'   construct the text string. If providing text, it will be interpreted as
+#'   Markdown text and transformed internally to HTML. To circumvent such a
+#'   transformation, use text in [I()] to explicitly state that the supplied
+#'   text should not be transformed.
+#' @param lang The language to use for the long or wide report forms. By
+#'   default, `NULL` will preserve any language set in the component reports.
+#'   The following options will force the same language across all component
+#'   reports: English (`"en"`), French (`"fr"`), German (`"de"`), Italian
+#'   (`"it"`), Spanish (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese
+#'   (`"zh"`), Russian (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish
+#'   (`"sv"`), and Dutch (`"nl"`).
+#' @param locale An optional locale ID to use for formatting values in the long
+#'   or wide report forms (according the locale's rules). Examples include
+#'   `"en_US"` for English (United States) and `"fr_FR"` for French (France);
+#'   more simply, this can be a language identifier without a country
+#'   designation, like `"es"` for Spanish (Spain, same as `"es_ES"`). This
+#'   `locale` option will override any previously set locale values.
 #' 
 #' @return A **gt** table object if `display_table = TRUE` or a tibble if
 #'   `display_table = FALSE`.
@@ -88,7 +123,8 @@
 #' agent_1 <-
 #'   create_agent(
 #'     read_fn = ~ small_table,
-#'     label = "An example.",
+#'     tbl_name = "small_table",
+#'     label = "`get_multiagent_report()`",
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
@@ -167,12 +203,35 @@
 #' 
 #' # Calling `multiagent` in the console
 #' # prints the multiagent report; but we
-#' # can get a `gt_tbl` object with the
-#' # `get_multiagent_report(agent)` function
-#' report <- get_multiagent_report(multiagent)
+#' # can use some non-default option with
+#' # the `get_multiagent_report()` function
 #' 
-#' class(report)
+#' # By default, `get_multiagent_report()`
+#' # gives you a tall report with agent
+#' # reports being stacked
+#' report_1 <- 
+#'   get_multiagent_report(multiagent)
+#'   
+#' # We can modify the title with that's
+#' # more suitable or use a keyword like
+#' # `:tbl_name:` to give us the target
+#' # table name in each section
+#' report_2 <- 
+#'   get_multiagent_report(
+#'     multiagent,
+#'     title = ":tbl_name:"
+#'   )
 #' 
+#' # We can opt for a wide display of
+#' # the reporting info, and this is
+#' # great when reporting on multiple
+#' # validations of the same target
+#' # table
+#' report_3 <- 
+#'   get_multiagent_report(
+#'     multiagent,
+#'     display_mode = "wide"
+#'   )
 #' }
 #'
 #' @family The multiagent
@@ -182,7 +241,10 @@
 #' @export
 get_multiagent_report <- function(multiagent,
                                   display_table = TRUE,
-                                  title = ":default:") {
+                                  display_mode = c("long", "wide"),
+                                  title = ":default:",
+                                  lang = NULL,
+                                  locale = NULL) {
 
   for (i in seq_along(multiagent[["agents"]])) {
     
@@ -226,6 +288,57 @@ get_multiagent_report <- function(multiagent,
   }
 
   # nocov start
+  
+  display_mode <- match.arg(display_mode)
+  
+  if (display_mode == "long") {
+    
+    long_report <- rep(NA_character_, length(multiagent[["agents"]]))
+    
+    if (title == ":default:") {
+      title <-
+        get_default_title_text(
+          report_type = "multiagent:long",
+          lang = lang
+        )
+    }
+    
+    for (i in seq_along(multiagent[["agents"]])) {
+      
+      long_report_i <- 
+        get_agent_report(
+          agent = multiagent[["agents"]][[i]],
+          title = if ((i != 1 || title == ":none:") && title != ":tbl_name:") {
+            ""
+          } else {
+            title
+          },
+          lang = lang,
+          locale = locale
+        )
+      
+      long_report_i <-
+        long_report_i %>%
+        gt::tab_options(
+          table.border.top.width = "0",
+          table.border.bottom.style = "double",
+          table.border.bottom.width = "6px",
+          table.border.bottom.color = "#D3D3D3"
+        )
+      
+      long_report[i] <- gt::as_raw_html(long_report_i, inline_css = FALSE)
+    }
+    
+    long_report <- 
+      htmltools::tagList(
+        htmltools::HTML(paste(long_report, collapse = "<br>"))
+      )
+    
+    class(long_report) <- 
+      c("ptblank_multiagent_report.long", class(long_report))
+    
+    return(long_report)
+  }
 
   # Generate table type HTML
   table_type <- 
@@ -650,8 +763,8 @@ get_multiagent_report <- function(multiagent,
     process_title_text(
       title = title,
       tbl_name = NULL,
-      report_type = "multiagent",
-      lang = "en"
+      report_type = "multiagent:wide",
+      lang = lang
     )
   
   report_tbl <- 
@@ -771,6 +884,8 @@ get_multiagent_report <- function(multiagent,
       report_tbl %>% 
       gt::cols_label(`001` = gt::html(date_time[[2]]))
   }
+  
+  class(report_tbl) <- c("ptblank_multiagent_report.wide", class(report_tbl))
   
   report_tbl
 }

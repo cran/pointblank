@@ -116,9 +116,10 @@
 #'   summary table that provides the validation plan and the results from the
 #'   interrogation. By default, `NULL` will create English (`"en"`) text. Other
 #'   options include French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish
-#'   (`"es"`), Portuguese, (`"pt"`), Chinese (`"zh"`), and Russian (`"ru"`).
-#'   This `lang` option will override any previously set lang value (e.g., by
-#'   the [create_agent()] call).
+#'   (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian
+#'   (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch
+#'   (`"nl"`). This `lang` option will override any previously set language
+#'   setting (e.g., by the [create_agent()] call).
 #' @param locale An optional locale ID to use for formatting values in the
 #'   *agent report* summary table according the locale's rules. Examples include
 #'   `"en_US"` for English (United States) and `"fr_FR"` for French (France);
@@ -259,13 +260,15 @@ get_agent_report <- function(agent,
     
     extract_count[extract_count == FALSE] <- NA_integer_
     
-    extract_count[!is.na(extract_count)] <- 
-      vapply(
-        agent$extracts,
-        FUN.VALUE = integer(1),
-        USE.NAMES = FALSE,
-        FUN = nrow
-      )
+    suppressWarnings(
+      extract_count[!is.na(extract_count)] <- 
+        vapply(
+          agent$extracts,
+          FUN.VALUE = integer(1),
+          USE.NAMES = FALSE,
+          FUN = nrow
+        )
+    )
   }
   
   report_tbl <- 
@@ -377,6 +380,7 @@ get_agent_report <- function(agent,
     create_table_time_html(
       time_start = agent$time_start,
       time_end = agent$time_end,
+      size = size,
       locale = locale
     )
   
@@ -771,11 +775,11 @@ get_agent_report <- function(agent,
           
           x <- 
             make_boxed_text_html(
-              x = "&#x02192;",
+              x = icon_status("unchanged"),
               size = size,
               color = "#333333",
               background = "transparent",
-              font_size = "18px",
+              font_size = "10px",
               padding = 0,
               tt_text = get_lsv(text = c(
                 "agent_report",
@@ -794,7 +798,7 @@ get_agent_report <- function(agent,
           
           x <- 
             make_boxed_text_html(
-              x = "&#x021BB;",
+              x = icon_status("modified"),
               size = size,
               color = "#3C898A",
               background = "transparent",
@@ -809,6 +813,43 @@ get_agent_report <- function(agent,
         }
         x
       } 
+    )
+  
+  seg_col <- validation_set$seg_col
+  seg_val <- validation_set$seg_val
+  
+  # Make changes to the `precon` column if there is grouping
+  precon_upd <- 
+    seq_along(seg_col) %>%
+    vapply(
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) {
+        
+        if (is.na(seg_col[x])) {
+          return(precon_upd[x])
+        }
+        
+        seg_col_x <- seg_col[x]
+        seg_val_x <- seg_val[x]
+        
+        precon_upd[x] <- 
+          make_boxed_text_html(
+            x = icon_status("segmented"),
+            size = size, 
+            color = "#3C898A",
+            background = "transparent",
+            font_size = "10px",
+            padding = 0,
+            tt_text = glue::glue(get_lsv(text = c(
+              "agent_report",
+              "report_on_segmentation"
+            ))[[lang]]),
+            border_radius = "4px"
+          )
+        
+        precon_upd[x]
+      }
     )
   
   # Reformat `eval`
@@ -1065,7 +1106,7 @@ get_agent_report <- function(agent,
     )
   
   # Generate a gt table
-  gt_agent_report <- 
+  agent_report <- 
     report_tbl %>%
     dplyr::mutate(
       status_color = NA_character_,
@@ -1288,8 +1329,8 @@ get_agent_report <- function(agent,
   
   if (!has_agent_intel(agent)) {
     
-    gt_agent_report <-
-      gt_agent_report %>%
+    agent_report <-
+      agent_report %>%
       gt::text_transform(
         locations = gt::cells_body(
           columns = c(
@@ -1343,8 +1384,8 @@ get_agent_report <- function(agent,
   
   if (size == "small") {
     
-    gt_agent_report <- 
-      gt_agent_report %>%
+    agent_report <- 
+      agent_report %>%
       gt::cols_hide(c("columns", "values", "eval_sym", "precon", "extract")) %>%
       gt::cols_width(
         "status_color" ~ gt::px(4),
@@ -1366,8 +1407,8 @@ get_agent_report <- function(agent,
     
     if (!has_agent_intel(agent)) {
       
-      gt_agent_report <- 
-        gt_agent_report %>%
+      agent_report <- 
+        agent_report %>%
         gt::tab_header(
           title = gt::md(
             paste0(
@@ -1390,8 +1431,8 @@ get_agent_report <- function(agent,
       
     } else {
       
-      gt_agent_report <- 
-        gt_agent_report %>%
+      agent_report <- 
+        agent_report %>%
         gt::tab_header(
           title = get_lsv(text = c(
             "agent_report", "pointblank_validation_title_text"
@@ -1404,8 +1445,8 @@ get_agent_report <- function(agent,
     
   } else {
     
-    gt_agent_report <- 
-      gt_agent_report %>%
+    agent_report <- 
+      agent_report %>%
       gt::cols_width(
         "status_color" ~ gt::px(6),
         "i" ~ gt::px(35),
@@ -1456,11 +1497,11 @@ get_agent_report <- function(agent,
       )
   }
   
-
+  class(agent_report) <- c("ptblank_agent_report", class(agent_report))
   
   # nocov end
   
-  gt_agent_report
+  agent_report
 }
 
 get_default_title_text <- function(report_type,
@@ -1472,14 +1513,22 @@ get_default_title_text <- function(report_type,
         "informant_report",
         "pointblank_information_title_text"
       ))[[lang]]
+    
   } else if (report_type == "agent") {
+    
     title_text <- 
       get_lsv(text = c(
         "agent_report",
         "pointblank_validation_title_text"
       ))[[lang]]
-  } else if (report_type == "multiagent") {
-    title_text <- "Pointblank Validation Series"
+    
+  } else if (grepl("multiagent", report_type)) {
+    
+    title_text <- 
+      get_lsv(text = c(
+        "multiagent_report",
+        "pointblank_multiagent_title_text"
+      ))[[lang]]
   }
   
   title_text
@@ -1490,7 +1539,7 @@ process_title_text <- function(title,
                                report_type,
                                lang) {
   
-  if (report_type == "multiagent") {
+  if (report_type == "multiagent:wide") {
     if (title == ":tbl_name:") {
       stop(
         "The `:tbl_name:` option can't be used with `get_multiagent_report()`.",
@@ -1523,6 +1572,7 @@ process_title_text <- function(title,
 
 create_table_time_html <- function(time_start,
                                    time_end,
+                                   size = "standard",
                                    locale = NULL) {
   
   if (length(time_start) < 1) {
@@ -1533,31 +1583,61 @@ create_table_time_html <- function(time_start,
   time_duration_formatted <- 
     print_time_duration_report(time_duration, locale = locale)
   
-  paste0(
-    "<span style=\"background-color: #FFF;",
-    "color: #444;padding: 0.5em 0.5em;",
-    "position: inherit;text-transform: uppercase;margin-left: 10px;",
-    "border: solid 1px #999999;font-variant-numeric: tabular-nums;",
-    "border-radius: 0;padding: 2px 10px 2px 10px;\">",
-    format(time_start, "%Y-%m-%d %H:%M:%S %Z"),
-    "</span>",
-    
-    "<span style=\"background-color: #FFF;",
-    "color: #444;padding: 0.5em 0.5em;",
-    "position: inherit;margin: 5px 1px 5px 0;",
-    "border: solid 1px #999999;border-left: none;",
-    "font-variant-numeric: tabular-nums;",
-    "border-radius: 0;padding: 2px 10px 2px 10px;\">",
-    time_duration_formatted,
-    "</span>",
-    
-    "<span style=\"background-color: #FFF;",
-    "color: #444;padding: 0.5em 0.5em;",
-    "position: inherit;text-transform: uppercase;margin: 5px 1px 5px -1px;",
-    "border: solid 1px #999999;border-left: none;",
-    "border-radius: 0;padding: 2px 10px 2px 10px;\">",
-    format(time_end, "%Y-%m-%d %H:%M:%S %Z"),
-    "</span>"
+  as.character(
+    htmltools::tagList(
+      htmltools::tags$span(
+        style = htmltools::css(
+          `background-color` = "#FFF",
+          color = "#444",
+          padding = if (size == "standard") "0.5em 0.5em" else "",
+          position = "inherit",
+          `text-transform` = "uppercase",
+          `margin-left` = if (size == "standard") "10px" else "",
+          border = if (size == "standard") "solid 1px #999999" else "",
+          `font-variant-numeric` = "tabular-nums",
+          `border-radius` = "0",
+          padding = "2px 10px 2px 10px",
+          padding = if (size == "standard") {
+            "2px 10px 2px 10px" 
+          } else {
+            "2px 10px 2px 5px"
+          },
+          `border-right` = if (size == "small") "solid 1px #333" else ""
+        ),
+        format(time_start, "%Y-%m-%d %H:%M:%S %Z")
+      ),
+      htmltools::tags$span(
+        style = htmltools::css(
+          `background-color` = "#FFF",
+          color = "#444",
+          padding = if (size == "standard") "0.5em 0.5em" else "",
+          position = "inherit",
+          margin = "5px 1px 5px 0",
+          border = if (size == "standard") "solid 1px #999999" else "",
+          `border-left` = if (size == "small") "none" else "",
+          `font-variant-numeric` = "tabular-nums",
+          `border-radius` = "0",
+          padding = "2px 10px 2px 10px"
+        ),
+        time_duration_formatted,
+      ),
+      htmltools::tags$span(
+        style = htmltools::css(
+          `background-color` = "#FFF",
+          color = "#444",
+          padding = if (size == "standard") "0.5em 0.5em" else "",
+          position = "inherit",
+          `text-transform` = "uppercase",
+          `margin` = "5px 1px 5px -1px",
+          border = if (size == "standard") "solid 1px #999999" else "",
+          `font-variant-numeric` = "tabular-nums",
+          `border-left` = if (size == "small") "solid 1px #333" else "",
+          `border-radius` = "0",
+          padding = "2px 10px 2px 10px"
+        ),
+        format(time_end, "%Y-%m-%d %H:%M:%S %Z")
+      )
+    )
   )
 }
 
@@ -1828,4 +1908,22 @@ make_boxed_text_html <- function(x,
   }
   
   text_html %>% as.character()
+}
+
+icon_status <- function(icon = c("unchanged", "modified", "segmented")) {
+  
+  icon <- match.arg(icon)
+  
+  htmltools::HTML(
+    paste(
+      readLines(
+        con = system.file(
+          "img", "status_icons", paste0(icon, ".svg"),
+          package = "pointblank"
+        ), 
+        warn = FALSE
+      ), collapse = ""
+    )
+  ) %>%
+    as.character()
 }

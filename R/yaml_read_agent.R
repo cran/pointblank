@@ -39,6 +39,8 @@
 #'   *agent*.
 #' @param path An optional path to the YAML file (combined with `filename`).
 #'   
+#' @return A `ptblank_agent` object.
+#'   
 #' @examples
 #' if (interactive()) {
 #' 
@@ -70,7 +72,8 @@
 #' # (a requirement for writing to YAML)
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~small_table,
+#'     read_fn = ~ small_table,
+#'     tbl_name = "small_table",
 #'     label = "A simple example with the `small_table`.",
 #'     actions = al
 #'   )
@@ -114,8 +117,8 @@
 #' # by supplying the agent as the input
 #' yaml_agent_string(agent = agent)
 #' 
-#' # At a later time, the YAML file can
-#' # be read into a new agent with the
+#' # At some later time, the YAML file can
+#' # be read as a new agent with the
 #' # `yaml_read_agent()` function
 #' agent <- yaml_read_agent(filename = yml_file)
 #' 
@@ -172,6 +175,7 @@ yaml_read_agent <- function(filename,
 
 #' Get an *agent* from **pointblank** YAML and `interrogate()`
 #'
+#' @description 
 #' The `yaml_agent_interrogate()` function operates much like the
 #' [yaml_read_agent()] function (reading a **pointblank** YAML file and
 #' generating an *agent* with a validation plan in place). The key difference is
@@ -184,6 +188,8 @@ yaml_read_agent <- function(filename,
 #' @param filename The name of the YAML file that contains fields related to an
 #'   *agent*.
 #' @param path An optional path to the YAML file (combined with `filename`).
+#' 
+#' @return A `ptblank_agent` object.
 #'
 #' @examples
 #' if (interactive()) {
@@ -218,7 +224,8 @@ yaml_read_agent <- function(filename,
 #' # (a requirement for writing to YAML)
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~small_table,
+#'     read_fn = ~ small_table,
+#'     tbl_name = "small_table",
 #'     label = "A simple example with the `small_table`.",
 #'     actions = al
 #'   )
@@ -300,6 +307,7 @@ yaml_agent_interrogate <- function(filename,
 
 #' Display validation expressions using **pointblank** YAML
 #'
+#' @description 
 #' The `yaml_agent_show_exprs()` function follows the specifications of a
 #' **pointblank** YAML file to generate and show the **pointblank** expressions
 #' for generating the described validation plan. The expressions are shown in
@@ -322,7 +330,8 @@ yaml_agent_interrogate <- function(filename,
 #' # of the target table
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~small_table,
+#'     read_fn = ~ small_table,
+#'     tbl_name = "small_table",
 #'     label = "A simple example with the `small_table`.",
 #'     actions = action_levels(
 #'       warn_at = 0.10,
@@ -548,7 +557,7 @@ make_validation_steps <- function(steps) {
             FUN = function(x) {
               arg_name <- names(step_i[[1]][x])
               val <- step_i[[1]][[x]]
-              others <- c("preconditions", "expr", "schema")
+              others <- c("preconditions", "segments", "expr", "schema")
               
               if (arg_name == "fns") {
                 return(paste("  ", val, collapse = ",\n"))

@@ -37,8 +37,8 @@ if (fs::dir_exists(path = work_path)) {
 
 fs::dir_create(path = work_path)
 
-expect_fixed_match <- function(testthat_file, text) {
-  expect_match(testthat_file, text, fixed = TRUE)
+expect_fixed_match <- function(fulltext, text) {
+  expect_match(fulltext, text, fixed = TRUE)
 }
 
 test_that("a testthat test file can be written using an agent", {
@@ -82,12 +82,6 @@ test_that("a testthat test file can be written using an agent", {
   )
   expect_fixed_match(testthat_file,
     "test_that(\"column `a` is of type: integer\", {"
-  )
-  expect_fixed_match(testthat_file,
-    "skip(\"This test is not active.\")"
-  )
-  expect_fixed_match(testthat_file,
-    "# expect_col_is_integer("
   )
   
   # Expect an error if a `read_fn` is not available in agent

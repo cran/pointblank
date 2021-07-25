@@ -221,7 +221,7 @@
 #' 
 #' @family validation functions
 #' @section Function ID:
-#' 2-29
+#' 2-30
 #' 
 #' @name col_schema_match
 NULL
@@ -241,9 +241,12 @@ col_schema_match <- function(x,
                              active = TRUE) {
 
   if (!inherits(schema, "col_schema")) {
-    stop("A `col_schema` object must be provided to `schema`:\n",
-         "* A schema can be defined using the `col_schema()` function",
-         call. = FALSE)
+    
+    stop(
+      "A `col_schema` object must be provided to `schema`:\n",
+      "* A schema can be defined using the `col_schema()` function",
+      call. = FALSE
+    )
   }
 
   # Incorporate `complete` and `in_order` options into
@@ -489,7 +492,7 @@ test_col_schema_match <- function(object,
 #'   
 #' @family Utility and Helper Functions
 #' @section Function ID:
-#' 12-1
+#' 13-1
 #' 
 #' @export
 col_schema <- function(...,

@@ -2,32 +2,39 @@
 % Please edit documentation in R/object_ops.R
 \name{x_read_disk}
 \alias{x_read_disk}
-\title{Read a \strong{pointblank} \emph{agent} or \emph{informant} from disk}
+\title{Read an \emph{agent}, \emph{informant}, \emph{multiagent}, or table scan from disk}
 \usage{
-x_read_disk(filename, path = NULL)
+x_read_disk(filename, path = NULL, quiet = FALSE)
 }
 \arguments{
 \item{filename}{The name of a file that was previously written by
 \code{\link[=x_write_disk]{x_write_disk()}}.}
 
 \item{path}{An optional path to the file (combined with \code{filename}).}
+
+\item{quiet}{Should the function \emph{not} inform when the file is read? By
+default this is \code{FALSE}.}
+}
+\value{
+Either a \code{ptblank_agent}, \code{ptblank_informant}, or a
+\code{ptblank_tbl_scan} object.
 }
 \description{
-An \emph{agent} or \emph{informant} that has been written to disk (with
-\code{\link[=x_write_disk]{x_write_disk()}}) can be read back into memory with the \code{x_read_disk()}
-function. Once the \emph{agent} or \emph{informant} has been generated in this way, it
-may not have a data table associated with it (depending on whether the
-\code{keep_tbl} option was \code{TRUE} or \code{FALSE} when writing to disk) but it should
-still be able to produce reporting (by printing the \emph{agent} or \emph{informant} to
-the console or using \code{\link[=get_agent_report]{get_agent_report()}}/\code{\link[=get_informant_report]{get_informant_report()}}). An
-\emph{agent} will return an x-list with \code{\link[=get_agent_x_list]{get_agent_x_list()}} and yield any
-available data extracts with \code{\link[=get_data_extracts]{get_data_extracts()}}. Furthermore, all of an
-\emph{agent}'s validation steps will still be present (along with results from the
-last interrogation).
+An \emph{agent}, \emph{informant}, \emph{multiagent}, or table scan that has been written to
+disk (with \code{\link[=x_write_disk]{x_write_disk()}}) can be read back into memory with the
+\code{x_read_disk()} function. For an \emph{agent} or an \emph{informant} object that has
+been generated in this way, it may not have a data table associated with it
+(depending on whether the \code{keep_tbl} option was \code{TRUE} or \code{FALSE} when
+writing to disk) but it should still be able to produce reporting (by
+printing the \emph{agent} or \emph{informant} to the console or using
+\code{\link[=get_agent_report]{get_agent_report()}}/\code{\link[=get_informant_report]{get_informant_report()}}). An \emph{agent} will return an
+x-list with \code{\link[=get_agent_x_list]{get_agent_x_list()}} and yield any available data extracts with
+\code{\link[=get_data_extracts]{get_data_extracts()}}. Furthermore, all of an \emph{agent}'s validation steps will
+still be present (along with results from the last interrogation).
 }
 \details{
-Should the \emph{agent} or \emph{informant} possess a table-prep formula (can be set
-any time with \code{\link[=set_read_fn]{set_read_fn()}}) or a specific table (settable with
+Should a written-to-disk \emph{agent} or \emph{informant} possess a table-prep formula
+(can be set any time with \code{\link[=set_read_fn]{set_read_fn()}}) or a specific table (settable with
 \code{\link[=set_tbl]{set_tbl()}}) we could use the \code{\link[=interrogate]{interrogate()}} or \code{\link[=incorporate]{incorporate()}} function
 again. For a \emph{data quality reporting} workflow, it is useful to
 \code{\link[=interrogate]{interrogate()}} target tables that evolve over time. While the same
@@ -41,10 +48,62 @@ table dimensions, and info snippets/text will be regenerated.
 9-2
 }
 
+\examples{
+if (interactive()) {
+
+# A: Reading an agent from disk 
+
+# The process of developing an agent
+# and writing it to disk with the
+# `x_write_disk()` function is explained
+# in that function's documentation;
+# but suppose we have such a written file
+# that's named "agent-small_table.rds",
+# we could read that to a new agent
+# object with `x_read_disk()`
+agent <-
+  x_read_disk("agent-small_table.rds")
+
+# B: Reading an informant from disk
+
+# If there is an informant written
+# to disk via `x_write_disk()` and it's
+# named "informant-small_table.rds",
+# we could read that to a new informant
+# object with `x_read_disk()`
+informant <-
+  x_read_disk("informant-small_table.rds")
+
+# C: Reading a multiagent from disk 
+
+# The process of creating a multiagent
+# and writing it to disk with the
+# `x_write_disk()` function is shown
+# in that function's documentation;
+# but should we have such a written file
+# called "multiagent-small_table.rds",
+# we could read that to a new multiagent
+# object with `x_read_disk()`
+agent <-
+  x_read_disk("multiagent-small_table.rds")
+
+# D: Reading a table scan from disk
+
+# If there is a table scan written
+# to disk via `x_write_disk()` and it's
+# named "tbl_scan-storms.rds", we could
+# read it back into R with `x_read_disk()`
+tbl_scan <-
+  x_read_disk("tbl_scan-storms.rds")
+
+}
+
+}
 \seealso{
 Other Object Ops: 
 \code{\link{activate_steps}()},
 \code{\link{deactivate_steps}()},
+\code{\link{export_report}()},
 \code{\link{remove_read_fn}()},
 \code{\link{remove_steps}()},
 \code{\link{remove_tbl}()},

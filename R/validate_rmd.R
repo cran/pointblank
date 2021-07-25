@@ -23,6 +23,7 @@ test_options <- new.env(parent = emptyenv())
 
 #' Modify **pointblank** validation testing options within R Markdown documents
 #' 
+#' @description 
 #' Using **pointblank** in an R Markdown workflow is enabled by default once the
 #' **pointblank** library is loaded. The framework allows for validation testing
 #' within specialized validation code chunks where the `validate = TRUE` option
@@ -78,10 +79,12 @@ validate_rmd <- function(summary = TRUE,
   if (test_options$perform_logging) {
     
     if (!requireNamespace("log4r", quietly = TRUE)) {
-      stop("Using the `log4r_step()` function requires ", 
-           "the log4r package:\n",
-           " * It can be installed with `install.packages(\"log4r\")`.",
-           call. = FALSE)
+      
+      stop(
+        "Using the `log4r_step()` function requires the log4r package:\n",
+        "* It can be installed with `install.packages(\"log4r\")`.",
+        call. = FALSE
+      )
     }
     
     # Create a log4r `logger` object and store it in `test_options`
@@ -175,6 +178,7 @@ render_template <- function(template_name, data) {
     )
   
   if (!nzchar(path)) {
+    
     stop("The template `", template_name, "` was not found.")
   }
   
@@ -621,7 +625,7 @@ knitr_chunk_hook <- function(x, options) {
 #' 
 #' @family Utility and Helper Functions
 #' @section Function ID:
-#' 12-5
+#' 13-5
 #' 
 #' @export
 stop_if_not <- function(...) {
@@ -644,9 +648,13 @@ stop_if_not <- function(...) {
       
       deparsed_call <- deparse(matched_call[[y + 1]])
       
+      # nocov start
+      
       if (length(deparsed_call) > 1) {
         deparsed_call <- paste(deparsed_call[1L], "...")
       }
+      
+      # nocov end
       
       stop(
         sQuote(deparsed_call), " is not TRUE.",

@@ -25,6 +25,9 @@ create_validation_step <- function(agent,
                                    values = NULL,
                                    na_pass = NULL,
                                    preconditions = NULL,
+                                   seg_expr = NULL,
+                                   seg_col = NULL,
+                                   seg_val = NULL,
                                    actions = NULL,
                                    step_id = NULL,
                                    label = NULL,
@@ -41,13 +44,19 @@ create_validation_step <- function(agent,
         assertion_type = assertion_type,
         column = ifelse(is.null(column), list(NULL), list(column)),
         values = ifelse(is.null(values), list(NULL), list(values)),
-        na_pass = ifelse(is.null(na_pass), as.logical(NA), as.logical(na_pass)),
+        na_pass = ifelse(is.null(na_pass), NA, as.logical(na_pass)),
         preconditions = ifelse(
           is.null(preconditions), list(NULL), list(preconditions)
+        ),
+        seg_col = ifelse(
+          is.null(seg_col), NA_character_, as.character(seg_col)
+        ),
+        seg_val = ifelse(
+          is.null(seg_val), NA_character_, as.character(seg_val)
         )
       )
     )
-
+  
   # Create a validation step as a single-row `tbl_df` object
   validation_step_df <-
     dplyr::tibble(
@@ -64,6 +73,15 @@ create_validation_step <- function(agent,
       na_pass = ifelse(is.null(na_pass), as.logical(NA), as.logical(na_pass)),
       preconditions = ifelse(
         is.null(preconditions), list(NULL), list(preconditions)
+      ),
+      seg_expr = ifelse(
+        is.null(seg_expr), list(NULL), list(seg_expr)
+      ),
+      seg_col = ifelse(
+        is.null(seg_col), NA_character_, as.character(seg_col)
+      ),
+      seg_val = ifelse(
+        is.null(seg_val), NA_character_, as.character(seg_val)
       ),
       actions = ifelse(is.null(actions), list(NULL), list(actions)),
       label = ifelse(is.null(label), NA_character_, as.character(label)),
@@ -97,6 +115,29 @@ apply_preconditions_to_tbl <- function(agent, idx, tbl) {
   tbl
 }
 
+apply_segments_to_tbl <- function(agent, idx, tbl) {
+  
+  # Extract the `seg_col` and `seg_val` values for the validation step
+  seg_col <- agent$validation_set$seg_col[[idx]]
+  seg_val <- agent$validation_set$seg_val[[idx]]
+  
+  # If either of `seg_col` or `seg_val` is NA then return
+  # the table unchanged
+  if (is.na(seg_col) || is.na(seg_val)) {
+    return(tbl)
+  }
+  
+  # Generate a second set of 'preconditions' to filter the table
+  preconditions <- 
+    stats::as.formula(
+      glue::glue("~ . %>% dplyr::filter({seg_col} == '{seg_val}')")
+    )
+  
+  tbl <- apply_preconditions(tbl = tbl, preconditions = preconditions)
+  
+  tbl
+}
+
 apply_preconditions <- function(tbl, preconditions) {
   
   if (is.null(preconditions)) {
@@ -120,15 +161,21 @@ apply_preconditions <- function(tbl, preconditions) {
       tbl <- preconditions(tbl)
       
     } else {
-      stop("If using formula syntax to define `preconditions`, the RHS ",
-           "must resolve to a functional sequence.",
-           call. = FALSE)
+      
+      stop(
+        "If using formula syntax to define `preconditions`, the RHS ",
+        "must resolve to a functional sequence.",
+        call. = FALSE
+      )
     }
     
   } else {
-    stop("If providing `preconditions` it must either be as a function ",
-         "or a formula.",
-         call. = FALSE)
+    
+    stop(
+      "If providing `preconditions` it must either be as a function ",
+      "or a formula.",
+      call. = FALSE
+    )
   }
   
   tbl
@@ -272,6 +319,19 @@ create_autobrief <- function(agent,
     
     expectation_text <- 
       prep_regex_expectation_text(
+        column_text,
+        column_computed_text,
+        values_text,
+        lang = lang
+      )
+    
+    autobrief <- finalize_autobrief(expectation_text, precondition_text)
+  }
+  
+  if (assertion_type == "col_vals_within_spec") {
+    
+    expectation_text <- 
+      prep_within_spec_expectation_text(
         column_text,
         column_computed_text,
         values_text,
@@ -546,6 +606,14 @@ prep_regex_expectation_text <- function(column_text,
                                         lang) {
 
   glue::glue(get_lsv("autobriefs/regex_expectation_text")[[lang]])
+}
+
+prep_within_spec_expectation_text <- function(column_text,
+                                              column_computed_text,
+                                              values_text,
+                                              lang) {
+  
+  glue::glue(get_lsv("autobriefs/within_spec_expectation_text")[[lang]])
 }
 
 prep_conjointly_expectation_text <- function(values_text,

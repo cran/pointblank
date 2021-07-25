@@ -14,7 +14,7 @@ and \strong{RSQLite} packages. These packages can be installed by using
 }
 \section{Function ID}{
 
-10-2
+14-2
 }
 
 \examples{
@@ -27,6 +27,8 @@ and \strong{RSQLite} packages. These packages can be installed by using
 }
 \seealso{
 Other Datasets: 
-\code{\link{small_table}}
+\code{\link{game_revenue}},
+\code{\link{small_table}},
+\code{\link{specifications}}
 }
 \concept{Datasets}

@@ -18,16 +18,22 @@
 
 
 reporting_languages <- 
-  c("en", "fr", "de", "it", "es", "pt", "zh", "ru")
+  c(
+    "en", "fr", "de", "it", "es", "pt", "tr",
+    "zh", "ru", "pl", "da", "sv", "nl"
+  )
 
 normalize_reporting_language <- function(lang) {
   
   if (is.null(lang)) return("en")
   
   if (!(tolower(lang) %in% reporting_languages)) {
-    stop("The text ", lang, " doesn't correspond to a pointblank ",
-         "reporting language.",
-         call. = FALSE)
+    
+    stop(
+      "The text ", lang, " doesn't correspond to a pointblank ",
+      "reporting language.",
+      call. = FALSE
+    )
   }
   
   tolower(lang)

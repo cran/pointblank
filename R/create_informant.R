@@ -142,8 +142,9 @@
 #' @param lang The language to use for the information report (a summary table
 #'   that provides all of the available information for the table. By default,
 #'   `NULL` will create English (`"en"`) text. Other options include French
-#'   (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish (`"es"`), Portuguese,
-#'   (`"pt"`), Chinese (`"zh"`), and Russian (`"ru"`).
+#'   (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish (`"es"`), Portuguese
+#'   (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian (`"ru"`), Polish
+#'   (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch (`"nl"`).
 #' @param locale An optional locale ID to use for formatting values in the
 #'   information report according the locale's rules. Examples include `"en_US"`
 #'   for English (United States) and `"fr_FR"` for French (France); more simply,
@@ -224,6 +225,7 @@ create_informant <- function(tbl = NULL,
   
   # Stop function if both a table and an agent are provided 
   if (!is.null(tbl) && !is.null(agent)) {
+    
     stop("A `tbl` and a `agent` cannot both be provided.", call. = FALSE)
   }
   

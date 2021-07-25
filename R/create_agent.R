@@ -192,7 +192,9 @@
 #'   summary table that provides the validation plan and the results from the
 #'   interrogation. By default, `NULL` will create English (`"en"`) text. Other
 #'   options include French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish
-#'   (`"es"`), Portuguese, (`"pt"`), Chinese (`"zh"`), and Russian (`"ru"`).
+#'   (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian
+#'   (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch
+#'   (`"nl"`).
 #' @param locale An optional locale ID to use for formatting values in the
 #'   *agent report* summary table according the locale's rules. Examples include
 #'   `"en_US"` for English (United States) and `"fr_FR"` for French (France);
@@ -435,6 +437,9 @@ create_agent <- function(tbl = NULL,
           column = list(NULL),
           values = list(NULL),
           na_pass = logical(0),
+          seg_expr = list(NULL),
+          seg_col = character(0),
+          seg_val = character(0),
           preconditions = list(NULL),
           actions = list(NULL),
           label = character(0),

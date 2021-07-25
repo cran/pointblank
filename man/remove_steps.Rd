@@ -15,6 +15,8 @@ won't occur by index.}
 }
 \value{
 A \code{ptblank_agent} object.
+
+A \code{ptblank_agent} object.
 }
 \description{
 Validation steps can be removed from an \emph{agent} object through use of the
@@ -65,6 +67,7 @@ change the \code{active} status of one or more validation steps to \code{FALSE} 
 Other Object Ops: 
 \code{\link{activate_steps}()},
 \code{\link{deactivate_steps}()},
+\code{\link{export_report}()},
 \code{\link{remove_read_fn}()},
 \code{\link{remove_tbl}()},
 \code{\link{set_read_fn}()},

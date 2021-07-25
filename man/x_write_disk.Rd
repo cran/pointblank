@@ -2,7 +2,7 @@
 % Please edit documentation in R/object_ops.R
 \name{x_write_disk}
 \alias{x_write_disk}
-\title{Write a \strong{pointblank} \emph{agent} or \emph{informant} to disk}
+\title{Write an \emph{agent}, \emph{informant}, \emph{multiagent}, or table scan to disk}
 \usage{
 x_write_disk(
   x,
@@ -14,11 +14,11 @@ x_write_disk(
 )
 }
 \arguments{
-\item{x}{An \emph{agent} object of class \code{ptblank_agent}, or, an \emph{informant} of
-class \code{ptblank_informant}.}
+\item{x}{An \emph{agent} object of class \code{ptblank_agent}, an \emph{informant} of class
+\code{ptblank_informant}, or an table scan of class \code{ptblank_tbl_scan}.}
 
-\item{filename}{The filename to create on disk for the \code{agent} or
-\code{informant}.}
+\item{filename}{The filename to create on disk for the \code{agent}, \code{informant},
+or table scan.}
 
 \item{path}{An optional path to which the file should be saved (this is
 automatically combined with \code{filename}).}
@@ -32,7 +32,8 @@ database tables of the class \code{tbl_dbi} and for Spark DataFrames
 \code{TRUE}).}
 
 \item{keep_extracts}{An option to keep any collected extract data for failing
-rows. By default, this is \code{FALSE}.}
+rows. Only applies to \emph{agent} objects. By default, this is \code{FALSE} (i.e.,
+extract data is removed).}
 
 \item{quiet}{Should the function \emph{not} inform when the file is written? By
 default this is \code{FALSE}.}
@@ -41,13 +42,14 @@ default this is \code{FALSE}.}
 Invisibly returns \code{TRUE} if the file has been written.
 }
 \description{
-Writing an \emph{agent} or \emph{informant} to disk with \code{x_write_disk()} can be useful
-for keeping data validation intel or table information close at hand for
-later retrieval (with \code{\link[=x_read_disk]{x_read_disk()}}). By default, any data table that the
-\emph{agent} or \emph{informant} may have held before being committed to disk will be
-expunged. This behavior can be changed by setting \code{keep_tbl} to \code{TRUE} but
-this only works in the case where the table is not of the \code{tbl_dbi} or the
-\code{tbl_spark} class.
+Writing an \emph{agent}, \emph{informant}, \emph{multiagent}, or even a table scan to disk
+with \code{x_write_disk()} can be useful for keeping data validation intel or
+table information close at hand for later retrieval (with \code{\link[=x_read_disk]{x_read_disk()}}).
+By default, any data table that the \emph{agent} or \emph{informant} may have held
+before being committed to disk will be expunged (not applicable to any table
+scan since they never hold a table object). This behavior can be changed by
+setting \code{keep_tbl} to \code{TRUE} but this only works in the case where the table
+is not of the \code{tbl_dbi} or the \code{tbl_spark} class.
 }
 \details{
 It is recommended to set up a table-prep formula so that the \emph{agent} and
@@ -62,10 +64,205 @@ with the \code{\link[=set_tbl]{set_tbl()}} function.
 9-1
 }
 
+\examples{
+if (interactive()) {
+
+# A: Writing an `agent` to disk 
+
+# Let's go through the process of (1)
+# developing an agent with a validation
+# plan (to be used for the data quality
+# analysis of the `small_table` dataset),
+# (2) interrogating the agent with the
+# `interrogate()` function, and (3) writing
+# the agent and all its intel to a file
+
+# Creating an `action_levels` object is a
+# common workflow step when creating a
+# pointblank agent; we designate failure
+# thresholds to the `warn`, `stop`, and
+# `notify` states using `action_levels()`
+al <- 
+  action_levels(
+    warn_at = 0.10,
+    stop_at = 0.25,
+    notify_at = 0.35
+  )
+
+# Now create a pointblank `agent` object
+# and give it the `al` object (which
+# serves as a default for all validation
+# steps which can be overridden); the
+# data will be referenced in a `read_fn`
+agent <- 
+  create_agent(
+    read_fn = ~ small_table,
+    tbl_name = "small_table",
+    label = "`x_write_disk()`",
+    actions = al
+  )
+
+# Then, as with any `agent` object, we
+# can add steps to the validation plan by
+# using as many validation functions as we
+# want; then, we `interrogate()`
+agent <-
+  agent \%>\% 
+  col_exists(vars(date, date_time)) \%>\%
+  col_vals_regex(
+    vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}"
+  ) \%>\%
+  rows_distinct() \%>\%
+  col_vals_gt(vars(d), value = 100) \%>\%
+  col_vals_lte(vars(c), value = 5) \%>\%
+  interrogate()
+
+# The `agent` can be written to a file with
+# the `x_write_disk()` function
+x_write_disk(
+  agent,
+  filename = "agent-small_table.rds"
+)
+
+# We can read the file back as an agent
+# with the `x_read_disk()` function and
+# we'll get all of the intel along with the
+# restored agent
+
+# If you're consistently writing agent
+# reports when periodically checking data,
+# we could make use of the `affix_date()`
+# or `affix_datetime()` depending on the
+# granularity you need; here's an example
+# that writes the file with the format:
+# 'agent-small_table-YYYY-mm-dd_HH-MM-SS.rds'
+x_write_disk(
+  agent,
+  filename = affix_datetime(
+    "agent-small_table.rds"
+  )
+)
+
+# B: Writing an `informant` to disk
+
+# Let's go through the process of (1)
+# creating an informant object that
+# minimally describes the `small_table`
+# dataset, (2) ensuring that data is
+# captured from the target table using
+# the `incorporate()` function, and (3)
+# writing the informant to a file
+
+# Create a pointblank `informant`
+# object with `create_informant()`
+# and the `small_table` dataset; use
+# `incorporate()` so that info snippets
+# are integrated into the text
+informant <- 
+  create_informant(
+    read_fn = ~ small_table,
+    tbl_name = "small_table",
+    label = "`x_write_disk()`"
+  ) \%>\%
+  info_snippet(
+    snippet_name = "high_a",
+    fn = snip_highest(column = "a")
+  ) \%>\%
+  info_snippet(
+    snippet_name = "low_a",
+    fn = snip_lowest(column = "a")
+  ) \%>\%
+  info_columns(
+    columns = vars(a),
+    info = "From {low_a} to {high_a}."
+  ) \%>\%
+  info_columns(
+    columns = starts_with("date"),
+    info = "Time-based values."
+  ) \%>\%
+  info_columns(
+    columns = "date",
+    info = "The date part of `date_time`."
+  ) \%>\%
+  incorporate()
+
+# The `informant` can be written to a
+# file with `x_write_disk()`; let's do
+# this with `affix_date()` so that the
+# filename has a datestamp
+x_write_disk(
+  informant,
+  filename = affix_date(
+    "informant-small_table.rds"
+  )
+)
+
+# We can read the file back into a
+# new informant object (in the same
+# state as when it was saved) by using
+# `x_read_disk()`
+
+# C: Writing a multiagent to disk
+
+# Let's create one more pointblank
+# agent object, provide it with some
+# validation steps, and `interrogate()`
+agent_b <-
+  create_agent(
+    read_fn = ~ small_table,
+    tbl_name = "small_table",
+    label = "`x_write_disk()`",
+    actions = al
+  ) \%>\%
+  col_vals_gt(
+    vars(b), vars(g), na_pass = TRUE,
+    label = "b > g"
+  ) \%>\%
+  col_is_character(
+    vars(b, f),
+    label = "Verifying character-type columns" 
+  ) \%>\%
+  interrogate()
+
+# Now we can combine the earlier `agent`
+# object with the newer `agent_b` to 
+# create a `multiagent`
+multiagent <-
+  create_multiagent(agent, agent_b)
+  
+# The `multiagent` can be written to
+# a file with the `x_write_disk()` function
+x_write_disk(
+  multiagent,
+  filename = "multiagent-small_table.rds"
+)
+
+# We can read the file back as a multiagent
+# with the `x_read_disk()` function and
+# we'll get all of the constituent agents
+# and their associated intel back as well
+
+# D: Writing a table scan to disk
+
+# We can get an report that describes all
+# of the data in the `storms` dataset
+tbl_scan <- scan_data(tbl = dplyr::storms)
+
+# The table scan object can be written
+# to a file with `x_write_disk()`
+x_write_disk(
+  tbl_scan,
+  filename = "tbl_scan-storms.rds"
+)
+
+}
+  
+}
 \seealso{
 Other Object Ops: 
 \code{\link{activate_steps}()},
 \code{\link{deactivate_steps}()},
+\code{\link{export_report}()},
 \code{\link{remove_read_fn}()},
 \code{\link{remove_steps}()},
 \code{\link{remove_tbl}()},

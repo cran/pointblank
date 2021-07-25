@@ -85,7 +85,6 @@ reducing potential for duplicating any side effects.
 }
 
 \examples{
-if (interactive()) {
 
 # For these examples, we will use the
 # included `small_table` dataset
@@ -162,6 +161,8 @@ agent_2 <-
 x_list <- get_agent_x_list(agent_2)
 x_list$warn
 
+if (interactive()) {
+
 # In the context of using validation
 # functions directly on data (i.e., no
 # involvement of an agent) we want to
@@ -203,6 +204,7 @@ Other Planning and Prep:
 \code{\link{create_agent}()},
 \code{\link{create_informant}()},
 \code{\link{db_tbl}()},
+\code{\link{draft_validation}()},
 \code{\link{file_tbl}()},
 \code{\link{scan_data}()},
 \code{\link{tbl_get}()},
