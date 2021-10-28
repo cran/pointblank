@@ -418,7 +418,7 @@ get_threshold_type <- function(threshold) {
   }
 }
 
-row_based_step_fns_vector <- function() {
+all_validations_fns_vec <- function() {
   
   c(
     "col_vals_lt",
@@ -430,17 +430,89 @@ row_based_step_fns_vector <- function() {
     "col_vals_between",
     "col_vals_not_between",
     "col_vals_in_set",
+    "col_vals_not_in_set",
     "col_vals_make_set",
     "col_vals_make_subset",
-    "col_vals_not_in_set",
     "col_vals_null",
     "col_vals_not_null",
     "col_vals_increasing",
     "col_vals_decreasing",
     "col_vals_regex",
+    "col_vals_within_spec",
+    "col_vals_expr",
+    "rows_distinct",
+    "rows_complete",
+    "col_is_character",
+    "col_is_numeric",
+    "col_is_integer",
+    "col_is_logical",
+    "col_is_date",
+    "col_is_posix",
+    "col_is_factor",
+    "col_exists",
+    "col_schema_match",
+    "conjointly",
+    "specially"
+  )
+}
+
+row_based_validation_fns_vec <- function() {
+  
+  c(
+    "col_vals_lt",
+    "col_vals_lte",
+    "col_vals_equal",
+    "col_vals_not_equal",
+    "col_vals_gte",
+    "col_vals_gt",
+    "col_vals_between",
+    "col_vals_not_between",
+    "col_vals_in_set",
+    "col_vals_not_in_set",
+    "col_vals_make_set",
+    "col_vals_make_subset",
+    "col_vals_null",
+    "col_vals_not_null",
+    "col_vals_increasing",
+    "col_vals_decreasing",
+    "col_vals_regex",
+    "col_vals_within_spec",
     "col_vals_expr",
     "conjointly",
-    "rows_distinct"
+    "rows_distinct",
+    "rows_complete"
+  )
+}
+
+column_expansion_fns_vec <- function() {
+  
+  c(
+    "col_vals_lt",
+    "col_vals_lte",
+    "col_vals_equal",
+    "col_vals_not_equal",
+    "col_vals_gte",
+    "col_vals_gt",
+    "col_vals_between",
+    "col_vals_not_between",
+    "col_vals_in_set",
+    "col_vals_not_in_set",
+    "col_vals_make_set",
+    "col_vals_make_subset",
+    "col_vals_null",
+    "col_vals_not_null",
+    "col_vals_increasing",
+    "col_vals_decreasing",
+    "col_vals_regex",
+    "col_vals_within_spec",
+    "col_is_character",
+    "col_is_numeric",
+    "col_is_integer",
+    "col_is_logical",
+    "col_is_date",
+    "col_is_posix",
+    "col_is_factor",
+    "col_exists"
   )
 }
 
@@ -850,6 +922,8 @@ tidy_gsub <- function(x,
 
 capture_formula <- function(formula, separate = TRUE) {
   
+  # TODO: add option to use `htmltools::htmlEscape()`
+  
   attributes(formula) <- NULL
   
   output <- utils::capture.output(formula) %>% 
@@ -863,6 +937,18 @@ capture_formula <- function(formula, separate = TRUE) {
       output <- strsplit(output, " ~ ") %>% unlist()
       output[2] <- paste("~", output[2])
     }
+  }
+  
+  output
+}
+
+capture_function <- function(fn, escape = TRUE) {
+  
+  output <- utils::capture.output(fn)
+  output <- paste(output[1:(length(output) - 1)], collapse = "\n")
+  
+  if (escape) {
+    output <- htmltools::htmlEscape(output)  
   }
   
   output

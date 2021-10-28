@@ -147,9 +147,9 @@ functions can only be used with a data table.
 }
 \section{Column Names}{
 
-If providing multiple column names in any of the supplied validation step
-functions, the result will be an expansion of sub-validation steps to that
-number of column names. Aside from column names in quotes and in \code{vars()},
+If providing multiple column names in any of the supplied validation steps,
+the result will be an expansion of sub-validation steps to that number of
+column names. Aside from column names in quotes and in \code{vars()},
 \strong{tidyselect} helper functions are available for specifying columns. They
 are: \code{starts_with()}, \code{ends_with()}, \code{contains()}, \code{matches()}, and
 \code{everything()}.
@@ -158,10 +158,10 @@ are: \code{starts_with()}, \code{ends_with()}, \code{contains()}, \code{matches(
 \section{Preconditions}{
 
 Providing expressions as \code{preconditions} means \strong{pointblank} will preprocess
-the target table table during interrogation as a preparatory step. It might
-happen that a particular validation requires a calculated column, some
-filtering of rows, or the addition of columns via a join, etc. Especially for
-an \emph{agent}-based report this can be advantageous since we can develop a large
+the target table during interrogation as a preparatory step. It might happen
+that a particular validation requires a calculated column, some filtering of
+rows, or the addition of columns via a join, etc. Especially for an
+\emph{agent}-based report this can be advantageous since we can develop a large
 validation plan with a single target table and make minor adjustments to it,
 as needed, along the way.
 
@@ -280,7 +280,7 @@ writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()
 
 \section{Function ID}{
 
-2-20
+2-31
 }
 
 \examples{
@@ -409,6 +409,9 @@ Other validation functions:
 \code{\link{col_vals_null}()},
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
-\code{\link{rows_distinct}()}
+\code{\link{rows_complete}()},
+\code{\link{rows_distinct}()},
+\code{\link{serially}()},
+\code{\link{specially}()}
 }
 \concept{validation functions}

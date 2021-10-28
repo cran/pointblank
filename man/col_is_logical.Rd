@@ -178,7 +178,7 @@ by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 
 \section{Function ID}{
 
-2-26
+2-25
 }
 
 \examples{
@@ -269,6 +269,9 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
-\code{\link{rows_distinct}()}
+\code{\link{rows_complete}()},
+\code{\link{rows_distinct}()},
+\code{\link{serially}()},
+\code{\link{specially}()}
 }
 \concept{validation functions}

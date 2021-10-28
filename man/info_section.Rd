@@ -132,7 +132,7 @@ maintained in the YAML representation and is never written in processed form.
 
 \section{Function ID}{
 
-3-3
+3-4
 }
 
 \examples{
@@ -162,7 +162,8 @@ informant <-
     section_name = "Notes",
     creation = "Dataset generated on (2020-01-15).",
     usage = "`small_table \%>\% dplyr::glimpse()`"
-  )
+  ) \%>\%
+  incorporate()
 
 # Upon printing the `informant` object, we see
 # the addition of the 'Notes' section and its
@@ -192,6 +193,7 @@ informant <-
 }
 \seealso{
 Other Information Functions: 
+\code{\link{info_columns_from_tbl}()},
 \code{\link{info_columns}()},
 \code{\link{info_snippet}()},
 \code{\link{info_tabular}()},

@@ -39,10 +39,10 @@
 #' 
 #' @section Preconditions:
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
-#' the target table table during interrogation as a preparatory step. It might
-#' happen that a particular validation requires a calculated column, some
-#' filtering of rows, or the addition of columns via a join, etc. Especially for
-#' an *agent*-based report this can be advantageous since we can develop a large
+#' the target table during interrogation as a preparatory step. It might happen
+#' that a particular validation requires a calculated column, some filtering of
+#' rows, or the addition of columns via a join, etc. Especially for an
+#' *agent*-based report this can be advantageous since we can develop a large
 #' validation plan with a single target table and make minor adjustments to it,
 #' as needed, along the way.
 #'
@@ -75,9 +75,6 @@
 #' `"group_1"` exists in the column named `"a_column"`, and, the other is a
 #' slice where `"group_2"` exists in the same column. Each group of rows
 #' resolved from the formula will result in a separate validation step.
-#'
-#' If there are multiple `columns` specified then the potential number of
-#' validation steps will be `m` columns multiplied by `n` segments resolved.
 #'
 #' Segmentation will always occur after `preconditions` (i.e., statements that
 #' mutate the target table), if any, are applied. With this type of one-two
@@ -185,7 +182,7 @@
 #' 
 #' @family validation functions
 #' @section Function ID:
-#' 2-21
+#' 2-20
 #' 
 #' @name rows_distinct
 NULL

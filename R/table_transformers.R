@@ -20,9 +20,9 @@
 #' Table Transformer: obtain a summary stats table for numeric columns
 #' 
 #' @description
-#' With any table object, you can produce a summary table that is scoped to
-#' the numeric column values. The table produced will have a leading column
-#' called `".stat."` with labels for each of the nine rows, each corresponding
+#' With any table object, you can produce a summary table that is scoped to the
+#' numeric column values. The output summary table will have a leading column
+#' called `".param."` with labels for each of the nine rows, each corresponding
 #' to the following summary statistics:
 #' 
 #' 1. Minimum (`"min"`)
@@ -46,7 +46,7 @@
 #' 
 #' @examples 
 #' # Get summary statistics for the
-#' # `game_revenue` dataset that's
+#' # `game_revenue` dataset that is
 #' # included in the package
 #' tt_summary_stats(game_revenue)
 #' 
@@ -58,7 +58,7 @@
 #'   col_vals_lt(
 #'     columns = vars(item_revenue),
 #'     value = 150,
-#'     segments = .stat. ~ "max"
+#'     segments = .param. ~ "max"
 #'   )
 #' 
 #' # For in-app purchases in the
@@ -71,8 +71,43 @@
 #'   col_vals_between(
 #'     columns = vars(item_revenue),
 #'     left = 8, right = 12,
-#'     segments = .stat. ~ "med"
+#'     segments = .param. ~ "med"
 #'   )
+#'
+#' # While performing validations of the
+#' # `game_revenue` table with an agent
+#' # we can include the same revenue
+#' # check by using `tt_summary_stats()`
+#' # in the `preconditions` argument (this
+#' # will transform the target table for
+#' # the validation step); we also need
+#' # to get just a segment of that table
+#' # (the row with the median values)
+#' agent <- 
+#'   create_agent(
+#'     read_fn = ~ game_revenue,
+#'     tbl_name = "game_revenue",
+#'     label = "An example.",
+#'     actions = action_levels(
+#'       warn_at = 0.10,
+#'       stop_at = 0.25,
+#'       notify_at = 0.35
+#'     )
+#'   ) %>%
+#'   rows_complete() %>%
+#'   rows_distinct() %>%
+#'   col_vals_between(
+#'     columns = vars(item_revenue),
+#'     left = 8, right = 12,
+#'     preconditions = ~ . %>%
+#'       dplyr::filter(item_type == "iap") %>%
+#'       tt_summary_stats(),
+#'     segments = .param. ~ "med"
+#'   ) %>%
+#'   interrogate()
+#' 
+#' # This should all pass but let's check:
+#' all_passed(agent)
 #' 
 #' @family Table Transformers
 #' @section Function ID:
@@ -92,7 +127,7 @@ tt_summary_stats <- function(tbl) {
   
   summary_stats_tbl <- 
     dplyr::tibble(
-      `.stat.` = c(
+      `.param.` = c(
         "min", "p05", "q_1", "med", "q_3",
         "p95", "max", "iqr", "range"
       )
@@ -132,17 +167,19 @@ tt_summary_stats <- function(tbl) {
       summary_stats_tbl <- dplyr::bind_cols(summary_stats_tbl, stats_col)
     }
   }
+
+  attr(summary_stats_tbl, which = "tt_type") <- "summary_stats"
   
   summary_stats_tbl
 }
 
-#' Table Transformer: obtain an information table for string columns
+#' Table Transformer: obtain a summary table for string columns
 #' 
 #' @description
-#' With any table object, you can produce an information table that is scoped to
-#' string-based columns. The table produced will have a leading column called
-#' `".param."` with labels for each of the three rows, each corresponding to
-#' the following pieces of information pertaining to string length:
+#' With any table object, you can produce a summary table that is scoped to
+#' string-based columns. The output summary table will have a leading column
+#' called `".param."` with labels for each of the three rows, each corresponding
+#' to the following pieces of information pertaining to string length:
 #'
 #' 1. Mean String Length (`"length_mean"`)
 #' 2. Minimum String Length (`"length_min"`)
@@ -182,7 +219,7 @@ tt_summary_stats <- function(tbl) {
 #' # `small_table` dataset is no
 #' # greater than `4`
 #' tt_string_info(small_table) %>%
-#'   col_vals_lte(
+#'   test_col_vals_lte(
 #'     columns = vars(f),
 #'     value = 4
 #'   )
@@ -228,6 +265,8 @@ tt_string_info <- function(tbl) {
       string_info_tbl <- dplyr::bind_cols(string_info_tbl, info_col)
     }
   }
+  
+  attr(string_info_tbl, which = "tt_type") <- "string_info"
 
   string_info_tbl
 }
@@ -235,13 +274,11 @@ tt_string_info <- function(tbl) {
 #' Table Transformer: get the dimensions of a table
 #' 
 #' @description
-#' With any table object, you can produce an information table that contains
-#' nothing more than the table's dimensions: the number of rows and the number
-#' of columns.
-#'
-#' The table produced will have two columns and two rows. The first is the
-#' `"dim"` column with the labels `"rows"` and `"columns"`; the second column,
-#' `"value"`, contains the row and column counts.
+#' With any table object, you can produce a summary table that contains nothing
+#' more than the table's dimensions: the number of rows and the number of
+#' columns. The output summary table will have two columns and two rows. The
+#' first is the `".param."` column with the labels `"rows"` and `"columns"`; the
+#' second column, `"value"`, contains the row and column counts.
 #' 
 #' @param tbl A table object to be used as input for the transformation. This
 #'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
@@ -260,17 +297,17 @@ tt_string_info <- function(tbl) {
 #' # we check that `game_revenue` has
 #' # at least 1500 rows
 #' tt_tbl_dims(game_revenue) %>%
-#'   col_vals_gt(
+#'   dplyr::filter(.param. == "rows") %>%
+#'   test_col_vals_gt(
 #'     columns = vars(value),
-#'     value = 1500,
-#'     segments = dim ~ "rows"
+#'     value = 1500
 #'   )
 #' 
 #' # We can check `small_table` for
 #' # an exact number of columns (`8`)
 #' tt_tbl_dims(small_table) %>%
-#'   dplyr::filter(dim == "columns") %>%
-#'   col_vals_equal(
+#'   dplyr::filter(.param. == "columns") %>%
+#'   test_col_vals_equal(
 #'     columns = vars(value),
 #'     value = 8
 #'   )
@@ -288,10 +325,83 @@ tt_tbl_dims <- function(tbl) {
   n_cols <- get_table_total_columns(data = tbl)
   n_rows <- get_table_total_rows(data = tbl)
   
-  dplyr::tibble(
-    dim = c("rows", "columns"),
-    value = as.integer(c(n_rows, n_cols))
-  )
+  tbl_dims_tbl <-
+    dplyr::tibble(
+      .param. = c("rows", "columns"),
+      value = as.integer(c(n_rows, n_cols))
+    )
+  
+  attr(tbl_dims_tbl, which = "tt_type") <- "tbl_dims"
+  
+  tbl_dims_tbl
+}
+
+
+#' Table Transformer: get a table's column names
+#' 
+#' @description
+#' With any table object, you can produce a summary table that contains table's
+#' column names. The output summary table will have two columns and as many rows
+#' as there are columns in the input table. The first column is the `".param."`
+#' column, which is an integer-based column containing the indices of the
+#' columns from the input table. The second column, `"value"`, contains the
+#' column names from the input table.
+#' 
+#' @param tbl A table object to be used as input for the transformation. This
+#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#' 
+#' @return A `tibble` object.
+#' 
+#' @examples
+#' # Get the column names of the
+#' # `game_revenue` dataset that's
+#' # included in the package
+#' tt_tbl_colnames(game_revenue)
+#' 
+#' # This output table is useful when
+#' # you want to validate the
+#' # column names of the table; here,
+#' # we check that `game_revenue` has
+#' # certain column names present
+#' tt_tbl_colnames(game_revenue) %>%
+#'   test_col_vals_make_subset(
+#'     columns = vars(value),
+#'     set = c("acquisition", "country")
+#'   )
+#' 
+#' # We can check to see whether the
+#' # column names in the `specifications`
+#' # table are all less than 15
+#' # characters in length
+#' specifications %>%
+#'   tt_tbl_colnames() %>%
+#'   tt_string_info() %>%
+#'   test_col_vals_lt(
+#'     columns = vars(value),
+#'     value = 15
+#'   )
+#' 
+#' @family Table Transformers
+#' @section Function ID:
+#' 12-4
+#' 
+#' @export
+tt_tbl_colnames <- function(tbl) {
+  
+  # Determine whether the `tbl` object is acceptable here
+  check_is_a_table_object(tbl = tbl)
+  
+  tbl_colnames <- get_table_column_names(data = tbl)
+  
+  tbl_colnames_tbl <-
+    dplyr::tibble(
+      .param. = seq_along(tbl_colnames),
+      value = tbl_colnames
+    )
+  
+  attr(tbl_colnames_tbl, which = "tt_type") <- "tbl_colnames"
+  
+  tbl_colnames_tbl
 }
 
 #' Table Transformer: shift the times of a table
@@ -348,7 +458,7 @@ tt_tbl_dims <- function(tbl) {
 #' 
 #' @family Table Transformers
 #' @section Function ID:
-#' 12-4
+#' 12-5
 #' 
 #' @export
 tt_time_shift <- function(tbl,
@@ -528,7 +638,7 @@ tt_time_shift <- function(tbl,
 #' 
 #' @family Table Transformers
 #' @section Function ID:
-#' 12-5
+#' 12-6
 #' 
 #' @export
 tt_time_slice <- function(tbl,
@@ -651,4 +761,199 @@ tt_time_slice <- function(tbl,
   }
   
   tbl
+}
+
+#' Get a parameter value from a summary table
+#' 
+#' @description The `get_tt_param()` function can help you to obtain a single
+#' parameter value from a summary table generated by the `tt_*()` functions
+#' [tt_summary_stats()], [tt_string_info()], [tt_tbl_dims()], or
+#' [tt_tbl_colnames()]. The following parameters are to be used depending on the
+#' input `tbl`:
+#'
+#' - from [tt_summary_stats()]: `"min"`, `"p05"`, `"q_1"`, `"med"`, `"q_3"`,
+#' `"p95"`, `"max"`, `"iqr"`, `"range"`
+#' - from [tt_string_info()]: `"length_mean"`, `"length_min"`, `"length_max"`
+#' - from [tt_tbl_dims()]: `"rows"`, `"columns"`
+#' - from [tt_tbl_colnames()]: any integer present in the `.param.` column
+#' 
+#' The [tt_summary_stats()] and [tt_string_info()] functions will generate
+#' summary tables with columns that mirror the numeric and character columns
+#' in their input tables, respectively. For that reason, a column name must be
+#' supplied to the `column` argument in `get_tt_param()`.
+#' 
+#' @param tbl A summary table generated by either of the [tt_summary_stats()],
+#'   [tt_string_info()], [tt_tbl_dims()], or [tt_tbl_colnames()] functions.
+#' @param param The parameter name associated to the value that is to be gotten.
+#'   These parameter names are always available in the first column (`.param.`)
+#'   of a summary table obtained by [tt_summary_stats()], [tt_string_info()],
+#'   [tt_tbl_dims()], or [tt_tbl_colnames()].
+#' @param column The column in the summary table for which the data value should
+#'   be obtained. This must be supplied for summary tables generated by
+#'   [tt_summary_stats()] and [tt_string_info()] (the [tt_tbl_dims()] and
+#'   [tt_tbl_colnames()] functions will always generate a two-column summary
+#'   table).
+#'   
+#' @examples 
+#' # Get summary statistics for the
+#' # first quarter of the `game_revenue`
+#' # dataset that's included in the package
+#' stat_tbl <- 
+#'   game_revenue %>%
+#'   tt_time_slice(slice_point = 0.25) %>%
+#'   tt_summary_stats()
+#' 
+#' # Based on player behavior for the first
+#' # quarter of the year, test whether the
+#' # maximum session duration during the
+#' # rest of the year is never higher
+#' game_revenue %>%
+#'   tt_time_slice(
+#'     slice_point = 0.25,
+#'     keep = "right"
+#'   ) %>%
+#'   test_col_vals_lte(
+#'     columns = vars(session_duration), 
+#'     value = get_tt_param(
+#'       tbl = stat_tbl,
+#'       param = "max",
+#'       column = "session_duration"
+#'     )
+#'   )
+#' 
+#' @family Table Transformers
+#' @section Function ID:
+#' 12-7
+#' 
+#' @export
+get_tt_param <- function(tbl,
+                         param,
+                         column = NULL) {
+  
+  # Stop function if the `tt_type` attribute isn't present
+  # in the table object
+  tt_type <- attr(tbl, which = "tt_type", exact = TRUE)
+  
+  # Stop function if `param` isn't a vector of length 1
+  if (length(param) != 1) {
+    
+    stop(
+      "The value for `param` must be a vector of length 1.",
+      call. = FALSE
+    )
+  }
+  
+  if (is.null(tt_type)) {
+    
+    stop(
+      "The summary table provided in `tbl` wasn't produced in pointblank:\n",
+      "* use either `tt_summary_stats()`, `tt_string_info()`, ",
+      "`tt_tbl_dims()`, or `tt_tbl_colnames()` to create a summary table ",
+      "based on an input table.",
+      call. = FALSE
+    )
+  }
+  
+  if (tt_type %in% c("summary_stats", "string_info")) {
+    
+    # Stop function if `column` is not provided
+    if (is.null(column)) {
+      
+      stop(
+        "When getting a value from a ", gsub("_", " ", tt_type), " table, ",
+        "a `column` name must be provided.",
+        call. = FALSE
+      )
+    }
+    
+    # Stop function if `column` isn't a character vector of length 1
+    if (!is.character(column) && length(column) != 1) {
+      
+      stop(
+        "The value for `column` must be a character vector of length 1.",
+        call. = FALSE
+      )
+    }
+    
+    tt_tbl_colnames <- base::setdiff(names(tbl), ".param.") 
+    
+    # Stop function if `column` is not one of the summary table's columns
+    if (!(column %in% tt_tbl_colnames)) {
+      
+      stop(
+        "The provided `column` must match a column name in the summary table.",
+        call. = FALSE
+      )
+    }
+    
+    if (tt_type == "summary_stats") {
+      
+      summary_stats_params <-
+        c("min", "p05", "q_1", "med", "q_3", "p95", "max", "iqr", "range")
+      
+      
+      if (!(param %in% summary_stats_params)) {
+        
+        stop(
+          "The `param` value must be a param name for a summary stats table.",
+          call. = FALSE
+        )
+      }
+      
+    } else {
+      
+      string_length_params <- c("length_mean", "length_min", "length_max")
+      
+      if (!(param %in% string_length_params)) {
+        
+        stop(
+          "The `param` value must be a param name for a string lengths table.",
+          call. = FALSE
+        )
+      }
+    }
+    
+    # Obtain the value from the `tbl` through a `select()`, `filter()`, `pull()`
+    param_value <-
+      tbl %>%
+      dplyr::select(.data$.param., .env$column) %>%
+      dplyr::filter(.param. == .env$param) %>%
+      dplyr::pull(.env$column)
+    
+  } else if (tt_type == "tbl_dims") {
+    
+    if (!(param %in% c("rows", "columns"))) {
+      
+      stop(
+        "The `param` value must be a param name for a dimensions table.",
+        call. = FALSE
+      )
+    }
+    
+    # Obtain the value from the `tbl` through a `filter()` and `pull()`
+    param_value <-
+      tbl %>%
+      dplyr::filter(.param. == .env$param) %>%
+      dplyr::pull(value)
+  
+  } else if (tt_type == "tbl_colnames") {
+    
+    # Stop function if the `param` value provided isn't in the range of
+    # column indices present in `tbl`
+    if (!(param %in% tbl$.param.)) {
+      
+      stop(
+        "The column index given as `param` isn't present in the summary table",
+        call. = FALSE
+      )
+    }
+    
+    # Obtain the value from the `tbl` through a `filter()` and `pull()`
+    param_value <-
+      tbl %>%
+      dplyr::filter(.param. == as.integer(.env$param)) %>%
+      dplyr::pull(value)
+  }
+  
+  param_value
 }

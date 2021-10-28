@@ -11,6 +11,27 @@ tbl_conjointly <-
     c = c(2, 6, 8, NA, 3, 8)
   )
 
+tbl_serially <-
+  dplyr::tibble(
+    a = c(5, 2, 6),
+    b = c(6, 4, 9),
+    c = c(1, 2, 3)
+  )
+
+tbl_complete_yes <-
+  dplyr::tibble(
+    a = c(5, 7, 6, 5, 8, 7),
+    b = c(3, 4, 6, 8, 9, 11),
+    c = c(2, 6, 8, 2, 3, 8)
+  )
+
+tbl_complete_no <-
+  dplyr::tibble(
+    a = c(5, 7, 6, 5, 8, 7),
+    b = c(3, 4, NA, 8, 9, 11),
+    c = c(2, 6, 8, NA, 3, 8)
+  )
+
 increasing_tbl <-
   dplyr::tibble(
     a = c(5, 6, 7, 8, 9, 12),
@@ -151,7 +172,7 @@ test_that("pointblank expectation functions produce the correct results", {
   expect_false(test_col_vals_not_in_set(tbl, columns = vars(b), set = tbl$b, threshold = 0.01))
 
   #
-  # expect_col_vals_make_set()
+  # test_col_vals_make_set()
   #
   
   expect_true(test_col_vals_make_set(tbl, columns = vars(c), set = tbl$c %>% unique()))
@@ -161,9 +182,8 @@ test_that("pointblank expectation functions produce the correct results", {
   expect_false(test_col_vals_make_set(tbl, columns = vars(c), set = c(2, 3, 4, 7, 9, NA)))
   expect_false(test_col_vals_make_set(tbl, columns = vars(e), set = TRUE))
   
-  
   #
-  # expect_col_vals_make_subset()
+  # test_col_vals_make_subset()
   #
   
   expect_true(test_col_vals_make_subset(tbl, columns = vars(c), set = tbl$c %>% unique()))
@@ -175,7 +195,7 @@ test_that("pointblank expectation functions produce the correct results", {
   expect_false(test_col_vals_make_subset(tbl, columns = vars(e), set = ""))
   
   #
-  # expect_col_vals_increasing()
+  # test_col_vals_increasing()
   #
   
   expect_true(test_col_vals_increasing(increasing_tbl, vars(a)))
@@ -193,7 +213,7 @@ test_that("pointblank expectation functions produce the correct results", {
   expect_false(test_col_vals_increasing(increasing_tbl, vars(b), threshold = 0.01))
   
   #
-  # expect_col_vals_decreasing()
+  # test_col_vals_decreasing()
   #
   
   expect_true(test_col_vals_decreasing(decreasing_tbl, vars(a)))
@@ -325,6 +345,118 @@ test_that("pointblank expectation functions produce the correct results", {
   )
   
   #
+  # test_serially()
+  #
+  
+  expect_true(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS
+      ~ col_vals_gt(., vars(b), vars(a))       # PASS
+    )
+  )
+  
+  expect_true(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS
+      ~ col_vals_gt(., vars(b), vars(a)),      # PASS
+      threshold = 5
+    )
+  )
+  
+  expect_true(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS
+      ~ col_vals_gt(., vars(c), 1),            # PASS 2/3
+      threshold = 2
+    )
+  )
+  
+  expect_false(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),            # PASS 2/3
+      threshold = 1
+    )
+  )
+  
+  expect_false(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b)),  # FAIL, would FAIL
+      ~ test_col_vals_not_null(., vars(a, b)), # would PASS, PASS
+      ~ col_vals_gt(., vars(b), vars(a)),      # would PASS
+    )
+  )
+  
+  expect_false(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),      # PASS, PASS
+      ~ test_col_vals_increasing(., vars(c, b)), # PASS, FAIL
+      ~ col_vals_gt(., vars(b), vars(a)),        # would PASS
+    )
+  )
+  
+  expect_true(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(b), vars(a))                      # PASS
+    )
+  )
+  
+  expect_false(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+      threshold = 1
+    )
+  )
+  
+  expect_true(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # PASS
+      threshold = 2
+    )
+  )
+  
+  expect_false(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+      threshold = 1
+    ), 
+    failed_beyond_absolute
+  )
+  
+  expect_false(
+    test_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+      threshold = 0.01
+    ), 
+    failed_beyond_proportional
+  )
+  
+  #
   # test_rows_distinct()
   #
   
@@ -333,7 +465,17 @@ test_that("pointblank expectation functions produce the correct results", {
   expect_false(test_rows_distinct(tbl, columns = vars(date_time, date)))
   expect_false(test_rows_distinct(tbl, threshold = 1))
   expect_false(test_rows_distinct(tbl, threshold = 0.01))
-
+  
+  #
+  # test_rows_complete()
+  #
+  
+  expect_true(test_rows_complete(tbl_complete_yes))
+  expect_false(test_rows_complete(tbl_complete_no))
+  expect_false(test_rows_complete(tbl_complete_no, columns = vars(b, c)))
+  expect_false(test_rows_complete(tbl_complete_no, columns = "c", threshold = 1))
+  expect_false(test_rows_complete(tbl_complete_no, columns = "b", threshold = 0.01))
+  
   #
   # test_col_is_character()
   #
@@ -548,9 +690,14 @@ test_that("expect errors to be expressed by pointblank under some conditions", {
   expect_error(test_col_vals_not_between(tbl, columns = vars(z), left = 0, right = 10000), regexp = no_col_msg)
   expect_error(test_col_vals_in_set(tbl, columns = vars(z), set = LETTERS), regexp = no_col_msg)
   expect_error(test_col_vals_not_in_set(tbl, columns = vars(z), set = LETTERS), regexp = no_col_msg)
+  expect_error(test_col_vals_make_set(tbl, columns = vars(z), set = LETTERS), regexp = no_col_msg)
+  expect_error(test_col_vals_make_subset(tbl, columns = vars(z), set = LETTERS), regexp = no_col_msg)
+  expect_error(test_col_vals_increasing(tbl, columns = vars(z)), regexp = no_col_msg)
+  expect_error(test_col_vals_decreasing(tbl, columns = vars(z)), regexp = no_col_msg)
   expect_error(test_col_vals_null(tbl, columns = vars(z)), regexp = no_col_msg)
   expect_error(test_col_vals_not_null(tbl, columns = vars(z)), regexp = no_col_msg)
   expect_error(test_col_vals_regex(tbl, vars(z), regex = "^[0-9]-[a-z]{3}-[0-9]{3}$"), regexp = no_col_msg)
+  expect_error(test_col_vals_within_spec(tbl, vars(z), spec = "email"), regexp = no_col_msg)
   expect_error(test_col_is_character(tbl, columns = vars(z)), regexp = no_col_msg)
   expect_error(test_col_is_numeric(tbl, columns = vars(z)), regexp = no_col_msg)
   expect_error(test_col_is_integer(tbl, columns = vars(z)), regexp = no_col_msg)

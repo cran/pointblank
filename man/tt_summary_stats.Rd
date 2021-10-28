@@ -14,9 +14,9 @@ can be a data frame, a tibble, a \code{tbl_dbi} object, or a \code{tbl_spark} ob
 A \code{tibble} object.
 }
 \description{
-With any table object, you can produce a summary table that is scoped to
-the numeric column values. The table produced will have a leading column
-called \code{".stat."} with labels for each of the nine rows, each corresponding
+With any table object, you can produce a summary table that is scoped to the
+numeric column values. The output summary table will have a leading column
+called \code{".param."} with labels for each of the nine rows, each corresponding
 to the following summary statistics:
 \enumerate{
 \item Minimum (\code{"min"})
@@ -41,7 +41,7 @@ order as well.
 
 \examples{
 # Get summary statistics for the
-# `game_revenue` dataset that's
+# `game_revenue` dataset that is
 # included in the package
 tt_summary_stats(game_revenue)
 
@@ -53,7 +53,7 @@ tt_summary_stats(game_revenue) \%>\%
   col_vals_lt(
     columns = vars(item_revenue),
     value = 150,
-    segments = .stat. ~ "max"
+    segments = .param. ~ "max"
   )
 
 # For in-app purchases in the
@@ -66,13 +66,50 @@ game_revenue \%>\%
   col_vals_between(
     columns = vars(item_revenue),
     left = 8, right = 12,
-    segments = .stat. ~ "med"
+    segments = .param. ~ "med"
   )
+
+# While performing validations of the
+# `game_revenue` table with an agent
+# we can include the same revenue
+# check by using `tt_summary_stats()`
+# in the `preconditions` argument (this
+# will transform the target table for
+# the validation step); we also need
+# to get just a segment of that table
+# (the row with the median values)
+agent <- 
+  create_agent(
+    read_fn = ~ game_revenue,
+    tbl_name = "game_revenue",
+    label = "An example.",
+    actions = action_levels(
+      warn_at = 0.10,
+      stop_at = 0.25,
+      notify_at = 0.35
+    )
+  ) \%>\%
+  rows_complete() \%>\%
+  rows_distinct() \%>\%
+  col_vals_between(
+    columns = vars(item_revenue),
+    left = 8, right = 12,
+    preconditions = ~ . \%>\%
+      dplyr::filter(item_type == "iap") \%>\%
+      tt_summary_stats(),
+    segments = .param. ~ "med"
+  ) \%>\%
+  interrogate()
+
+# This should all pass but let's check:
+all_passed(agent)
 
 }
 \seealso{
 Other Table Transformers: 
+\code{\link{get_tt_param}()},
 \code{\link{tt_string_info}()},
+\code{\link{tt_tbl_colnames}()},
 \code{\link{tt_tbl_dims}()},
 \code{\link{tt_time_shift}()},
 \code{\link{tt_time_slice}()}

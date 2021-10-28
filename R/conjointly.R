@@ -43,19 +43,19 @@
 #' functions can only be used with a data table.
 #'
 #' @section Column Names:
-#' If providing multiple column names in any of the supplied validation step
-#' functions, the result will be an expansion of sub-validation steps to that
-#' number of column names. Aside from column names in quotes and in `vars()`,
+#' If providing multiple column names in any of the supplied validation steps,
+#' the result will be an expansion of sub-validation steps to that number of
+#' column names. Aside from column names in quotes and in `vars()`,
 #' **tidyselect** helper functions are available for specifying columns. They
 #' are: `starts_with()`, `ends_with()`, `contains()`, `matches()`, and
 #' `everything()`.
 #' 
 #' @section Preconditions:
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
-#' the target table table during interrogation as a preparatory step. It might
-#' happen that a particular validation requires a calculated column, some
-#' filtering of rows, or the addition of columns via a join, etc. Especially for
-#' an *agent*-based report this can be advantageous since we can develop a large
+#' the target table during interrogation as a preparatory step. It might happen
+#' that a particular validation requires a calculated column, some filtering of
+#' rows, or the addition of columns via a join, etc. Especially for an
+#' *agent*-based report this can be advantageous since we can develop a large
 #' validation plan with a single target table and make minor adjustments to it,
 #' as needed, along the way.
 #'
@@ -279,7 +279,7 @@
 #'
 #' @family validation functions
 #' @section Function ID:
-#' 2-20
+#' 2-31
 #'
 #' @name conjointly
 NULL

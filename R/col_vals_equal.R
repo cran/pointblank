@@ -48,10 +48,10 @@
 #' 
 #' @section Preconditions:
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
-#' the target table table during interrogation as a preparatory step. It might
-#' happen that a particular validation requires a calculated column, some
-#' filtering of rows, or the addition of columns via a join, etc. Especially for
-#' an *agent*-based report this can be advantageous since we can develop a large
+#' the target table during interrogation as a preparatory step. It might happen
+#' that a particular validation requires a calculated column, some filtering of
+#' rows, or the addition of columns via a join, etc. Especially for an
+#' *agent*-based report this can be advantageous since we can develop a large
 #' validation plan with a single target table and make minor adjustments to it,
 #' as needed, along the way.
 #'
@@ -383,7 +383,7 @@ expect_col_vals_equal <- function(object,
     interrogate() %>%
     .$validation_set
   
-  x <- vs$notify %>% all()
+  x <- vs$notify
   
   threshold_type <- get_threshold_type(threshold = threshold)
   
@@ -391,6 +391,25 @@ expect_col_vals_equal <- function(object,
     failed_amount <- vs$f_failed
   } else {
     failed_amount <- vs$n_failed
+  }
+  
+  # If several validations were performed serially (due to supplying
+  # multiple columns)
+  if (length(x) > 1 && any(x)) {
+    
+    # Get the index (step) of the first failure instance
+    fail_idx <- which(x)[1]
+    
+    # Get the correct, single `failed_amount` for the first
+    # failure instance
+    failed_amount <- failed_amount[fail_idx]
+    
+    # Redefine `x` as a single TRUE value
+    x <- TRUE
+    
+  } else {
+    x <- any(x)
+    fail_idx <- 1
   }
   
   if (inherits(vs$capture_stack[[1]]$warning, "simpleWarning")) {
@@ -402,9 +421,10 @@ expect_col_vals_equal <- function(object,
   
   act <- testthat::quasi_label(enquo(x), arg = "object")
   
-  column_text <- prep_column_text(vs$column[[1]])
+  column_text <- prep_column_text(vs$column[[fail_idx]])
   operator <- "=="
-  values_text <- prep_values_text(values = vs$values, limit = 3, lang = "en")
+  values_text <- 
+    prep_values_text(values = vs$values[[fail_idx]], limit = 3, lang = "en")
   
   testthat::expect(
     ok = identical(!as.vector(act$val), TRUE),

@@ -609,6 +609,10 @@ to_list_label <- function(label) {
   list(label = label)
 }
 
+to_list_fn <- function(fn) {
+  list(fn = fn)
+}
+
 to_list_info_label <- function(label) {
   list(info_label = label)
 }
@@ -1065,7 +1069,7 @@ as_agent_yaml_list <- function(agent,
           )
         )
       
-    } else if (validation_fn == "rows_distinct") {
+    } else if (validation_fn %in% c("rows_distinct", "rows_complete")) {
 
       if (is.na(step_list$column[[1]][[1]])) {
         vars_cols <- NULL
@@ -1124,6 +1128,41 @@ as_agent_yaml_list <- function(agent,
             active = as_list_active(step_list$active)
           )
         )
+      
+    } else if (validation_fn == "serially") {
+      
+      lst_step <- 
+        list(
+          validation_fn = list(
+            fns = as.character(step_list$values[[1]]),
+            preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
+      
+    } else if (validation_fn == "specially") {
+      
+      lst_step <- 
+        list(
+          validation_fn = list(
+            fn = to_list_fn(
+              capture_function(fn = step_list$values[[1]], escape = FALSE)
+            ),
+            preconditions = as_list_preconditions(step_list$preconditions),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
     }
 
     # Remove list elements that are representative of defaults
@@ -1153,8 +1192,11 @@ get_column_text <- function(step_list, expanded) {
   
   if (!expanded) {
     
-    if (step_list$column[[1]] == step_list$columns_expr) {
+    if (!is.na(step_list$column[[1]]) &&
+        step_list$column[[1]] == step_list$columns_expr) {
+      
       column_text <- as_vars_fn(step_list$column[[1]])
+      
     } else {
       column_text <- step_list$columns_expr
     }
