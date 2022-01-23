@@ -165,7 +165,7 @@ steps:
     active: false
 }
 
-In practice, both of these will often be shorter as only the \code{columns},
+In practice, both of these will often be shorter as only the \code{columns}
 argument requires a value. Arguments with default values won't be written to
 YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is acceptable to include them with
 their default when generating the YAML by other means). It is also possible
@@ -269,9 +269,11 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

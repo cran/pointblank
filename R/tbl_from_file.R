@@ -26,11 +26,10 @@
 #' `file_tbl()` function can make it possible to access it in a single function
 #' call. Compatible file types for this function are: CSV (`.csv`), TSV
 #' (`.tsv`), RDA (`.rda`), and RDS (`.rds`) files. This function generates an
-#' in-memory `tbl_dbl` object, which can be used as a target table for
-#' [create_agent()] and [create_informant()]. The ideal option for data access
-#' with `file_tbl()` is using this function as the `read_fn` parameter in either
-#' of the aforementioned `create_*()` functions. This can be done by using a
-#' leading `~` (e.g,. `read_fn = ~file_tbl(...)`).
+#' in-memory `tbl_df` object, which can be used as a target table for
+#' [create_agent()] and [create_informant()]. Another great option is supplying
+#' a table-prep formula involving `file_tbl()` to [tbl_store()] so that you have
+#' access to tables based on flat files though single names via a table store.
 #'
 #' In the remote data use case, we can specify a URL starting with `http://`,
 #' `https://`, etc., and ending with the file containing the data table. If data
@@ -93,7 +92,7 @@
 #' # directly to `create_agent()`:
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~ file_tbl(
+#'     tbl = ~ file_tbl(
 #'       file = system.file(
 #'         "data_files", "small_table.csv",
 #'         package = "pointblank"
@@ -104,11 +103,11 @@
 #'   col_vals_gt(vars(a), value = 0)
 #'
 #' # All of the file-reading instructions
-#' # are encapsulated in the `read_fn` so
-#' # the agent will always obtain the most
-#' # recent version of the dataset (and the
-#' # logic can be translated to YAML, for
-#' # later use)
+#' # are encapsulated in the `tbl`
+#' # expression so the agent will always
+#' # obtain the most recent version of
+#' # the table (and the logic can be
+#' # translated to YAML, for later use)
 #' 
 #' if (interactive()) {
 #' 
@@ -120,7 +119,7 @@
 #' # repository for the pointblank package 
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~ file_tbl(
+#'     tbl = ~ file_tbl(
 #'       file = from_github(
 #'         file = "inst/data_files/small_table.csv",
 #'         repo = "rich-iannone/pointblank"
@@ -170,11 +169,11 @@
 #' 
 #' # The table-prep formulas in `tbls`
 #' # could also be used in functions with
-#' # the `read_fn` argument; this is thanks
+#' # the `tbl` argument; this is thanks
 #' # to the `tbl_source()` function
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~ tbl_source(
+#'     tbl = ~ tbl_source(
 #'       "small_table_file",
 #'       store = tbls
 #'     )
@@ -182,7 +181,7 @@
 #' 
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ tbl_source(
+#'     tbl = ~ tbl_source(
 #'       "small_high_file",
 #'       store = tbls
 #'     )
@@ -338,6 +337,8 @@ file_tbl <- function(file,
 #'   `username/repo[/subdir][@ref|#pull|@*release]`.
 #' @param subdir A path string representing a subdirectory in the GitHub
 #'   repository. This is combined with any path components included in `file`.
+#' @param default_branch The name of the default branch for the repo. This is
+#'   usually `"main"` (the default used here).
 #'   
 #' @return A character vector of length 1 that contains a URL.
 #' 
@@ -364,7 +365,7 @@ file_tbl <- function(file,
 #' # pointblank package 
 #' # agent <- 
 #' #   create_agent(
-#' #     read_fn = ~ file_tbl(
+#' #     tbl = ~ file_tbl(
 #' #       file = from_github(
 #' #         file = "inst/data_files/small_table.csv",
 #' #         repo = "rich-iannone/pointblank"
@@ -408,7 +409,8 @@ file_tbl <- function(file,
 #' @export
 from_github <- function(file,
                         repo,
-                        subdir = NULL) {
+                        subdir = NULL,
+                        default_branch = "main") {
   
   # get the username, repo, subdir component
   u_r_s <- gsub("(@|#).*", "", repo)
@@ -468,7 +470,7 @@ from_github <- function(file,
          dplyr::pull(merge_commit_sha))[1]
     
   } else {
-    ref_res <- "master"
+    ref_res <- default_branch
   }
   
   if (!is.null(subdir_file)) {
@@ -478,7 +480,7 @@ from_github <- function(file,
   } else {
     file_path <- file
   }
-
+  
   url <-
     as.character(
       glue::glue(

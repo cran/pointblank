@@ -26,7 +26,7 @@ whether the step should be active or not.
 }
 \section{Function ID}{
 
-9-7
+9-6
 }
 
 \examples{
@@ -37,18 +37,19 @@ whether the step should be active or not.
 # `interrogate()`
 agent_1 <- 
   create_agent(
-    read_fn = ~ small_table,
+    tbl = small_table,
     tbl_name = "small_table",
     label = "An example."
   ) \%>\%
   col_exists(vars(date)) \%>\%
   col_vals_regex(
-    vars(b), regex = "[0-9]-[a-z]{3}-[0-9]"
+    vars(b),
+    regex = "[0-9]-[a-z]{3}-[0-9]"
   ) \%>\%
   interrogate()
   
-# The second validation step has
-# is being reconsidered and may
+# The second validation step is
+# now being reconsidered and may
 # be either phased out or improved
 # upon; in the interim period it
 # was decided that the step should
@@ -65,10 +66,7 @@ For the opposite behavior, use the \code{\link[=activate_steps]{activate_steps()
 Other Object Ops: 
 \code{\link{activate_steps}()},
 \code{\link{export_report}()},
-\code{\link{remove_read_fn}()},
 \code{\link{remove_steps}()},
-\code{\link{remove_tbl}()},
-\code{\link{set_read_fn}()},
 \code{\link{set_tbl}()},
 \code{\link{x_read_disk}()},
 \code{\link{x_write_disk}()}

@@ -49,7 +49,7 @@
 #' # the info text
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ test_table,
+#'     tbl = ~ test_table,
 #'     tbl_name = "test_table"
 #'   ) %>%
 #'   info_snippet(
@@ -110,14 +110,25 @@ incorporate <- function(informant) {
   # Obtain the informant's snippets
   meta_snippets <- informant$meta_snippets
   
+  # Quieting of an informant's remarks either when the
+  # session is non-interactive
+  if (!interactive()) {
+    quiet <- TRUE
+  } else {
+    quiet <- FALSE
+  }
+  
   # Signal the start of incorporation in the console
-  create_cli_header_i(snippets_to_process = meta_snippets)
+  create_cli_header_i(
+    snippets_to_process = meta_snippets,
+    quiet = quiet
+  )
   
   # Get the starting time for the gathering of info
   info_gather_start_time <- Sys.time()
   
   # Get the target table for this informant object
-  # TODO: Use the same scheme that the `agent` does
+  # TODO: extend the materialize table function to use an agent or informant
   tbl <- informant$tbl
   tbl_name <- informant$tbl_name
   read_fn <- informant$read_fn
@@ -125,8 +136,6 @@ incorporate <- function(informant) {
   # Extract the informant's `lang` and `locale` values
   lang <- informant$lang
   locale <- informant$locale
-  
-  # TODO: Verify that either `tbl` or `read_fn` is available
   
   # Prefer reading a table from a `read_fn` if it's available
   # TODO: Verify that the table is a table object
@@ -158,6 +167,7 @@ incorporate <- function(informant) {
       
     } else {
       
+      # TODO: Improve the `stop()` message here
       stop(
         "The `read_fn` object must be a function or an R formula.\n",
         "* A function can be made with `function()` {<table reading code>}.\n",
@@ -172,7 +182,7 @@ incorporate <- function(informant) {
   #  - _rows
   #  - _type
   
-  x <- create_agent(tbl = tbl, read_fn = read_fn)
+  x <- create_agent(tbl = tbl)
   
   table.type <- x$tbl_src
   column_names <- x$col_names
@@ -196,9 +206,11 @@ incorporate <- function(informant) {
       end_time = info_gather_end_time
     )
   
-  cli::cli_alert_success(
-    c("Information gathered.", print_time(time_diff_s))
-  )
+  if (!quiet) {
+    cli::cli_alert_success(
+      c("Information gathered.", print_time(time_diff_s))
+    )
+  }
   
   #
   # Incorporate snippets
@@ -291,9 +303,11 @@ incorporate <- function(informant) {
     )
   
   if (length(meta_snippets) > 0) {
-    cli::cli_alert_success(
-      c("Snippets processed.", print_time(time_diff_s))
-    )
+    if (!quiet) {
+      cli::cli_alert_success(
+        c("Snippets processed.", print_time(time_diff_s))
+      )
+    }
   }
   
   # Get the starting time for the information building
@@ -360,16 +374,21 @@ incorporate <- function(informant) {
       end_time = info_build_end_time
     )
   
-  cli::cli_alert_success(
-    c("Information built.", print_time(time_diff_s))
-  )
+  if (!quiet) {
+    cli::cli_alert_success(
+      c("Information built.", print_time(time_diff_s))
+    )
+  }
   
-  create_cli_footer_i()
+  create_cli_footer_i(quiet = quiet)
   
   informant
 }
 
-create_cli_header_i <- function(snippets_to_process) {
+create_cli_header_i <- function(snippets_to_process,
+                                quiet) {
+  
+  if (quiet) return()
   
   if (length(snippets_to_process) < 1) {
     incorporation_progress_header <- 
@@ -386,7 +405,9 @@ create_cli_header_i <- function(snippets_to_process) {
   cli::cli_h1(incorporation_progress_header)
 }
 
-create_cli_footer_i <- function() {
+create_cli_footer_i <- function(quiet) {
+  
+  if (quiet) return()
   
   interrogation_progress_footer <- "Incorporation Completed"
   

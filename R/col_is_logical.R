@@ -50,10 +50,9 @@
 #' single threshold level (specified as either the fraction of test units
 #' failed, or, an absolute value), often using the `warn_at` argument. This is
 #' especially true when `x` is a table object because, otherwise, nothing
-#' happens. For the `col_is_*()`-type functions, using 
-#' `action_levels(warn_at = 1)` or `action_levels(stop_at = 1)` are good choices
-#' depending on the situation (the first produces a warning, the other
-#' `stop()`s).
+#' happens. For the `col_is_*()`-type functions, using `action_levels(warn_at =
+#' 1)` or `action_levels(stop_at = 1)` are good choices depending on the
+#' situation (the first produces a warning, the other will `stop()`).
 #' 
 #' @section Briefs:
 #' Want to describe this validation step in some detail? Keep in mind that this
@@ -93,7 +92,7 @@
 #'     active: false
 #' ```
 #' 
-#' In practice, both of these will often be shorter as only the `columns`,
+#' In practice, both of these will often be shorter as only the `columns`
 #' argument requires a value. Arguments with default values won't be written to
 #' YAML when using [yaml_write()] (though it is acceptable to include them with
 #' their default when generating the YAML by other means). It is also possible

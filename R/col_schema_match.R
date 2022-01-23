@@ -137,6 +137,7 @@
 #'   least). This can be taken a step further and using `NULL` for a column type
 #'   in the user-defined schema will skip the validation check of a column type.
 #'   By default, `is_exact` is set to `TRUE`.
+#' 
 #' @return For the validation function, the return value is either a
 #'   `ptblank_agent` object or a table object (depending on whether an agent
 #'   object or a table was passed to `x`). The expectation function invisibly
@@ -145,7 +146,6 @@
 #'   The test function returns a logical value.
 #' 
 #' @examples
-#' 
 #' # For all examples here, we'll use
 #' # a simple table with two columns:
 #' # one `integer` (`a`) and the other
@@ -269,7 +269,7 @@ col_schema_match <- function(x,
   }
   
   if (is_a_table_object(x)) {
-
+    
     secret_agent <- 
       create_agent(x, label = "::QUIET::") %>%
       col_schema_match(
@@ -434,7 +434,12 @@ test_col_schema_match <- function(object,
 #' @param ... A set of named arguments where the names refer to column names and
 #'   the values are one or more column types.
 #' @param .tbl An option to use a table object to define the schema. If this is
-#'   provided then any values provided to `...` will be ignored.
+#'   provided then any values provided to `...` will be ignored. This can either
+#'   be a table object, a table-prep formula.This can be a table object such as
+#'   a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#'   Alternatively, a table-prep formula (`~ <table reading code>`) or a
+#'   function (`function() <table reading code>`) can be used to lazily read in
+#'   the table at interrogation time.
 #' @param .db_col_types Determines whether the column types refer to R column
 #'   types (`"r"`) or SQL column types (`"sql"`).
 #'   
@@ -467,8 +472,8 @@ test_col_schema_match <- function(object,
 #'   col_schema_match(schema_obj) %>%
 #'   interrogate()
 #' 
-#' # Determine if these three validation
-#' # steps passed by using `all_passed()`
+#' # Determine if this validation step
+#' # passed by using `all_passed()`
 #' all_passed(agent)
 #' 
 #' # We can alternatively create
@@ -515,7 +520,8 @@ col_schema <- function(...,
   
   if (!is.null(.tbl)) {
     
-    # Validate .tbl object
+    # Validate .tbl object but first materialize the table
+    .tbl <- materialize_table(tbl = .tbl)
     
     # Generate schema from tbl object
     if (inherits(.tbl, "data.frame")) {
@@ -535,10 +541,7 @@ col_schema <- function(...,
       x <- 
         switch(
           db_col_types,
-          "r" = col_schema_from_names_types(
-            names = tbl_info$col_names,
-            types = tbl_info$r_col_types
-          ),
+          "r" = create_col_schema_from_df(tbl = .tbl),
           "sql" = col_schema_from_names_types(
             names = tbl_info$col_names,
             types = tbl_info$db_col_types
@@ -561,7 +564,17 @@ db_col_type <- function(db_type) {
   # Generate a standardized vector for an `db_col_type`
 }
 
+# Generates a list of R column types from any type of table
 create_col_schema_from_df <- function(tbl) {
+  
+  if (is_a_table_object(tbl) && !is_tbl_df(tbl)) {
+    
+    tbl <- 
+      tbl %>%
+      utils::head(1) %>%
+      dplyr::collect()
+    
+  }
   
   lapply(tbl, class)
 }

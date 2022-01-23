@@ -17,7 +17,7 @@
 #
 
 
-#' Determine if one or more columns exist in a table. 
+#' Determine if one or more columns exist in a table
 #' 
 #' @description
 #' This utility function can help you easily determine whether a column of a
@@ -46,7 +46,7 @@
 #' 
 #' # With `has_columns()` we can check for
 #' # column existence by using it directly
-#' # with the table; a column name can be
+#' # on the table; a column name can be
 #' # verified as present by using it in
 #' # double quotes
 #' small_table %>% has_columns("date")
@@ -81,7 +81,7 @@
 #' # agent report)
 #' agent <- 
 #'   create_agent(
-#'     read_fn = ~ small_table,
+#'     tbl = small_table,
 #'     tbl_name = "small_table"
 #'   ) %>%
 #'   col_vals_gt(

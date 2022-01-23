@@ -83,6 +83,49 @@ test_that("Interrogating with an agent yields the correct results", {
       )
   )
   
+  
+  # Use the `row_count_match()` function to create
+  # a validation step, then, `interrogate()`
+  validation <-
+    create_agent(tbl = small_table) %>%
+    row_count_match(tbl_compare = small_table) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "row_count_match")
+  expect_true(is.na(validation$validation_set$column %>% unlist()))
+  expect_true(inherits(validation$validation_set[["values"]][[1]], "tbl_df"))
+  expect_true(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 1)
+  expect_equivalent(validation$validation_set$n_passed, 1)
+  expect_equivalent(validation$validation_set$n_failed, 0)
+  expect_equivalent(validation$validation_set$f_passed, 1)
+  expect_equivalent(validation$validation_set$f_failed, 0)
+  expect_equivalent(nrow(validation$validation_set), 1)
+  
+  
+  # Use the `tbl_match()` function to create
+  # a validation step, then, `interrogate()`
+  validation <-
+    create_agent(tbl = small_table) %>%
+    tbl_match(tbl_compare = small_table) %>%
+    interrogate()
+  
+  # Expect certain values in `validation$validation_set`
+  expect_equivalent(validation$tbl_name, "small_table")
+  expect_equivalent(validation$validation_set$assertion_type, "tbl_match")
+  expect_true(is.na(validation$validation_set$column %>% unlist()))
+  expect_true(inherits(validation$validation_set[["values"]][[1]], "tbl_df"))
+  expect_true(validation$validation_set$all_passed)
+  expect_equivalent(validation$validation_set$n, 1)
+  expect_equivalent(validation$validation_set$n_passed, 1)
+  expect_equivalent(validation$validation_set$n_failed, 0)
+  expect_equivalent(validation$validation_set$f_passed, 1)
+  expect_equivalent(validation$validation_set$f_failed, 0)
+  expect_equivalent(nrow(validation$validation_set), 1)
+  
+  
   # Use the `col_exists()` function to create
   # a validation step, then, `interrogate()`
   # (expecting a failed interrogation)
@@ -1461,7 +1504,7 @@ test_that("Interrogating with an agent incorporates the `na_pass` option", {
     all_passed() %>%
     expect_true()
   
-  create_agent(read_fn = ~ specifications[1:6, ]) %>%
+  create_agent(tbl = ~ specifications[1:6, ]) %>%
     col_vals_within_spec(columns = vars(isbn_numbers), spec = "isbn13", na_pass = TRUE) %>%
     col_vals_within_spec(columns = vars(vin_numbers), spec = "VIN", na_pass = TRUE) %>%
     col_vals_within_spec(columns = vars(zip_codes), spec = "zip", na_pass = TRUE) %>%

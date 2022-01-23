@@ -23,9 +23,9 @@
 #' The `col_vals_make_subset()` validation function, the
 #' `expect_col_vals_make_subset()` expectation function, and the
 #' `test_col_vals_make_subset()` test function all check whether all `set`
-#' values are seen at least once in a table column. The validation step function
-#' can be used directly on a data table or with an *agent* object (technically,
-#' a `ptblank_agent` object) whereas the expectation and test functions can only
+#' values are seen at least once in a table column. The validation function can
+#' be used directly on a data table or with an *agent* object (technically, a
+#' `ptblank_agent` object) whereas the expectation and test functions can only
 #' be used with a data table. The types of data tables that can be used include
 #' data frames, tibbles, database tables (`tbl_dbi`), and Spark DataFrames
 #' (`tbl_spark`). Each validation step or expectation will operate over the
@@ -150,7 +150,7 @@
 #'    active: false
 #' ```
 #' 
-#' In practice, both of these will often be shorter as only the `columns`, and
+#' In practice, both of these will often be shorter as only the `columns` and
 #' `set` arguments require values. Arguments with default values won't be
 #' written to YAML when using [yaml_write()] (though it is acceptable to include
 #' them with their default when generating the YAML by other means). It is also
@@ -190,7 +190,7 @@
 #'   
 #' # Determine if this validation
 #' # had no failing test units (there
-#' # are 2 test units, one for element
+#' # are 2 test units, one per element
 #' # in the `set`)
 #' all_passed(agent)
 #' 

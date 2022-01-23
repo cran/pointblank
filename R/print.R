@@ -278,6 +278,61 @@ print.x_list_i <- function(x, ...) {
   )
 }
 
+#' Knit print a single-step x-list to the console
+#'
+#' This facilitates printing of the `x_list_i` object within a knitr code
+#' chunk.
+#'
+#' @param x An object of class `x_list_i`.
+#' @param ... Any additional parameters.
+#'
+#' @keywords internal
+#' @noRd
+knit_print.x_list_i <- function(x, ...) {
+  
+  length_rows <- length(x$warn)
+
+  tbl_classes <- paste(class(x$tbl), collapse = " ")
+
+  top_rule <-
+    paste0(
+      "-- The x-list for table `", x$tbl_name, "`\n",
+      "---- STEP ", x$i, " ----"
+  )
+  
+  if (length(x$time_start) == 0) {
+    bottom_rule <- "---- NO INTERROGATION PERFORMED ----"
+  } else {
+    bottom_rule <- "----"
+  }
+
+  x_list_str <-
+    glue::glue(
+      "{top_rule}\n",
+      "$time_start $time_end (POSIXct [{length(x$time_start)}])\n",
+      "$label $tbl_name $tbl_src $tbl_src_details (chr [1])\n",
+      "$tbl ({tbl_classes})\n",
+      "$col_names $col_types (chr [{length(x$col_names)}])\n",
+      "$i $type $columns $values $label $briefs ",
+      "(mixed [{length(x$i)}])\n",
+      "$eval_error $eval_warning (lgl [{length(x$i)}])\n",
+      "$capture_stack (list [{length(x$capture_stack)}])\n",
+      "$n $n_passed $n_failed $f_passed $f_failed ",
+      "(num [{length_rows}])\n",
+      "$warn $stop $notify (lgl [{length_rows}])\n",
+      "$lang (chr [1])\n",
+      "{bottom_rule}\n"
+    )
+  
+  #right = ifelse(length(x$time_start) == 0, "NO INTERROGATION PERFORMED", "")
+  # Use `knit_print()` to print in a code chunk
+  knitr::knit_print(x_list_str, ...)
+}
+
+#
+# x_list_n
+#
+
 #' Print an x-list comprising all validation steps to the console
 #'
 #' This function will print a x-list object, with all validation steps included,
@@ -360,6 +415,66 @@ print.x_list_n <- function(x, ...) {
     right = ifelse(length(x$time_start) == 0, "NO INTERROGATION PERFORMED", "")
   )
 }
+
+#' Knit print an x-list comprising all validation steps
+#'
+#' This facilitates printing of the `x_list_n` object within a knitr code
+#' chunk.
+#'
+#' @param x An object of class `x_list_n`.
+#' @param ... Any additional parameters.
+#'
+#' @keywords internal
+#' @noRd
+knit_print.x_list_n <- function(x, ...) {
+  
+  tbl_classes <- paste(class(x$tbl), collapse = " ")
+  
+  length_rows <- length(x$warn)
+  validation_set_rows <- nrow(x$validation_set)
+  validation_set_cols <- ncol(x$validation_set)
+  
+  top_rule <-
+    paste0(
+      "-- The x-list for table `", x$tbl_name, "`\n",
+      "---- ALL STEPS ----"
+    )
+  
+  if (length(x$time_start) == 0) {
+    bottom_rule <- "---- NO INTERROGATION PERFORMED ----"
+  } else {
+    bottom_rule <- "----"
+  }
+  
+  x_list_str <-
+    glue::glue(
+      "{top_rule}\n",
+      "$time_start $time_end (POSIXct [{length(x$time_start)}])\n",
+      "$label $tbl_name $tbl_src $tbl_src_details (chr [1])\n",
+      "$tbl ({tbl_classes})\n",
+      "$col_names $col_types (chr [{length(x$col_names)}])\n",
+      "$i $type $columns $values $label $briefs ",
+      "(mixed [{length(x$i)}])\n",
+      "$eval_error $eval_warning (lgl [{length(x$i)}])\n",
+      "$capture_stack (list [{length(x$capture_stack)}])\n",
+      "$n $n_passed $n_failed $f_passed $f_failed ",
+      "(num [{length_rows}])\n",
+      "$warn $stop $notify (lgl [{length_rows}])\n",
+      "$validation_set (tbl_df [{validation_set_rows}, ",
+      "{validation_set_cols}])\n",
+      "$lang (chr [1])\n",
+      "$report_object (blastula_message)\n",
+      "$report_html $report_html_small (chr [1])\n",
+      "{bottom_rule}\n"
+    )
+  
+  # Use `knit_print()` to print in a code chunk
+  knitr::knit_print(x_list_str, ...)
+}
+
+#
+# action_levels
+#
 
 #' Print the `action_levels` object
 #'
@@ -472,6 +587,155 @@ print.action_levels <- function(x, ...) {
   cli::cli_rule()
 }
 
+#' Knit print the `action_levels` object
+#'
+#' This facilitates printing of the `action_levels` within a knitr code
+#' chunk.
+#'
+#' @param x An object of class `action_levels`.
+#' @param ... Any additional parameters.
+#'
+#' @keywords internal
+#' @noRd
+knit_print.action_levels <- function(x, ...) {
+  
+  has_warn_fns <- !is.null(x$fns$warn)
+  has_stop_fns <- !is.null(x$fns$stop)
+  has_notify_fns <- !is.null(x$fns$notify)
+  
+  top_rule <- "-- The `action_levels` settings"
+  bottom_rule <- "----"
+  
+  action_levels_lines <- c()
+  
+  if (!is.null(x$warn_fraction)) {
+    action_levels_lines <-
+      c(action_levels_lines,
+        paste0(
+          "WARN failure threshold of ",
+          x$warn_fraction,
+          " of all test units."
+        )
+      )
+  }
+  if (!is.null(x$warn_count)) {
+    action_levels_lines <-
+      c(action_levels_lines,
+        paste0(
+          "WARN failure threshold of ",
+          pb_fmt_number(x$warn_count, decimals = 0),
+          "test units."
+        )
+      )
+  }
+  if (has_warn_fns) {
+    if (is.null(x$warn_fraction) && is.null(x$warn_count)) {
+      action_levels_lines <-
+        c(action_levels_lines,
+          paste0(
+            "WARN fns provided without a failure threshold.\n",
+            "Set the WARN threshold using the `warn_at` argument.\n"
+          )
+        )
+    } else {
+      action_levels_lines <-
+        c(action_levels_lines,
+          paste0("\\fns\\ ", paste(as.character(x$fns$warn), collapse = " "))
+        )
+    }
+  }
+  
+  if (!is.null(x$stop_fraction)) {
+    action_levels_lines <-
+      c(action_levels_lines,
+        paste0(
+          "STOP failure threshold of ",
+          x$stop_fraction,
+          " of all test units."
+        )
+      )
+  }
+  if (!is.null(x$stop_count)) {
+    action_levels_lines <-
+      c(action_levels_lines,
+        paste0(
+          "STOP failure threshold of ",
+          pb_fmt_number(x$stop_count, decimals = 0),
+          "test units."
+        )
+      )
+  }
+  if (has_stop_fns) {
+    if (is.null(x$stop_fraction) && is.null(x$stop_count)) {
+      action_levels_lines <-
+        c(action_levels_lines,
+          paste0(
+            "STOP fns provided without a failure threshold.\n",
+            "Set the STOP threshold using the `stop_at` argument.\n"
+          )
+        )
+    } else {
+      action_levels_lines <-
+        c(action_levels_lines,
+          paste0("\\fns\\ ", paste(as.character(x$fns$stop), collapse = " "))
+        )
+    }
+  }
+  
+  if (!is.null(x$notify_fraction)) {
+    action_levels_lines <-
+      c(action_levels_lines,
+        paste0(
+          "NOTIFY failure threshold of ",
+          x$notify_fraction,
+          " of all test units."
+        )
+      )
+  }
+  if (!is.null(x$notify_count)) {
+    action_levels_lines <-
+      c(action_levels_lines,
+        paste0(
+          "NOTIFY failure threshold of ",
+          pb_fmt_number(x$notify_count, decimals = 0),
+          "test units."
+        )
+      )
+  }
+  if (has_notify_fns) {
+    if (is.null(x$notify_fraction) && is.null(x$notify_count)) {
+      action_levels_lines <-
+        c(action_levels_lines,
+          paste0(
+            "NOTIFY fns provided without a failure threshold.\n",
+            "Set the NOTIFY threshold using the `notify_at` argument.\n"
+          )
+        )
+    } else {
+      action_levels_lines <-
+        c(action_levels_lines,
+          paste0("\\fns\\ ", paste(as.character(x$fns$notify), collapse = " "))
+        )
+    }
+  }
+  
+  action_levels_lines <- paste(action_levels_lines, collapse = "\n")
+  
+  action_levels_str <-
+    glue::glue(
+      "{top_rule}\n",
+      "{action_levels_lines}\n",
+      "{bottom_rule}\n"
+    )
+  
+  # Use `knit_print()` to print in a code chunk
+  knitr::knit_print(action_levels_str, ...)
+}
+
+#
+# tbl_store
+#
+
 #' Print the `tbl_store` object
 #'
 #' This function will allow the `tbl_store` to be nicely printed.
@@ -528,9 +792,70 @@ print.tbl_store <- function(x, ...) {
   cli::cli_rule()
 }
 
-#' Print the `read_fn` object
+#' Knit print the `tbl_store` object
 #'
-#' This function will allow the `read_fn` to be nicely printed.
+#' This facilitates printing of the `tbl_store` within a knitr code
+#' chunk.
+#'
+#' @param x An object of class `tbl_store`.
+#' @param ... Any additional parameters.
+#'
+#' @keywords internal
+#' @noRd
+knit_print.tbl_store <- function(x, ...) {
+  
+  tbl_names <- names(x)
+  
+  n_tbls <- length(tbl_names)
+  
+  has_given_name <- 
+    vapply(
+      x,
+      FUN.VALUE = logical(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) inherits(x, "with_tbl_name")
+    )
+  
+  tbl_formulas <-
+    vapply(
+      x,
+      FUN.VALUE = character(1),
+      USE.NAMES = FALSE,
+      FUN = function(x) capture_formula(x)[2]
+    )
+  
+  tbl_store_lines <- c()
+  
+  for (i in seq_len(n_tbls)) {
+    
+    tbl_store_lines <-
+      c(tbl_store_lines,
+        paste0(
+          i, " ", tbl_names[i], ifelse(has_given_name[i], "", "*"),
+          " // ", tbl_formulas[i]
+        )
+      )
+  }
+  
+  tbl_store_lines <- paste(tbl_store_lines, collapse = "\n")
+  
+  top_rule <- "-- The `table_store` table-prep formulas"
+  bottom_rule <- "----"
+  
+  tbl_store_str <-
+    glue::glue(
+      "{top_rule}\n",
+      "{tbl_store_lines}\n",
+      "{bottom_rule}\n"
+    )
+  
+  # Use `knit_print()` to print in a code chunk
+  knitr::knit_print(tbl_store_str, ...)
+}
+
+#' Print the a table-prep formula
+#'
+#' This function will allow a table-prep formula to be nicely printed.
 #' 
 #' @param x An object of class `read_fn`.
 #' @param ... Any additional parameters.

@@ -161,9 +161,9 @@ then be automatically generated.
 A \strong{pointblank} agent can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an agent (with \code{\link[=yaml_read_agent]{yaml_read_agent()}})
 or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}}). When
-\code{serially()} is represented in YAML (under the top-level \code{steps} key as a
+\code{specially()} is represented in YAML (under the top-level \code{steps} key as a
 list member), the syntax closely follows the signature of the validation
-function. Here is an example of how a complex call of \code{serially()} as a
+function. Here is an example of how a complex call of \code{specially()} as a
 validation step is expressed in R code and in the corresponding YAML
 representation.\preformatted{# R statement
 agent \%>\% 
@@ -197,9 +197,142 @@ writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()
 
 \section{Function ID}{
 
-2-33
+2-35
 }
 
+\examples{
+# For all examples here, we'll use
+# a simple table with three numeric
+# columns (`a`, `b`, and `c`); this is
+# a very basic table but it'll be more
+# useful when explaining things later
+tbl <-
+  dplyr::tibble(
+    a = c(5, 2, 6),
+    b = c(3, 4, 6),
+    c = c(9, 8, 7)
+  )
+  
+tbl
+  
+# A: Using an `agent` with validation
+#    functions and then `interrogate()`
+
+# Validate that the target table has
+# exactly three rows; this single
+# validation with `specially()` has
+# 1 test unit since the function
+# executed on `x` (the target table)
+# results in a logical vector with a
+# length of 1
+agent <-
+  create_agent(tbl = tbl) \%>\%
+    specially(
+      fn = function(x) nrow(x) == 3
+    ) \%>\%
+    interrogate()
+  
+# Determine if this validation
+# had no failing test units (there
+# is 1 test unit)
+all_passed(agent)
+
+# Calling `agent` in the console
+# prints the agent's report; but we
+# can get a `gt_tbl` object directly
+# with `get_agent_report(agent)`
+
+# B: Using the validation function
+#    directly on the data (no `agent`)
+
+# This way of using validation functions
+# acts as a data filter: data is passed
+# through but should `stop()` if there
+# is a single test unit failing; the
+# behavior of side effects can be
+# customized with the `actions` option
+tbl \%>\%
+  specially(
+      fn = function(x) nrow(x) == 3
+   )
+
+# C: Using the expectation function
+
+# With the `expect_*()` form, we would
+# typically perform one validation at a
+# time; this is primarily used in
+# testthat tests
+expect_specially(
+  tbl,
+  fn = function(x) nrow(x) == 3
+)
+
+# D: Using the test function
+
+# With the `test_*()` form, we should
+# get a single logical value returned
+# to us
+tbl \%>\%
+  test_specially(
+    fn = function(x) nrow(x) == 3
+  )
+
+# Variations
+
+# We can do more complex things with
+# `specially()` and its variants
+
+tbl \%>\% test_specially(
+  fn = function(x) {
+    inherits(x, "data.frame")
+  }
+)
+
+# Check that the number of rows in the
+# target table is less than `small_table`
+tbl \%>\% test_specially(
+  fn = function(x) {
+    nrow(x) < nrow(small_table)
+  }
+)
+
+# Check that all numbers across all
+# numeric column are less than `10` 
+tbl \%>\% test_specially(
+  fn = function(x) {
+    (x \%>\% 
+       dplyr::select(where(is.numeric)) \%>\%
+       unlist()
+    ) < 10
+  }
+)
+
+# Check that all values in column
+# `c` are greater than b and greater
+# than `a` (in each row) and always
+# less than 10; this creates a table
+# with the new column `d` which is
+# a logical column (that is used as
+# the evaluation of test units)
+tbl \%>\% test_specially(
+  fn = function(x) {
+    x \%>\%
+      dplyr::mutate(
+        d = c > b & c > a & c < 10
+      )
+  }
+)
+
+# Check that the `game_revenue`
+# table (which is not the target
+# table) has exactly 2000 rows 
+tbl \%>\% test_specially(
+  fn = function(x) {
+    nrow(game_revenue) == 2000
+  }
+)
+
+}
 \seealso{
 Other validation functions: 
 \code{\link{col_exists}()},
@@ -231,8 +364,10 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
-\code{\link{serially}()}
+\code{\link{serially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

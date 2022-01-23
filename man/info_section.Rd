@@ -138,12 +138,12 @@ maintained in the YAML representation and is never written in processed form.
 \examples{
 # Create a pointblank `informant`
 # object with `create_informant()`;
-# we specify a `read_fn` with the
+# we can specify a `tbl` with the
 # `~` followed by a statement that
 # gets the `small_table` dataset
 informant <- 
   create_informant(
-    read_fn = ~ small_table,
+    tbl = ~ small_table,
     tbl_name = "small_table",
     label = "An example."
   )
@@ -152,10 +152,6 @@ informant <-
 # and 'columns' sections; we can create
 # entirely different sections with their
 # own properties using `info_section()`
-
-# We can add *info text* to sections
-# entirely different than `table` and
-# `columns` with `info_section()`
 informant <-
   informant \%>\%
   info_section(

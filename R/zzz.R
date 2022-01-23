@@ -60,6 +60,7 @@ utils::globalVariables(
     "alpha_3",
     "::all_na::",
     "assertion_type",
+    "b",
     "bin_num",
     "brief",
     "color",
@@ -204,15 +205,10 @@ utils::globalVariables(
   register_s3_method("knitr", "knit_print", "ptblank_multiagent")
   register_s3_method("knitr", "knit_print", "ptblank_multiagent_report.long")
   register_s3_method("knitr", "knit_print", "ptblank_tbl_scan")
-  
-  if ("knitr" %in% loadedNamespaces()) {
-    validate_rmd_setup()
-  }
-  
-  setHook(
-    packageEvent("knitr", "onLoad"),
-    function(...) validate_rmd_setup()
-  )
+  register_s3_method("knitr", "knit_print", "x_list_i")
+  register_s3_method("knitr", "knit_print", "x_list_n")
+  register_s3_method("knitr", "knit_print", "tbl_store")
+  register_s3_method("knitr", "knit_print", "action_levels")
   
   invisible()
 }

@@ -77,7 +77,7 @@ al <-
 # interrogate the `small_table`
 agent_1 <-
   create_agent(
-    read_fn = ~ small_table,
+    tbl = small_table,
     label = "An example.",
     actions = al
   ) \%>\%
@@ -158,7 +158,7 @@ multiagent <-
 # Calling `multiagent` in the console
 # prints the multiagent report; but we
 # can get a `gt_tbl` object with the
-# `get_multiagent_report(agent)` function
+# `get_multiagent_report()` function
 report <- get_multiagent_report(multiagent)
 
 class(report)

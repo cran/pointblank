@@ -34,56 +34,72 @@
 #' will have the following columns:
 #' 
 #' \itemize{
-#' \item i (unlabeled): the validation step number
-#' \item STEP: the name of the validation function used for the validation step
+#' \item i (unlabeled): the validation step number.
+#' \item STEP: the name of the validation function used for the validation step,
 #' \item COLUMNS: the names of the target columns used in the validation step
-#' (if applicable)
+#' (if applicable).
 #' \item VALUES: the values used in the validation step, where applicable; this
-#' could be as literal values, as column names, an expression, a set of
-#' sub-validations (for a [conjointly()] validation step), etc.
-#' \item TBL: indicates whether any there were any preconditions to apply
-#' before interrogation; if not, a script 'I' stands for 'identity' but, if so,
-#' a right-facing arrow appears
-#' \item EVAL: a character value that denotes the result of each validation
-#' step functions' evaluation during interrogation
-#' \item *N*: the total number of test units for the validation step
-#' \item PASS: the number of test units that received a *pass*
-#' \item FAIL: the fraction of test units that received a *pass*
+#' could be as literal values, as column names, an expression, etc.
+#' \item TBL: indicates whether any there were any changes to the target table
+#' just prior to interrogation. A rightward arrow from a small circle indicates
+#' that there was no mutation of the table. An arrow from a circle to a purple
+#' square indicates that preconditions were used to modify the target table. An
+#' arrow from a circle to a half-filled circle indicates that the target table
+#' has been segmented.
+#' \item EVAL: a symbol that denotes the success of interrogation evaluation
+#' for each step. A checkmark indicates no issues with evaluation. A warning
+#' sign indicates that a warning occurred during evaluation. An explosion symbol
+#' indicates that evaluation failed due to an error. Hover over the symbol for
+#' details on each condition.
+#' \item UNITS: the total number of test units for the validation step
+#' \item PASS: on top is the absolute number of *passing* test units and below
+#' that is the fraction of *passing* test units over the total number of test
+#' units. 
+#' \item FAIL: on top is the absolute number of *failing* test units and below
+#' that is the fraction of *failing* test units over the total number of test
+#' units. 
 #' \item W, S, N: indicators that show whether the `warn`, `stop`, or `notify`
 #' states were entered; unset states appear as dashes, states that are set with
 #' thresholds appear as unfilled circles when not entered and filled when
 #' thresholds are exceeded (colors for W, S, and N are amber, red, and blue)
-#' \item EXT: a column that provides buttons with data extracts for each
-#' validation step where failed rows are available (as CSV files)
+#' \item EXT: a column that provides buttons to download data extracts as CSV
+#' files for row-based validation steps having **failing** test units. Buttons
+#' only appear when there is data to collect.
 #' }
 #' 
 #' The small version of the display table (obtained using `size = "small"`)
 #' omits the `COLUMNS`, `TBL`, and `EXT` columns. The width of the small table
 #' is 575px; the standard table is 875px wide.
 #' 
+#' The `ptblank_agent_report` can be exported to a standalone HTML document
+#' with the [export_report()] function.
+#' 
 #' If choosing to get a tibble (with `display_table = FALSE`), it will have the
 #' following columns:
 #' 
 #' \itemize{
-#' \item i: the validation step number
-#' \item type: the name of the validation function used for the validation step
+#' \item i: the validation step number.
+#' \item type: the name of the validation function used for the validation step.
 #' \item columns: the names of the target columns used in the validation step
-#' (if applicable)
+#' (if applicable).
 #' \item values: the values used in the validation step, where applicable; for
-#' a [conjointly()] validation step, this is a listing of all sub-validations
+#' a [conjointly()] validation step, this is a listing of all sub-validations.
 #' \item precon: indicates whether any there are any preconditions to apply
-#' before interrogation and, if so, the number of statements used
+#' before interrogation and, if so, the number of statements used.
 #' \item active: a logical value that indicates whether a validation step is
-#' set to `"active"` during an interrogation
-#' \item eval: a character value that denotes the result of each validation
-#' step functions' evaluation during interrogation
-#' \item units: the total number of test units for the validation step
-#' \item n_pass: the number of test units that received a *pass*
-#' \item f_pass: the fraction of test units that received a *pass*
+#' set to `"active"` during an interrogation.
+#' \item eval: a character value that denotes the success of interrogation
+#' evaluation for each step. A value of `"OK"` indicates no issues with
+#' evaluation. The `"WARNING"` value indicates a warning occurred during
+#' evaluation. The `"ERROR"` VALUES indicates that evaluation failed due to an
+#' error. With `"W+E"` both warnings and an error occurred during evaluation.
+#' \item units: the total number of test units for the validation step.
+#' \item n_pass: the number of *passing* test units.
+#' \item f_pass: the fraction of *passing* test units.
 #' \item W, S, N: logical value stating whether the `warn`, `stop`, or `notify`
-#' states were entered
-#' \item extract: a logical value that indicates whether a data extract is
-#' available for the validation step
+#' states were entered. Will be `NA` for states that are unset.
+#' \item extract: an integer value that indicates the number of rows available
+#' in a data extract. Will be `NA` if no extract is available.
 #' }
 #' 
 #' @param agent An agent object of class `ptblank_agent`.
@@ -128,8 +144,8 @@
 #'   `locale` option will override any previously set locale value (e.g., by the
 #'   [create_agent()] call).
 #' 
-#' @return A **gt** table object if `display_table = TRUE` or a tibble if
-#'   `display_table = FALSE`.
+#' @return A `ptblank_agent_report` object if `display_table = TRUE` or a tibble
+#'   if `display_table = FALSE`.
 #' 
 #' @examples
 #' # Create a simple table with a
@@ -837,6 +853,16 @@ get_agent_report <- function(agent,
               interrogation_notes$testing_validation_set[
                 nrow(interrogation_notes$testing_validation_set), ]$values[[1]]
           }
+        }
+        
+        if (assertion_str %in% c("row_count_match", "tbl_match")) {
+          
+          return(
+            paste0(
+              "<div><p style=\"margin-top: 0px; margin-bottom: 0px; ",
+              "font-size: 0.75rem;\">EXTERNAL TABLE</p></div>"
+            )
+          )
         }
         
         if (assertion_str == "conjointly") {
@@ -1974,21 +2000,28 @@ create_agent_label_html <- function(agent) {
 }
 
 create_table_type_html <- function(tbl_src, tbl_name) {
-  
-  text <- 
-    switch(
-      tbl_src,
-      data.frame = c("#9933CC", "#FFFFFF", "data frame"),
-      tbl_df = c("#F1D35A", "#222222", "tibble"),
-      sqlite = c("#BACBEF", "#222222", "SQLite"),
-      duckdb = c("#000000", "#FFFFFF", "DuckDB"),
-      mysql = c("#EBAD40", "#222222", "MySQL"),
-      postgres = c("#3E638B", "#FFFFFF", "PostgreSQL"),
-      tbl_spark = c("#E66F21", "#FFFFFF", "Spark DataFrame"),
-      Arrow = c("#353A3F", "#FFFFFF", "Apache Arrow"),
-      c("#E2E2E2", "#222222", tbl_src)
-    )
 
+  if (is.null(tbl_src)) {
+    
+    text <- c("#C2C2C2", "#222222", "?")
+    
+  } else {
+    
+    text <- 
+      switch(
+        tbl_src,
+        data.frame = c("#9933CC", "#FFFFFF", "data frame"),
+        tbl_df = c("#F1D35A", "#222222", "tibble"),
+        sqlite = c("#BACBEF", "#222222", "SQLite"),
+        duckdb = c("#000000", "#FFFFFF", "DuckDB"),
+        mysql = c("#EBAD40", "#222222", "MySQL"),
+        postgres = c("#3E638B", "#FFFFFF", "PostgreSQL"),
+        tbl_spark = c("#E66F21", "#FFFFFF", "Spark DataFrame"),
+        Arrow = c("#353A3F", "#FFFFFF", "Apache Arrow"),
+        c("#E2E2E2", "#222222", tbl_src)
+      )
+  }
+  
   if (all(!is.na(text)) && (is.na(tbl_name) || tbl_name == "NA")) {
     
     paste0(
@@ -2000,6 +2033,7 @@ create_table_type_html <- function(tbl_src, tbl_name) {
       text[3],
       "</span>"
     )
+    
   } else if (all(!is.na(text)) && !is.na(tbl_name)) {
     
     as.character(

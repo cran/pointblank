@@ -122,12 +122,12 @@
 #' @examples 
 #' # Create a pointblank `informant`
 #' # object with `create_informant()`;
-#' # we specify a `read_fn` with the
+#' # we can specify a `tbl` with the
 #' # `~` followed by a statement that
 #' # gets the `small_table` dataset
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   )
@@ -342,12 +342,12 @@ info_tabular <- function(x,
 #' @examples 
 #' # Create a pointblank `informant`
 #' # object with `create_informant()`;
-#' # we specify a `read_fn` with the
+#' # we can specify a `tbl` with the
 #' # `~` followed by a statement that
 #' # gets the `small_table` dataset
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   )
@@ -505,12 +505,12 @@ info_columns <- function(x,
 #' @examples 
 #' # Create a pointblank `informant`
 #' # object with `create_informant()`;
-#' # we specify a `read_fn` with the
+#' # we can specify a `tbl` with the
 #' # `~` followed by a statement that
 #' # gets the `game_revenue` dataset
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ game_revenue,
+#'     tbl = ~ game_revenue,
 #'     tbl_name = "game_revenue",
 #'     label = "An example."
 #'   )
@@ -518,12 +518,16 @@ info_columns <- function(x,
 #' # We can add *info text* to describe
 #' # the columns in the table by using
 #' # information in another table; the
-#' # `info_columns_from_tbl()` takes a
-#' # table object where the first column
-#' # has the column names and the second
-#' # contains the *info text* (the
 #' # `game_revenue_info` dataset contains
-#' # metadata for `game_revenue`)
+#' # metadata for `game_revenue`
+#' 
+#' game_revenue_info
+#' 
+#' # The `info_columns_from_tbl()`
+#' # function takes a table object
+#' # where the first column has the
+#' # column names and the second
+#' # contains the *info text*
 #' informant <-
 #'   informant %>%
 #'   info_columns_from_tbl(
@@ -739,12 +743,12 @@ check_info_columns_tbl <- function(tbl) {
 #' @examples 
 #' # Create a pointblank `informant`
 #' # object with `create_informant()`;
-#' # we specify a `read_fn` with the
+#' # we can specify a `tbl` with the
 #' # `~` followed by a statement that
 #' # gets the `small_table` dataset
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   )
@@ -753,10 +757,6 @@ check_info_columns_tbl <- function(tbl) {
 #' # and 'columns' sections; we can create
 #' # entirely different sections with their
 #' # own properties using `info_section()`
-#' 
-#' # We can add *info text* to sections
-#' # entirely different than `table` and
-#' # `columns` with `info_section()`
 #' informant <-
 #'   informant %>%
 #'   info_section(
@@ -944,7 +944,7 @@ info_section <- function(x,
 #' # the info text
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ test_table,
+#'     tbl = ~ test_table,
 #'     tbl_name = "test_table",
 #'     label = "An example."
 #'   ) %>%
@@ -1033,7 +1033,7 @@ info_snippet <- function(x,
 #' @param sorting A keyword used to designate the type of sorting to use for the
 #'   list. The three options are `"inorder"` (the default), `"infreq"`, and
 #'   `"inseq"`. With `"inorder"`, distinct items are listed in the order in
-#'   which they firsts appear. Using `"infreq"` orders the items by the
+#'   which they first appear. Using `"infreq"` orders the items by the
 #'   decreasing frequency of each item. The `"inseq"` option applies an
 #'   alphanumeric sorting to the distinct list items.
 #' @param reverse An option to reverse the ordering of list items. By default,
@@ -1080,7 +1080,7 @@ info_snippet <- function(x,
 #' # the info text
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>% 
@@ -1289,7 +1289,7 @@ snip_list <- function(column,
 #' # into the info text
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>% 
@@ -1350,7 +1350,7 @@ snip_stats <- function(column,
 #' # into the info text
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>% 
@@ -1389,7 +1389,7 @@ snip_lowest <- function(column) {
 
 #' A `fn` for `info_snippet()`: get the highest value from a column
 #' 
-#' The `snip_lowest()` function can be used as an [info_snippet()] function
+#' The `snip_highest()` function can be used as an [info_snippet()] function
 #' (i.e., provided to `fn`) to get the highest numerical, time value, or
 #' alphabetical value from a column in the target table.
 #' 
@@ -1408,7 +1408,7 @@ snip_lowest <- function(column) {
 #' # into the info text
 #' informant <- 
 #'   create_informant(
-#'     read_fn = ~ small_table,
+#'     tbl = ~ small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>% 

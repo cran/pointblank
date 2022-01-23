@@ -40,7 +40,7 @@ test_conjointly(
 (\code{tbl_spark}), or, an \emph{agent} object of class \code{ptblank_agent} that is
 created with \code{\link[=create_agent]{create_agent()}}.}
 
-\item{...}{a collection one-sided formulas that consist of validation
+\item{...}{A collection one-sided formulas that consist of validation
 functions that validate row units (the \verb{col_vals_*()} series), column
 existence (\code{\link[=col_exists]{col_exists()}}), or column type (the \verb{col_is_*()} series). An
 example of this is \verb{~ col_vals_gte(., vars(a), 5.5), ~ col_vals_not_null(., vars(b)}).}
@@ -280,7 +280,7 @@ writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()
 
 \section{Function ID}{
 
-2-31
+2-33
 }
 
 \examples{
@@ -409,9 +409,11 @@ Other validation functions:
 \code{\link{col_vals_null}()},
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

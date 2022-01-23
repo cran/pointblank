@@ -116,17 +116,15 @@ specifying columns. They are: \code{starts_with()}, \code{ends_with()}, \code{co
 \section{Actions}{
 
 Often, we will want to specify \code{actions} for the validation. This argument,
-present in every validation function, takes a specially-crafted list
-object that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that
-function's documentation for the lowdown on how to create reactions to
-above-threshold failure levels in validation. The basic gist is that you'll
-want at least a single threshold level (specified as either the fraction of
-test units failed, or, an absolute value), often using the \code{warn_at}
-argument. This is especially true when \code{x} is a table object because,
-otherwise, nothing happens. For the \verb{col_is_*()}-type functions, using
-\code{action_levels(warn_at = 1)} or \code{action_levels(stop_at = 1)} are good choices
-depending on the situation (the first produces a warning, the other
-\code{stop()}s).
+present in every validation function, takes a specially-crafted list object
+that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that function's
+documentation for the lowdown on how to create reactions to above-threshold
+failure levels in validation. The basic gist is that you'll want at least a
+single threshold level (specified as either the fraction of test units
+failed, or, an absolute value), often using the \code{warn_at} argument. This is
+especially true when \code{x} is a table object because, otherwise, nothing
+happens. For the \verb{col_is_*()}-type functions, using \code{action_levels(warn_at = 1)} or \code{action_levels(stop_at = 1)} are good choices depending on the
+situation (the first produces a warning, the other will \code{stop()}).
 }
 
 \section{Briefs}{
@@ -167,7 +165,7 @@ steps:
     active: false
 }
 
-In practice, both of these will often be shorter as only the \code{columns},
+In practice, both of these will often be shorter as only the \code{columns}
 argument requires a value. Arguments with default values won't be written to
 YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is acceptable to include them with
 their default when generating the YAML by other means). It is also possible
@@ -268,9 +266,11 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

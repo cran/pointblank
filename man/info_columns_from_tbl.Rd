@@ -44,12 +44,12 @@ missing info text will be pruned from \code{tbl}.
 \examples{
 # Create a pointblank `informant`
 # object with `create_informant()`;
-# we specify a `read_fn` with the
+# we can specify a `tbl` with the
 # `~` followed by a statement that
 # gets the `game_revenue` dataset
 informant <- 
   create_informant(
-    read_fn = ~ game_revenue,
+    tbl = ~ game_revenue,
     tbl_name = "game_revenue",
     label = "An example."
   )
@@ -57,12 +57,16 @@ informant <-
 # We can add *info text* to describe
 # the columns in the table by using
 # information in another table; the
-# `info_columns_from_tbl()` takes a
-# table object where the first column
-# has the column names and the second
-# contains the *info text* (the
 # `game_revenue_info` dataset contains
-# metadata for `game_revenue`)
+# metadata for `game_revenue`
+
+game_revenue_info
+
+# The `info_columns_from_tbl()`
+# function takes a table object
+# where the first column has the
+# column names and the second
+# contains the *info text*
 informant <-
   informant \%>\%
   info_columns_from_tbl(

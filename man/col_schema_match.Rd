@@ -234,7 +234,6 @@ by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
 \examples{
-
 # For all examples here, we'll use
 # a simple table with two columns:
 # one `integer` (`a`) and the other
@@ -339,9 +338,11 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

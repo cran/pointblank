@@ -41,7 +41,7 @@
 #' # `interrogate()`
 #' agent_1 <- 
 #'   create_agent(
-#'     read_fn = ~ small_table,
+#'     tbl = small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>%
@@ -68,7 +68,7 @@
 #' 
 #' @family Object Ops
 #' @section Function ID:
-#' 9-6
+#' 9-5
 #' 
 #' @seealso For the opposite behavior, use the [deactivate_steps()] function.
 #'
@@ -113,18 +113,19 @@ activate_steps <- function(agent,
 #' # `interrogate()`
 #' agent_1 <- 
 #'   create_agent(
-#'     read_fn = ~ small_table,
+#'     tbl = small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>%
 #'   col_exists(vars(date)) %>%
 #'   col_vals_regex(
-#'     vars(b), regex = "[0-9]-[a-z]{3}-[0-9]"
+#'     vars(b),
+#'     regex = "[0-9]-[a-z]{3}-[0-9]"
 #'   ) %>%
 #'   interrogate()
 #'   
-#' # The second validation step has
-#' # is being reconsidered and may
+#' # The second validation step is
+#' # now being reconsidered and may
 #' # be either phased out or improved
 #' # upon; in the interim period it
 #' # was decided that the step should
@@ -136,7 +137,7 @@ activate_steps <- function(agent,
 #'
 #' @family Object Ops
 #' @section Function ID:
-#' 9-7
+#' 9-6
 #'
 #' @seealso For the opposite behavior, use the [activate_steps()] function.
 #'
@@ -180,7 +181,7 @@ deactivate_steps <- function(agent,
 #' # `interrogate()`
 #' agent_1 <- 
 #'   create_agent(
-#'     read_fn = ~ small_table,
+#'     tbl = small_table,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>%
@@ -193,7 +194,7 @@ deactivate_steps <- function(agent,
 #' # The second validation step has
 #' # been determined to be unneeded and
 #' # is to be removed; this can be done
-#' # by used `remove_steps()` with the
+#' # by using `remove_steps()` with the
 #' # agent object
 #' agent_2 <-
 #'   agent_1 %>%
@@ -204,7 +205,7 @@ deactivate_steps <- function(agent,
 #' 
 #' @family Object Ops
 #' @section Function ID:
-#' 9-8
+#' 9-7
 #' 
 #' @seealso Instead of removal, the [deactivate_steps()] function will simply
 #'   change the `active` status of one or more validation steps to `FALSE` (and

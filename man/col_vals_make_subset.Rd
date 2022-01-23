@@ -125,9 +125,9 @@ The test function returns a logical value.
 The \code{col_vals_make_subset()} validation function, the
 \code{expect_col_vals_make_subset()} expectation function, and the
 \code{test_col_vals_make_subset()} test function all check whether all \code{set}
-values are seen at least once in a table column. The validation step function
-can be used directly on a data table or with an \emph{agent} object (technically,
-a \code{ptblank_agent} object) whereas the expectation and test functions can only
+values are seen at least once in a table column. The validation function can
+be used directly on a data table or with an \emph{agent} object (technically, a
+\code{ptblank_agent} object) whereas the expectation and test functions can only
 be used with a data table. The types of data tables that can be used include
 data frames, tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames
 (\code{tbl_spark}). Each validation step or expectation will operate over the
@@ -259,7 +259,7 @@ steps:
    active: false
 }
 
-In practice, both of these will often be shorter as only the \code{columns}, and
+In practice, both of these will often be shorter as only the \code{columns} and
 \code{set} arguments require values. Arguments with default values won't be
 written to YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is acceptable to include
 them with their default when generating the YAML by other means). It is also
@@ -294,7 +294,7 @@ agent <-
   
 # Determine if this validation
 # had no failing test units (there
-# are 2 test units, one for element
+# are 2 test units, one per element
 # in the `set`)
 all_passed(agent)
 
@@ -371,9 +371,11 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

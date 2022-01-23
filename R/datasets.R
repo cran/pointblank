@@ -49,16 +49,16 @@
 #'
 "small_table"
 
-#' A SQLite version of the `small_table` dataset
+#' An SQLite version of the `small_table` dataset
 #' 
-#' The `small_table_sqlite()` function creates a SQLite, `tbl_dbi` version of
+#' The `small_table_sqlite()` function creates an SQLite, `tbl_dbi` version of
 #' the `small_table` dataset. A requirement is the availability of the **DBI**
 #' and **RSQLite** packages. These packages can be installed by using 
 #' `install.packages("DBI")` and `install.packages("RSQLite")`.
 #' 
 #' @examples
 #' # Use `small_table_sqlite()` to
-#' # create a SQLite version of the
+#' # create an SQLite version of the
 #' # `small_table` table
 #' #
 #' # small_table_sqlite <- small_table_sqlite()
@@ -189,12 +189,13 @@ small_table_sqlite <- function() {
 #'
 "game_revenue"
 
-#' A table with game revenue data
+#' A table with metadata for the `game_revenue` dataset
 #'
 #' This table contains metadata for the `game_revenue` table. The first column
 #' (named `column`) provides the column names from `game_revenue`. The second
 #' column (`info`) contains descriptions for each of the columns in that
-#' dataset.
+#' dataset. This table is in the correct format for use in the
+#' [info_columns_from_tbl()] function.
 #'
 #' @format A tibble with 11 rows and 2 variables:
 #' \describe{

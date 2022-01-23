@@ -13,7 +13,7 @@ snip_highest(column)
 A formula needed for \code{\link[=info_snippet]{info_snippet()}}'s \code{fn} argument.
 }
 \description{
-The \code{snip_lowest()} function can be used as an \code{\link[=info_snippet]{info_snippet()}} function
+The \code{snip_highest()} function can be used as an \code{\link[=info_snippet]{info_snippet()}} function
 (i.e., provided to \code{fn}) to get the highest numerical, time value, or
 alphabetical value from a column in the target table.
 }
@@ -33,7 +33,7 @@ alphabetical value from a column in the target table.
 # into the info text
 informant <- 
   create_informant(
-    read_fn = ~ small_table,
+    tbl = ~ small_table,
     tbl_name = "small_table",
     label = "An example."
   ) \%>\% 

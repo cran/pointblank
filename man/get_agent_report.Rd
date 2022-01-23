@@ -66,8 +66,8 @@ designation, like \code{"es"} for Spanish (Spain, same as \code{"es_ES"}). This
 \code{\link[=create_agent]{create_agent()}} call).}
 }
 \value{
-A \strong{gt} table object if \code{display_table = TRUE} or a tibble if
-\code{display_table = FALSE}.
+A \code{ptblank_agent_report} object if \code{display_table = TRUE} or a tibble
+if \code{display_table = FALSE}.
 }
 \description{
 We can get an informative summary table from an agent by using the
@@ -84,56 +84,72 @@ whether certain failure states were entered (provided they were set through
 will have the following columns:
 
 \itemize{
-\item i (unlabeled): the validation step number
-\item STEP: the name of the validation function used for the validation step
+\item i (unlabeled): the validation step number.
+\item STEP: the name of the validation function used for the validation step,
 \item COLUMNS: the names of the target columns used in the validation step
-(if applicable)
+(if applicable).
 \item VALUES: the values used in the validation step, where applicable; this
-could be as literal values, as column names, an expression, a set of
-sub-validations (for a \code{\link[=conjointly]{conjointly()}} validation step), etc.
-\item TBL: indicates whether any there were any preconditions to apply
-before interrogation; if not, a script 'I' stands for 'identity' but, if so,
-a right-facing arrow appears
-\item EVAL: a character value that denotes the result of each validation
-step functions' evaluation during interrogation
-\item \emph{N}: the total number of test units for the validation step
-\item PASS: the number of test units that received a \emph{pass}
-\item FAIL: the fraction of test units that received a \emph{pass}
+could be as literal values, as column names, an expression, etc.
+\item TBL: indicates whether any there were any changes to the target table
+just prior to interrogation. A rightward arrow from a small circle indicates
+that there was no mutation of the table. An arrow from a circle to a purple
+square indicates that preconditions were used to modify the target table. An
+arrow from a circle to a half-filled circle indicates that the target table
+has been segmented.
+\item EVAL: a symbol that denotes the success of interrogation evaluation
+for each step. A checkmark indicates no issues with evaluation. A warning
+sign indicates that a warning occurred during evaluation. An explosion symbol
+indicates that evaluation failed due to an error. Hover over the symbol for
+details on each condition.
+\item UNITS: the total number of test units for the validation step
+\item PASS: on top is the absolute number of \emph{passing} test units and below
+that is the fraction of \emph{passing} test units over the total number of test
+units.
+\item FAIL: on top is the absolute number of \emph{failing} test units and below
+that is the fraction of \emph{failing} test units over the total number of test
+units.
 \item W, S, N: indicators that show whether the \code{warn}, \code{stop}, or \code{notify}
 states were entered; unset states appear as dashes, states that are set with
 thresholds appear as unfilled circles when not entered and filled when
 thresholds are exceeded (colors for W, S, and N are amber, red, and blue)
-\item EXT: a column that provides buttons with data extracts for each
-validation step where failed rows are available (as CSV files)
+\item EXT: a column that provides buttons to download data extracts as CSV
+files for row-based validation steps having \strong{failing} test units. Buttons
+only appear when there is data to collect.
 }
 
 The small version of the display table (obtained using \code{size = "small"})
 omits the \code{COLUMNS}, \code{TBL}, and \code{EXT} columns. The width of the small table
 is 575px; the standard table is 875px wide.
 
+The \code{ptblank_agent_report} can be exported to a standalone HTML document
+with the \code{\link[=export_report]{export_report()}} function.
+
 If choosing to get a tibble (with \code{display_table = FALSE}), it will have the
 following columns:
 
 \itemize{
-\item i: the validation step number
-\item type: the name of the validation function used for the validation step
+\item i: the validation step number.
+\item type: the name of the validation function used for the validation step.
 \item columns: the names of the target columns used in the validation step
-(if applicable)
+(if applicable).
 \item values: the values used in the validation step, where applicable; for
-a \code{\link[=conjointly]{conjointly()}} validation step, this is a listing of all sub-validations
+a \code{\link[=conjointly]{conjointly()}} validation step, this is a listing of all sub-validations.
 \item precon: indicates whether any there are any preconditions to apply
-before interrogation and, if so, the number of statements used
+before interrogation and, if so, the number of statements used.
 \item active: a logical value that indicates whether a validation step is
-set to \code{"active"} during an interrogation
-\item eval: a character value that denotes the result of each validation
-step functions' evaluation during interrogation
-\item units: the total number of test units for the validation step
-\item n_pass: the number of test units that received a \emph{pass}
-\item f_pass: the fraction of test units that received a \emph{pass}
+set to \code{"active"} during an interrogation.
+\item eval: a character value that denotes the success of interrogation
+evaluation for each step. A value of \code{"OK"} indicates no issues with
+evaluation. The \code{"WARNING"} value indicates a warning occurred during
+evaluation. The \code{"ERROR"} VALUES indicates that evaluation failed due to an
+error. With \code{"W+E"} both warnings and an error occurred during evaluation.
+\item units: the total number of test units for the validation step.
+\item n_pass: the number of \emph{passing} test units.
+\item f_pass: the fraction of \emph{passing} test units.
 \item W, S, N: logical value stating whether the \code{warn}, \code{stop}, or \code{notify}
-states were entered
-\item extract: a logical value that indicates whether a data extract is
-available for the validation step
+states were entered. Will be \code{NA} for states that are unset.
+\item extract: an integer value that indicates the number of rows available
+in a data extract. Will be \code{NA} if no extract is available.
 }
 }
 \section{Function ID}{

@@ -6,28 +6,24 @@
 \usage{
 create_agent(
   tbl = NULL,
-  read_fn = NULL,
   tbl_name = NULL,
   label = NULL,
   actions = NULL,
   end_fns = NULL,
   embed_report = FALSE,
   lang = NULL,
-  locale = NULL
+  locale = NULL,
+  read_fn = NULL
 )
 }
 \arguments{
 \item{tbl}{The input table. This can be a data frame, a tibble, a \code{tbl_dbi}
-object, or a \code{tbl_spark} object. Alternatively, a function can be used to
-read in the input data table with the \code{read_fn} argument (in which case,
-\code{tbl} can be \code{NULL}).}
-
-\item{read_fn}{A table-prep formula that's used to access the target table.
-Even if a \code{tbl} is provided, this formula will be invoked to obtain the
-data (i.e., the \code{read_fn} takes priority). There are two ways to specify a
-\code{read_fn}: (1) with a right-hand side (RHS) formula expression (e.g.,
-\verb{~ \{ <table reading code>\}}) or (2) as a function (e.g.,
-\verb{function() \{ <table reading code>\}}).}
+object, or a \code{tbl_spark} object. Alternatively, an expression can be
+supplied to serve as instructions on how to retrieve the target table at
+interrogation-time. There are two ways to specify an association to a
+target table: (1) as a table-prep formula, which is a right-hand side (RHS)
+formula expression (e.g., \verb{~ \{ <table reading code>\}}), or (2) as a
+function (e.g., \verb{function() \{ <table reading code>\}}).}
 
 \item{tbl_name}{A optional name to assign to the input table object. If no
 value is provided, a name will be generated based on whatever information
@@ -71,6 +67,9 @@ options include French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}
 \code{"en_US"} for English (United States) and \code{"fr_FR"} for French (France);
 more simply, this can be a language identifier without a country
 designation, like "es" for Spanish (Spain, same as \code{"es_ES"}).}
+
+\item{read_fn}{The \code{read_fn} argument is deprecated. Instead, supply a
+table-prep formula or function to \code{tbl}.}
 }
 \value{
 A \code{ptblank_agent} object.
@@ -136,7 +135,7 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 example of how a complex call of \code{create_agent()} is expressed in R code and
 in the corresponding YAML representation.\preformatted{# R statement
 create_agent(
-  read_fn = ~ small_table,
+  tbl = ~ small_table,
   tbl_name = "small_table",
   label = "An example.",
   actions = action_levels(
@@ -155,7 +154,7 @@ create_agent(
 
 # YAML representation
 type: agent
-read_fn: ~small_table
+tbl: ~small_table
 tbl_name: small_table
 label: An example.
 lang: fr
@@ -174,8 +173,7 @@ In practice, this block of YAML will be shorter since arguments with default
 values won't be written to YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is
 acceptable to include them with their default when generating the YAML by
 other means). The only requirement for writing the YAML representation of an
-\emph{agent} is having \code{read_fn} specified (any table supplied to \code{tbl} is
-ignored).
+\emph{agent} is having \code{tbl} specified as table-prep formula.
 
 What typically follows this chunk of YAML is a \code{steps} part, and that
 corresponds to the addition of validation steps via validation functions.
@@ -196,10 +194,10 @@ This can be useful for keeping a history of validations and generating views
 of data quality over time. Agents are stored in the serialized RDS format and
 can be easily retrieved with the \code{\link[=x_read_disk]{x_read_disk()}} function.
 
-It's recommended that table-prep formulas are supplied to the \code{read_fn}
+It's recommended that table-prep formulas are supplied to the \code{tbl}
 argument of \code{create_agent()}. In this way, when an \emph{agent} is read from disk
 through \code{\link[=x_read_disk]{x_read_disk()}}, it can be reused to access the target table (which
-may changed, hence the need to use an expression for this).
+may change, hence the need to use an expression for this).
 }
 
 \section{Combining Several Agents in a \emph{multiagent} Object}{
@@ -249,10 +247,12 @@ al <-
 # serves as a default for all validation
 # steps which can be overridden); the
 # static thresholds provided by `al` will
-# make the reporting a bit more useful
+# make the reporting a bit more useful;
+# we also provide a target table and we'll
+# use `pointblank::small_table` 
 agent <- 
   create_agent(
-    read_fn = ~ small_table,
+    tbl = pointblank::small_table,
     tbl_name = "small_table",
     label = "An example.",
     actions = al
@@ -292,11 +292,10 @@ agent <-
 report <- get_agent_report(agent)
 class(report)
 
-# What can you do with the report?
+# What can you do with the report object?
 # Print it from an R Markdown code
 # chunk, use it in a **blastula** email,
-# put it in a webpage, or further
-# modify it with the **gt** package
+# put it in a webpage, etc.
 
 # From the report we know that Step
 # 4 had two test units (rows, really)

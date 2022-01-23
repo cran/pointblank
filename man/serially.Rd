@@ -39,7 +39,7 @@ test_serially(
 (\code{tbl_spark}), or, an \emph{agent} object of class \code{ptblank_agent} that is
 created with \code{\link[=create_agent]{create_agent()}}.}
 
-\item{...}{a collection one-sided formulas that consist of \verb{test_*()}
+\item{...}{A collection one-sided formulas that consist of \verb{test_*()}
 function calls (e.g., \code{\link[=test_col_vals_between]{test_col_vals_between()}}, etc.) arranged in sequence
 of intended interrogation order. Typically, validations up until the final
 one would have some \code{threshold} value set (default is \code{1}) for short
@@ -266,7 +266,7 @@ writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()
 
 \section{Function ID}{
 
-2-32
+2-34
 }
 
 \examples{
@@ -308,7 +308,7 @@ agent_1 <-
   
 # Determine if this validation
 # had no failing test units (there are
-# are 4 tests and a final validation)
+# 4 tests and a final validation)
 all_passed(agent_1)
 
 # Calling `agent` in the console
@@ -408,8 +408,10 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

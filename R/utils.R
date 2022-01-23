@@ -34,11 +34,28 @@ has_agent_intel <- function(agent) {
 }
 
 get_tbl_object <- function(agent) {
-  agent$tbl
+  
+  if (!is.null(agent$tbl)) {
+    
+    tbl <- agent$tbl
+    
+  } else if (!is.null(agent$read_fn)) {
+    
+    tbl <- materialize_table(agent$read_fn)
+    
+  } else {
+    tbl <- NULL
+  }
+  
+  tbl
 }
 
 is_a_table_object <- function(x) {
   inherits(x, c("data.frame", "tbl_df", "tbl_dbi", "tbl_spark"))
+}
+
+is_tbl_df <- function(x) {
+  inherits(x, c("data.frame", "tbl_df"))
 }
 
 is_tbl_dbi <- function(x) {
@@ -53,6 +70,16 @@ is_tbl_spark <- function(x) {
 
 is_arrow_object <- function(x) {
   inherits(x, "ArrowObject")
+}
+
+is_tbl_mssql <- function(x) {
+  
+  if (!is_tbl_dbi(x)) {
+    return(FALSE)
+  } 
+  
+  tbl_src_details <- tolower(get_tbl_dbi_src_details(x))
+  grepl("sql server|sqlserver", tbl_src_details)
 }
 
 # nocov end
@@ -140,6 +167,42 @@ get_all_cols <- function(agent) {
   agent$col_names
 }
 
+materialize_table <- function(tbl,
+                              check = TRUE) {
+  
+  if (is.null(tbl)) {
+    stop("A table must be provided.", call. = FALSE)
+  }
+  
+  if (is_a_table_object(tbl)) {
+    return(tbl)
+  } else if (inherits(tbl, "function")) {
+    tbl <- rlang::exec(tbl)
+  } else if (rlang::is_formula(tbl)) {
+    
+    tbl <- tbl %>% rlang::f_rhs() %>% rlang::eval_tidy()
+    
+    if (inherits(tbl, "read_fn")) {
+      tbl <- tbl %>% rlang::f_rhs() %>% rlang::eval_tidy()
+    }
+    
+  } else {
+    
+    stop(
+      "The `tbl` object must either be a table, a function, or a formula.\n",
+      "* A table-prep formula can be used (with the expression on the RHS).\n",
+      "* A function can be made with `function()` {<table reading code>}.",
+      call. = FALSE
+    )
+  }  
+  
+  if (check) {
+    is_a_table_object(tbl)
+  }
+  
+  tbl
+}
+
 resolve_expr_to_cols <- function(tbl, var_expr) {
   
   var_expr <- enquo(var_expr)
@@ -155,6 +218,13 @@ resolve_expr_to_cols <- function(tbl, var_expr) {
 
 resolve_columns <- function(x, var_expr, preconditions) {
   
+  # If getting a character vector as `var_expr`, simply return the vector
+  # since this should already be a vector of column names and it's not necessary
+  # to resolve this against the target table
+  if (is.character(var_expr)) {
+    return(var_expr)
+  }
+  
   # nocov start
   
   # Return an empty character vector if the expr is NULL
@@ -166,7 +236,7 @@ resolve_columns <- function(x, var_expr, preconditions) {
   
   # nocov end
   
-  # Get the column names
+  # Get the column names from a non-NULL, non-character expression
   if (is.null(preconditions)) {
     
     if (inherits(x, c("data.frame", "tbl_df", "tbl_dbi"))) {
@@ -405,6 +475,79 @@ check_is_a_table_object <- function(tbl) {
   }
 }
 
+# This function verifies that some target table input is provided
+# A portion of this is dedicated to checking the `read_fn` argument which
+# is undergoing soft deprecation in `create_agent()` and `create_informant()`
+check_table_input <- function(tbl,
+                              read_fn) {
+  
+  if (is.null(tbl) && is.null(read_fn)) {
+    
+    stop(
+      "The `tbl` argument requires a table, this could either be:\n",
+      " * An in-memory table, a database table, or a Spark table\n",
+      " * A function or table-prep formula for getting a table during ",
+      "interrogation",
+      call. = FALSE
+    )
+  }
+  
+  if (!is.null(read_fn)) {
+    
+    warning(
+      "Use `tbl` to specify a target table (`read_fn` is now undergoing ",
+      "deprecation):\n",
+      " * `tbl` can now accept a table-prep formula or a function to ",
+      "get the target table at interrogation-time, and\n",
+      " * A table can be supplied directly to `tbl` (as before)\n",
+      call. = FALSE
+    )
+    
+    if (!is.null(tbl)) {
+      message(
+        "The value supplied to `read_fn` has ignored since `tbl` ",
+        "is also defined."
+      )
+    } else {
+      tbl <- read_fn
+    }
+  }
+  
+  tbl
+}
+
+process_table_input <- function(tbl,
+                                tbl_name) {
+
+  if (inherits(tbl, "function")) {
+    
+    read_fn <- tbl
+    tbl <- NULL
+    
+  } else if (rlang::is_formula(tbl)) {
+    
+    read_fn <- tbl
+    tbl <- NULL
+    
+    if (inherits(read_fn, "read_fn")) {
+      
+      if (inherits(read_fn, "with_tbl_name") && is.na(tbl_name)) {
+        tbl_name <- read_fn %>% rlang::f_lhs() %>% as.character()
+      }
+    }
+    
+  } else {
+    
+    read_fn <- NULL
+  }
+  
+  list(
+    tbl = tbl,
+    read_fn = read_fn,
+    tbl_name = tbl_name
+  )
+}
+
 generate_indexed_vals <- function(x, numbers, sep = ".") {
   paste0(x, sep, formatC(numbers, width = 4, format = "d", flag = "0"))
 }
@@ -451,7 +594,10 @@ all_validations_fns_vec <- function() {
     "col_is_factor",
     "col_exists",
     "col_schema_match",
+    "row_count_match",
+    "tbl_match",
     "conjointly",
+    "serially",
     "specially"
   )
 }
@@ -545,7 +691,7 @@ get_r_column_names_types <- function(tbl) {
 }
 
 get_tbl_information <- function(tbl) {
-
+  
   if (is.data.frame(tbl)) {
     
     tbl_information <- get_tbl_information_df(tbl)
@@ -678,7 +824,7 @@ get_tbl_information_dbi <- function(tbl) {
       q_types <-
         as.character(
           glue::glue(
-            "SELECT TOP 9 {n_cols} DATA_TYPE \\
+            "SELECT TOP {n_cols} DATA_TYPE \\
           FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{db_tbl_name}'"
           )
         )

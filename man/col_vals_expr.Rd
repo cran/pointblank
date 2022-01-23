@@ -27,8 +27,8 @@ test_col_vals_expr(object, expr, preconditions = NULL, threshold = 1)
 (\code{tbl_spark}), or, an \emph{agent} object of class \code{ptblank_agent} that is
 created with \code{\link[=create_agent]{create_agent()}}.}
 
-\item{expr}{An expression to use for this test. This can either be in the
-form of a call made with the \code{expr()} function or as a one-sided \strong{R}
+\item{expr}{An expression to use for this validation. This can either be in
+the form of a call made with the \code{expr()} function or as a one-sided \strong{R}
 formula (using a leading \code{~}).}
 
 \item{preconditions}{An optional expression for mutating the input table
@@ -362,9 +362,11 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_complete}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}

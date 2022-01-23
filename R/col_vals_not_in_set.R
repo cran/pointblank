@@ -151,7 +151,7 @@
 #'    active: false
 #' ```
 #' 
-#' In practice, both of these will often be shorter as only the `columns`, and
+#' In practice, both of these will often be shorter as only the `columns` and
 #' `set` arguments require values. Arguments with default values won't be
 #' written to YAML when using [yaml_write()] (though it is acceptable to include
 #' them with their default when generating the YAML by other means). It is also
@@ -172,7 +172,8 @@
 #' @examples
 #' # The `small_table` dataset in the
 #' # package will be used to validate that
-#' # column values are part of a given set
+#' # column values are not part of a
+#' # given set
 #' 
 #' # A: Using an `agent` with validation
 #' #    functions and then `interrogate()`

@@ -21,21 +21,21 @@ test_options <- new.env(parent = emptyenv())
 
 #nocov start
 
-#' Modify **pointblank** validation testing options within R Markdown documents
+#' Perform **pointblank** validation testing within R Markdown documents
 #' 
 #' @description 
-#' Using **pointblank** in an R Markdown workflow is enabled by default once the
-#' **pointblank** library is loaded. The framework allows for validation testing
-#' within specialized validation code chunks where the `validate = TRUE` option
-#' is set. Using **pointblank** validation functions on data in these
-#' marked code chunks will flag overall failure if the stop threshold is
-#' exceeded anywhere. All errors are reported in the validation code chunk after
-#' rendering the document to HTML, where green or red status buttons indicate
-#' whether all validations succeeded or failures occurred. Clicking any such
-#' button reveals the otherwise hidden validation statements and their error
-#' messages (if any). While the framework for such testing is set up by default,
-#' the `validate_rmd()` function offers an opportunity to set UI and logging
-#' options.
+#' The `validate_rmd()` function sets up a framework for validation testing
+#' within specialized validation code chunks inside an R Markdown document. To
+#' enable this functionality, `validate_rmd()` should be called early within an
+#' R Markdown document code chunk (preferably in the `setup` chunk) to signal
+#' that validation should occur within specific code chunks. The validation code
+#' chunks require the `validate = TRUE` option to be set. Using **pointblank**
+#' validation functions on data in these marked code chunks will flag overall
+#' failure if the stop threshold is exceeded anywhere. All errors are reported
+#' in the validation code chunk after rendering the document to HTML, where a
+#' centered status button either indicates success or the number of overall
+#' failures. Clicking the button reveals the otherwise hidden validation
+#' statements and their error messages (if any).
 #'
 #' @param summary If `TRUE` (the default), then there will be a leading summary
 #'   of all validations in the rendered R Markdown document. With `FALSE`, this
@@ -53,6 +53,33 @@ test_options <- new.env(parent = emptyenv())
 #' @export
 validate_rmd <- function(summary = TRUE,
                          log_to_file = NULL) {
+  
+  
+  knitr::opts_hooks$set(
+    error = function(options) {
+      if (isTRUE(options$validate)) {
+        options$error <- TRUE
+      }
+      options
+    }
+  )
+  
+  error <- knitr_error_hook(knitr::knit_hooks$get("error"))
+  document <- knitr_document_hook(knitr::knit_hooks$get("document"))
+  
+  knitr::knit_hooks$set(
+    chunk = knitr_chunk_hook,
+    error = error,
+    document = document
+  )
+  
+  reset_doc_counts()
+  
+  # Store default logical values for the summary and logging options
+  test_options$summary <- TRUE
+  test_options$perform_logging <- FALSE
+  
+  validate_rmd_dependencies()
   
   # Store the `summary` value to `test_options`
   test_options$summary <- summary
@@ -94,35 +121,6 @@ validate_rmd <- function(summary = TRUE,
         appenders = log4r::file_appender(test_options$log_to_file)
       )
   }
-}
-
-validate_rmd_setup <- function() {
-  
-  knitr::opts_hooks$set(
-    error = function(options) {
-      if (isTRUE(options$validate)) {
-        options$error <- TRUE
-      }
-      options
-    }
-  )
-  
-  error <- knitr_error_hook(knitr::knit_hooks$get("error"))
-  document <- knitr_document_hook(knitr::knit_hooks$get("document"))
-  
-  knitr::knit_hooks$set(
-    chunk = knitr_chunk_hook,
-    error = error,
-    document = document
-  )
-  
-  reset_doc_counts()
-  
-  # Store default logical values for the summary and logging options
-  test_options$summary <- TRUE
-  test_options$perform_logging <- FALSE
-  
-  validate_rmd_dependencies()
 }
 
 log4r_error <- function(message) {
@@ -369,7 +367,7 @@ knitr_chunk_hook <- function(x, options) {
   }
   
   is_agent_tbl_output <- function(output_vec) {
-    grepl("#report .gt_table", output_vec, fixed = TRUE)
+    grepl("#pb_agent .gt_table", output_vec, fixed = TRUE)
   }
   
   code_vec <- extract_code(x)
@@ -527,9 +525,9 @@ knitr_chunk_hook <- function(x, options) {
                 htmltools::tags$div(
                   class = "panel-body",
                   style = htmltools::css(
-                    `padding-left` = "15px",
+                    `padding-left` = "13px",
                     `padding-top` = "15px",
-                    `padding-right` = "15px",
+                    `padding-right` = "13px",
                     `padding-bottom` = "15px",
                     background = "#FAFAFA",
                     width = "100%",

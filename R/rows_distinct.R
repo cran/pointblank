@@ -84,18 +84,17 @@
 #' 
 #' @section Actions:
 #' Often, we will want to specify `actions` for the validation. This argument,
-#' present in every validation function, takes a specially-crafted list
-#' object that is best produced by the [action_levels()] function. Read that
-#' function's documentation for the lowdown on how to create reactions to
-#' above-threshold failure levels in validation. The basic gist is that you'll
-#' want at least a single threshold level (specified as either the fraction of
-#' test units failed, or, an absolute value), often using the `warn_at`
-#' argument. This is especially true when `x` is a table object because,
-#' otherwise, nothing happens. For the `col_vals_*()`-type functions, using 
-#' `action_levels(warn_at = 0.25)` or `action_levels(stop_at = 0.25)` are good
-#' choices depending on the situation (the first produces a warning when a
-#' quarter of the total test units fails, the other `stop()`s at the same
-#' threshold level).
+#' present in every validation function, takes a specially-crafted list object
+#' that is best produced by the [action_levels()] function. Read that function's
+#' documentation for the lowdown on how to create reactions to above-threshold
+#' failure levels in validation. The basic gist is that you'll want at least a
+#' single threshold level (specified as either the fraction of test units
+#' failed, or, an absolute value), often using the `warn_at` argument. This is
+#' especially true when `x` is a table object because, otherwise, nothing
+#' happens. Using `action_levels(warn_at = 0.25)` or `action_levels(stop_at =
+#' 0.25)` are good choices depending on the situation (the first produces a
+#' warning when a quarter of the total test units fails, the other `stop()`s at
+#' the same threshold level).
 #' 
 #' @section Briefs:
 #' Want to describe this validation step in some detail? Keep in mind that this
@@ -166,6 +165,11 @@
 #'     c = c(1, 1, 1, 3, 3, 3)
 #'   )
 #' 
+#' tbl
+#' 
+#' # A: Using an `agent` with validation
+#' #    functions and then `interrogate()` 
+#' 
 #' # Validate that when considering only
 #' # data in columns `a` and `b`, there
 #' # are no duplicate rows (i.e., all
@@ -175,10 +179,46 @@
 #'   rows_distinct(vars(a, b)) %>%
 #'   interrogate()
 #' 
-#' # Determine if these column
-#' # validations have all passed
+#' # Determine if this validation passed
 #' # by using `all_passed()`
 #' all_passed(agent)
+#' 
+#' # Calling `agent` in the console
+#' # prints the agent's report; but we
+#' # can get a `gt_tbl` object directly
+#' # with `get_agent_report(agent)`
+#' 
+#' # B: Using the validation function
+#' #    directly on the data (no `agent`)
+#' 
+#' # This way of using validation functions
+#' # acts as a data filter: data is passed
+#' # through but should `stop()` if there
+#' # is a single test unit failing; the
+#' # behavior of side effects can be
+#' # customized with the `actions` option
+#' tbl %>%
+#'   rows_distinct(vars(a, b)) %>%
+#'   dplyr::pull(a)
+#' 
+#' # C: Using the expectation function
+#' 
+#' # With the `expect_*()` form, we would
+#' # typically perform one validation at a
+#' # time; this is primarily used in
+#' # testthat tests
+#' expect_rows_distinct(
+#'   tbl, vars(a, b)
+#' )
+#' 
+#' # D: Using the test function
+#' 
+#' # With the `test_*()` form, we should
+#' # get a single logical value returned
+#' # to us
+#' test_rows_distinct(
+#'   tbl, vars(a, b)
+#' )
 #' 
 #' @family validation functions
 #' @section Function ID:
@@ -199,27 +239,20 @@ rows_distinct <- function(x,
                           label = NULL,
                           brief = NULL,
                           active = TRUE) {
-
+  
   # Get `columns` as a label
   columns_expr <- 
     rlang::as_label(rlang::quo(!!enquo(columns))) %>%
     gsub("^\"|\"$", "", .)
   
-  # Normalize the `columns` expression
-  if (inherits(columns, "quosures")) {
-    
-    columns <- 
-      vapply(
-        columns,
-        FUN.VALUE = character(1),
-        USE.NAMES = FALSE,
-        FUN = function(x) as.character(rlang::get_expr(x))
-      )
-  }
-
+  # Capture the `columns` expression
+  columns <- rlang::enquo(columns)
+  
   # Resolve the columns based on the expression
-  if (!is.null(columns)) {
+  if (!is.null(rlang::eval_tidy(columns)) && !is.null(columns)) {
     columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+  } else {
+    columns <- NULL
   }
   
   # Resolve segments into list

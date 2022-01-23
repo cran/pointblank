@@ -52,8 +52,9 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   agent_test_1 <- agent_test_1 %>% set_tbl(small_table)
   expect_s3_class(agent_test_1$tbl, "tbl_df")
   
-  # Don't expect the `extracts` to be in the agent object
-  expect_null(agent_test_1$extracts)
+  # Expect the `extracts` to be an empty list
+  expect_type(agent_test_1$extracts, "list")
+  expect_identical(agent_test_1$extracts, list())
   
   # Expect the first entry of the `tbl_checked` column in the `validation_set`
   # tibble to be NULL
@@ -81,10 +82,11 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   
   # Expect the `tbl` data to be in the agent object
   expect_s3_class(agent_test_2$tbl, "tbl_df")
+  expect_equivalent(agent_test_2$tbl, small_table)
   
-  # Expect the `extracts` list to be available in the agent object
-  # TODO: expect it to be empty
+  # Expect the `extracts` to be an empty list
   expect_type(agent_test_2$extracts, "list")
+  expect_identical(agent_test_2$extracts, list())
   
   # Create an agent with a single validation step, using
   # the `small_table` sqlite table  as the `tbl`; interrogate
@@ -115,8 +117,9 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   agent_test_3 <- agent_test_3 %>% set_tbl(small_table_sqlite())
   expect_s3_class(agent_test_3$tbl, "tbl_dbi")
   
-  # Don't expect the `extracts` to be in the agent object
-  expect_null(agent_test_3$extracts)
+  # Expect the `extracts` to be an empty list
+  expect_type(agent_test_3$extracts, "list")
+  expect_identical(agent_test_3$extracts, list())
   
   # Write the agent to disk again, but choose to keep the table;
   # expect a warning since we can't directly keep `tbl_dbi` data
@@ -139,17 +142,19 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   # Don't expect the `tbl` data to be in the agent object
   expect_null(agent_test_4$tbl)
   
-  # Expect the `extracts` list to be available in the agent object
+  # Expect the `extracts` to be an empty list
   expect_type(agent_test_4$extracts, "list")
+  expect_identical(agent_test_4$extracts, list())
   
   # Add the `small_table` `tbl` with `set_tbl()`
   agent_test_4 <- agent_test_4 %>% set_tbl(tbl = small_table)
   
   # Expect the new `tbl` data to be in the agent object
   expect_s3_class(agent_test_4$tbl, "tbl_df")
+  expect_equivalent(agent_test_4$tbl, small_table)
   
-  # Expect the `tbl_name` to be `small_table`
-  expect_equal(agent_test_4$tbl_name, "small_table")
+  # Expect the `tbl_name` to remain as `small_table_sqlite()`
+  expect_equal(agent_test_4$tbl_name, "small_table_sqlite()")
   
   # Expect the `db_tbl_name` to be NA
   expect_equal(agent_test_4$db_tbl_name, NA_character_)
@@ -172,9 +177,10 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   
   # Expect the new `tbl` data to be in the agent object
   expect_s3_class(agent_test_4$tbl, "tbl_df")
+  expect_equivalent(agent_test_4$tbl, small_table)
   
-  # Expect the `tbl_name` to be `table`
-  expect_equal(agent_test_4$tbl_name, "table")
+  # Expect the `tbl_name` to still be `small_table_sqlite()`
+  expect_equal(agent_test_4$tbl_name, "small_table_sqlite()")
   
   # Expect the `db_tbl_name` to be NA
   expect_equal(agent_test_4$db_tbl_name, NA_character_)
@@ -185,11 +191,11 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   # Expect the `tbl_src_details` to be NA
   expect_equal(agent_test_4$tbl_src_details, NA_character_)
   
-  # Set a table-prep formula and remove the associated table
+  # Remove the target table and set a table with a table-prep formula
   agent_test_4 <-
     agent_test_4 %>%
     remove_tbl() %>%
-    set_read_fn(read_fn = ~ small_table)
+    set_tbl(tbl = ~ small_table)
   
   # Don't expect the `tbl` data to be in the agent object
   expect_null(agent_test_4$tbl)
@@ -198,9 +204,71 @@ test_that("The `x_write_disk()` and `x_read_disk()` functions works as expected"
   expect_true(rlang::is_formula(agent_test_4$read_fn))
   expect_true(rlang::is_bare_formula(agent_test_4$read_fn))
   
-  # Remove the table-prep formula from the agent with `remove_read_fn()`
-  agent_test_4 <- agent_test_4 %>% remove_read_fn()
+  # Remove the table-prep formula from the agent with `remove_tbl()`
+  agent_test_4 <- agent_test_4 %>% remove_tbl()
   
-  # Don't expect the `read_fn` element to be in the agent object
+  # Don't expect the `tbl` or `read_fn` elements to be in the agent object
+  expect_null(agent_test_4$tbl)
   expect_null(agent_test_4$read_fn)
+})
+
+test_that("The `set_tbl()` function works as expected", {
+  
+  #
+  # Tests with an agent
+  #
+  
+  # Create an agent and supply it with the `specifications` table
+  agent <- create_agent(tbl = specifications)
+  
+  expect_s3_class(agent$tbl, "tbl_df")
+  expect_equivalent(agent$tbl, specifications)
+  expect_null(agent$read_fn)
+  expect_equal(agent$tbl_name, "specifications")
+  expect_match(agent$label, "\\[.*?\\]")
+  expect_equal(agent$col_names, colnames(specifications))
+  
+  # Replace the table in the agent with `game_revenue`
+  agent_replace_1 <- agent %>% set_tbl(tbl = game_revenue)
+  
+  expect_s3_class(agent_replace_1$tbl, "tbl_df")
+  expect_equivalent(agent_replace_1$tbl, game_revenue)
+  expect_null(agent_replace_1$read_fn)
+  expect_equal(agent_replace_1$tbl_name, "specifications")
+  expect_equal(agent_replace_1$label, agent$label)
+  expect_equal(agent_replace_1$col_names, colnames(game_revenue))
+  
+  # Replace the table in the agent with `game_revenue` and change the
+  # table name and label
+  agent_replace_2 <- 
+    agent %>% 
+    set_tbl(
+      tbl = game_revenue,
+      tbl_name = "game_revenue",
+      label = "Checking the game revenue table."
+    )
+  
+  expect_s3_class(agent_replace_2$tbl, "tbl_df")
+  expect_equivalent(agent_replace_2$tbl, game_revenue)
+  expect_null(agent_replace_2$read_fn)
+  expect_equal(agent_replace_2$tbl_name, "game_revenue")
+  expect_match(agent_replace_2$label, "Checking the game revenue table.")
+  expect_equal(agent_replace_2$col_names, colnames(game_revenue))
+  
+  # Replace the table in the agent with `~ game_revenue` and change the
+  # table name and label
+  agent_replace_3 <- 
+    agent %>% 
+    set_tbl(
+      tbl = ~ pointblank::game_revenue,
+      tbl_name = "game_revenue",
+      label = "Checking the game revenue table."
+    )
+  
+  expect_null(agent_replace_3$tbl)
+  expect_true(rlang::is_formula(agent_replace_3$read_fn))
+  expect_true(rlang::is_bare_formula(agent_replace_3$read_fn))
+  expect_equal(agent_replace_3$tbl_name, "game_revenue")
+  expect_match(agent_replace_3$label, "Checking the game revenue table.")
+  expect_equal(agent_replace_3$col_names, colnames(game_revenue))
 })

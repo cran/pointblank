@@ -178,18 +178,16 @@ generate a separate version of the target table.
 \section{Actions}{
 
 Often, we will want to specify \code{actions} for the validation. This argument,
-present in every validation function, takes a specially-crafted list
-object that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that
-function's documentation for the lowdown on how to create reactions to
-above-threshold failure levels in validation. The basic gist is that you'll
-want at least a single threshold level (specified as either the fraction of
-test units failed, or, an absolute value), often using the \code{warn_at}
-argument. This is especially true when \code{x} is a table object because,
-otherwise, nothing happens. For the \verb{col_vals_*()}-type functions, using
-\code{action_levels(warn_at = 0.25)} or \code{action_levels(stop_at = 0.25)} are good
-choices depending on the situation (the first produces a warning when a
-quarter of the total test units fails, the other \code{stop()}s at the same
-threshold level).
+present in every validation function, takes a specially-crafted list object
+that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that function's
+documentation for the lowdown on how to create reactions to above-threshold
+failure levels in validation. The basic gist is that you'll want at least a
+single threshold level (specified as either the fraction of test units
+failed, or, an absolute value), often using the \code{warn_at} argument. This is
+especially true when \code{x} is a table object because, otherwise, nothing
+happens. Using \code{action_levels(warn_at = 0.25)} or \code{action_levels(stop_at = 0.25)} are good choices depending on the situation (the first produces a
+warning when a quarter of the total test units fails, the other \code{stop()}s at
+the same threshold level).
 }
 
 \section{Briefs}{
@@ -258,6 +256,11 @@ tbl <-
     c = c(1, 1, 1, 3, 3, 3)
   )
 
+tbl
+
+# A: Using an `agent` with validation
+#    functions and then `interrogate()` 
+
 # Validate that when considering only
 # data in columns `a` and `b`, there
 # are only complete rows (i.e., all
@@ -267,10 +270,46 @@ agent <-
   rows_complete(vars(a, b)) \%>\%
   interrogate()
 
-# Determine if these column
-# validations have all passed
+# Determine if this validation passed
 # by using `all_passed()`
 all_passed(agent)
+
+# Calling `agent` in the console
+# prints the agent's report; but we
+# can get a `gt_tbl` object directly
+# with `get_agent_report(agent)`
+
+# B: Using the validation function
+#    directly on the data (no `agent`)
+
+# This way of using validation functions
+# acts as a data filter: data is passed
+# through but should `stop()` if there
+# is a single test unit failing; the
+# behavior of side effects can be
+# customized with the `actions` option
+tbl \%>\%
+  rows_complete(vars(a, b)) \%>\%
+  dplyr::pull(a)
+
+# C: Using the expectation function
+
+# With the `expect_*()` form, we would
+# typically perform one validation at a
+# time; this is primarily used in
+# testthat tests
+expect_rows_complete(
+  tbl, vars(a, b)
+)
+
+# D: Using the test function
+
+# With the `test_*()` form, we should
+# get a single logical value returned
+# to us
+test_rows_complete(
+  tbl, vars(a, b)
+)
 
 }
 \seealso{
@@ -304,8 +343,10 @@ Other validation functions:
 \code{\link{col_vals_regex}()},
 \code{\link{col_vals_within_spec}()},
 \code{\link{conjointly}()},
+\code{\link{row_count_match}()},
 \code{\link{rows_distinct}()},
 \code{\link{serially}()},
-\code{\link{specially}()}
+\code{\link{specially}()},
+\code{\link{tbl_match}()}
 }
 \concept{validation functions}
