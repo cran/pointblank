@@ -136,8 +136,7 @@ work in conjunction with a \code{col_schema} object (generated through the
 that of the target table. The validation function can be used directly on a
 data table or with an \emph{agent} object (technically, a \code{ptblank_agent} object)
 whereas the expectation and test functions can only be used with a data
-table. The types of data tables that can be used include data frames,
-tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames (\code{tbl_spark}).
+table.
 
 The validation step or expectation operates over a single test unit, which is
 whether the schema matches that of the table (within the constraints enforced
@@ -158,6 +157,28 @@ means that all column classes/types don't have to be provided for a
 particular column. It can even be \code{NULL}, skipping the check of the column
 type.
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Actions}{
 
 Often, we will want to specify \code{actions} for the validation. This argument,
@@ -190,8 +211,11 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 as a list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{col_schema_match()} as
 a validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   col_schema_match(
     schema = col_schema(
       a = "integer",
@@ -204,9 +228,11 @@ agent \%>\%
     label = "The `col_schema_match()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - col_schema_match:
     schema:
       a: integer
@@ -218,7 +244,7 @@ steps:
       stop_count: 1.0
     label: The `col_schema_match()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter as only the \code{schema}
 argument requires a value. Arguments with default values won't be written to
@@ -228,88 +254,127 @@ to preview the transformation of an agent to YAML without any writing to disk
 by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-30
-}
 
-\examples{
-# For all examples here, we'll use
-# a simple table with two columns:
-# one `integer` (`a`) and the other
-# `character` (`b`); the following
-# examples will validate that the
-# table columns abides match a schema
-# object as created by `col_schema()`
-tbl <- 
+For all examples here, we'll use a simple table with two columns: one
+\code{integer} (\code{a}) and the other \code{character} (\code{b}). The following examples will
+validate that the table columns abides match a schema object as created by
+\code{\link[=col_schema]{col_schema()}}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <- 
   dplyr::tibble(
     a = 1:5,
     b = letters[1:5]
   )
   
 tbl
+}\if{html}{\out{</div>}}
 
-# Create a column schema object with
-# the helper function `col_schema()`
-# that describes the columns and
-# their types (in the expected order)
-schema_obj <- 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 5 × 2
+##       a b    
+##   <int> <chr>
+## 1     1 a    
+## 2     2 b    
+## 3     3 c    
+## 4     4 d    
+## 5     5 e
+}\if{html}{\out{</div>}}
+
+Create a column schema object with the helper function \code{col_schema()} that
+describes the columns and their types (in the expected order).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{schema_obj <- 
   col_schema(
     a = "integer",
     b = "character"
   )
-  
-# A: Using an `agent` with validation
-#    functions and then `interrogate()`
 
-# Validate that the schema object
-# `schema_obj` exactly defines
-# the column names and column types
-agent <-
-  create_agent(tbl) \%>\%
-  col_schema_match(schema_obj) \%>\%
+schema_obj
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## $a
+## [1] "integer"
+## 
+## $b
+## [1] "character"
+## 
+## attr(,"class")
+## [1] "r_type"     "col_schema"
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+Validate that the schema object \code{schema_obj} exactly defines the column names
+and column types. We'll determine if this validation has a failing test unit
+(there is a single test unit governed by whether there is a match).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
+  create_agent(tbl = tbl) \%>\%
+  col_schema_match(schema = schema_obj) \%>\%
   interrogate()
+}\if{html}{\out{</div>}}
 
-# Determine if this validation
-# had no failing test units (there is
-# a single test unit governed by
-# whether there is a match)
-all_passed(agent)
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\% col_schema_match(schema_obj)
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_col_schema_match(tbl, schema_obj)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-tbl \%>\% test_col_schema_match(schema_obj)
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_schema_match_1.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% col_schema_match(schema = schema_obj)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 5 × 2
+##       a b    
+##   <int> <chr>
+## 1     1 a    
+## 2     2 b    
+## 3     3 c    
+## 4     4 d    
+## 5     5 e
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_col_schema_match(tbl, scheam = schema_obj)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% test_col_schema_match(schema = schema_obj)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
+\section{Function ID}{
+
+2-30
+}
+
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

@@ -46,11 +46,12 @@
 #'     label = "An example."
 #'   ) %>%
 #'   col_exists(
-#'     vars(date),
+#'     columns = vars(date),
 #'     active = FALSE
 #'   ) %>%
 #'   col_vals_regex(
-#'     vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}",
+#'     columns = vars(b),
+#'     regex = "[0-9]-[a-z]{3}-[0-9]{3}",
 #'     active = FALSE
 #'   ) %>%
 #'   interrogate()
@@ -73,8 +74,10 @@
 #' @seealso For the opposite behavior, use the [deactivate_steps()] function.
 #'
 #' @export
-activate_steps <- function(agent,
-                           i = NULL) {
+activate_steps <- function(
+    agent,
+    i = NULL
+) {
   
   if (!is.null(i)) {
     agent$validation_set <- 
@@ -117,9 +120,9 @@ activate_steps <- function(agent,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>%
-#'   col_exists(vars(date)) %>%
+#'   col_exists(columns = vars(date)) %>%
 #'   col_vals_regex(
-#'     vars(b),
+#'     columns = vars(b),
 #'     regex = "[0-9]-[a-z]{3}-[0-9]"
 #'   ) %>%
 #'   interrogate()
@@ -142,8 +145,10 @@ activate_steps <- function(agent,
 #' @seealso For the opposite behavior, use the [activate_steps()] function.
 #'
 #' @export
-deactivate_steps <- function(agent,
-                             i = NULL) {
+deactivate_steps <- function(
+    agent,
+    i = NULL
+) {
   
   if (!is.null(i)) {
     agent$validation_set <- 
@@ -185,9 +190,10 @@ deactivate_steps <- function(agent,
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>%
-#'   col_exists(vars(date)) %>%
+#'   col_exists(columns = vars(date)) %>%
 #'   col_vals_regex(
-#'     vars(b), regex = "[0-9]-[a-z]{3}-[0-9]"
+#'     columns = vars(b),
+#'     regex = "[0-9]-[a-z]{3}-[0-9]"
 #'   ) %>%
 #'   interrogate()
 #'   
@@ -212,8 +218,10 @@ deactivate_steps <- function(agent,
 #'   [activate_steps()] will do the opposite).
 #'
 #' @export
-remove_steps <- function(agent,
-                         i = NULL) {
+remove_steps <- function(
+    agent,
+    i = NULL
+) {
   
   # TODO: Allow for removal of multiple steps (e.g., `i = 1:3`)
   if (!is.null(i)) {

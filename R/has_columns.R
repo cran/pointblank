@@ -37,74 +37,114 @@
 #'   
 #' @return A length-1 logical vector.
 #' 
-#' @examples 
-#' # The `small_table` dataset in the
-#' # package has the columns `date_time`,
-#' # `date`, and the `a` through `f`
-#' # columns
+#' @section Examples:
+#' 
+#' The `small_table` dataset in the package has the columns `date_time`, `date`,
+#' and the `a` through `f` columns.
+#' 
+#' ```{r}
 #' small_table
+#' ```
 #' 
-#' # With `has_columns()` we can check for
-#' # column existence by using it directly
-#' # on the table; a column name can be
-#' # verified as present by using it in
-#' # double quotes
-#' small_table %>% has_columns("date")
+#' With `has_columns()` we can check for column existence by using it directly
+#' on the table. A column name can be verified as present by using it in double
+#' quotes.
 #' 
-#' # Multiple column names can be supplied;
-#' # this is `TRUE` because both columns are
-#' # present in `small_table`
-#' small_table %>% has_columns(c("a", "b"))
+#' ```r
+#' small_table %>% has_columns(columns = "date")
+#' ```
 #' 
-#' # It's possible to supply column names
-#' # in `vars()` as well
-#' small_table %>% has_columns(vars(a, b))
+#' ```
+#' ## [1] TRUE
+#' ```
 #' 
-#' # Because column `h` isn't present, this
-#' # returns `FALSE` (all specified columns
-#' # need to be present to obtain `TRUE`)
-#' small_table %>% has_columns(vars(a, h))
+#' Multiple column names can be supplied. The following is `TRUE` because both
+#' columns are present in `small_table`.
 #' 
-#' # The `has_columns()` function can be
-#' # useful in expressions that involve the
-#' # target table, especially if it is
-#' # uncertain that the table will contain
-#' # a column that's involved in a validation
+#' ```r
+#' small_table %>% has_columns(columns = c("a", "b"))
+#' ```
 #' 
-#' # In the following agent-based validation,
-#' # the first two steps will be 'active'
-#' # because all columns checked for in the
-#' # expressions are present; the third step
-#' # is inactive because column `j` isn't
-#' # there (without the `active` statement we
-#' # would get an evaluation failure in the
-#' # agent report)
+#' ```
+#' ## [1] TRUE
+#' ```
+#' 
+#' It's possible to supply column names in `vars()` as well:
+#' 
+#' ```r
+#' small_table %>% has_columns(columns = vars(a, b))
+#' ```
+#' 
+#' ```
+#' ## [1] TRUE
+#' ```
+#' 
+#' Because column `h` isn't present, this returns `FALSE` (all specified columns
+#' need to be present to obtain `TRUE`).
+#' 
+#' ```r
+#' small_table %>% has_columns(columns = vars(a, h))
+#' ```
+#' 
+#' ```
+#' ## [1] FALSE
+#' ```
+#' 
+#' The `has_columns()` function can be useful in expressions that involve the
+#' target table, especially if it is uncertain that the table will contain a
+#' column that's involved in a validation.
+#' 
+#' In the following agent-based validation, the first two steps will be 'active'
+#' because all columns checked for in the expressions are present. The third
+#' step becomes inactive because column `j` isn't there (without the `active`
+#' statement there we would get an evaluation failure in the agent report).
+#' 
+#' ```r
 #' agent <- 
 #'   create_agent(
 #'     tbl = small_table,
 #'     tbl_name = "small_table"
 #'   ) %>%
 #'   col_vals_gt(
-#'     vars(c), value = vars(a),
+#'     columns = vars(c), value = vars(a),
 #'     active = ~ . %>% has_columns(vars(a, c))
 #'   ) %>%
 #'   col_vals_lt(
-#'     vars(h), value = vars(d),
+#'     columns = vars(h), value = vars(d),
 #'     preconditions = ~ . %>% dplyr::mutate(h = d - a),
 #'     active = ~ . %>% has_columns(vars(a, d))
 #'   ) %>%
 #'   col_is_character(
-#'     vars(j),
+#'     columns = vars(j),
 #'     active = ~ . %>% has_columns("j")
 #'   ) %>%
-#'   interrogate() 
+#'   interrogate()
+#' ```
+#' 
+#' Through the agent's x-list, we can verify that no evaluation error (any
+#' evaluation at all, really) had occurred. The third value, representative of
+#' the third validation step, is actually `NA` instead of `FALSE` because the
+#' step became inactive.
+#' 
+#' ```r
+#' x_list <- get_agent_x_list(agent = agent)
+#' 
+#' x_list$eval_warning
+#' ```
+#' 
+#' ```
+#' ## [1] FALSE FALSE    NA
+#' ```
 #' 
 #' @family Utility and Helper Functions
 #' @section Function ID:
 #' 13-2
 #'
 #' @export
-has_columns <- function(x, columns) {
+has_columns <- function(
+    x,
+    columns
+) {
 
   if (!is_a_table_object(x)) {
     stop(

@@ -26,8 +26,10 @@
 #' for the target table. We can supply as many validation functions as the user
 #' wishes to write, thereby increasing the level of validation coverage for that
 #' table. The *agent* assigned by the `create_agent()` call takes validation
-#' functions, which expand to validation steps (each one is numbered). This
-#' process is known as developing a *validation plan*.
+#' functions (e.g., [col_vals_between()], [rows_distinct()], etc.), which
+#' translate to discrete validation steps (each one is numbered and will later
+#' provide its own set of results). This process is known as developing a
+#' *validation plan*.
 #'
 #' The validation functions, when called on an *agent*, are merely instructions
 #' up to the point the [interrogate()] function is called. That kicks off the
@@ -36,8 +38,91 @@
 #' the *agent* has intel. Calling the *agent* itself will result in a reporting
 #' table. This reporting of the interrogation can also be accessed with the
 #' [get_agent_report()] function, where there are more reporting options.
+#' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
+#'
+#' @section The Use of an Agent for Validation Is Just One Option of Several:
+#' 
+#' There are a few validation workflows and using an *agent* is the one that
+#' provides the most options. It is probably the best choice for assessing the
+#' state of data quality since it yields detailed reporting, has options for
+#' further exploration of root causes, and allows for granular definition of
+#' actions to be taken based on the severity of validation failures (e.g.,
+#' emailing, logging, etc.).
+#' 
+#' Different situations, however, call for different validation workflows. You
+#' use validation functions (the same ones you would with an *agent*) directly
+#' on the data. This acts as a sort of data filter in that the input table will
+#' become output data (without modification), but there may be warnings, errors,
+#' or other side effects that you can define if validation fails. Basically,
+#' instead of this
+#' 
+#' ```r
+#' create_agent(tbl = small_table) %>% rows_distinct() %>% interrogate()
+#' ````
+#' 
+#' you would use this:
+#' 
+#' ```r
+#' small_table %>% rows_distinct()
+#' ```
+#' 
+#' This results in an error (with the default failure threshold settings),
+#' displaying the reason for the error in the console. Notably, the data is not
+#' passed though.
+#' 
+#' We can use variants of the validation functions, the *test* (`test_*()`) and
+#' *expectation* (`expect_*()`) versions, directly on the data for different
+#' workflows. The first returns to us a logical value. So this
+#' 
+#' ```r
+#' small_table %>% test_rows_distinct()
+#' ```
+#' 
+#' returns `FALSE` instead of an error.
+#' 
+#' In a unit testing scenario, we can use *expectation* functions exactly as we
+#' would with **testthat**'s library of `expect_*()` functions:
+#' 
+#' ```r
+#' small_table %>% expect_rows_distinct()
+#' ```
+#' 
+#' This test of `small_table` would be counted as a failure.
+#' 
+#' @section The Agent Report:
+#' 
+#' While printing an *agent* (a `ptblank_agent` object) will display its
+#' reporting in the Viewer, we can alternatively use the [get_agent_report()] to
+#' take advantage of other options (e.g., overriding the language, modifying the
+#' arrangement of report rows, etc.), and to return the report as independent
+#' objects. For example, with the `display_table = TRUE` option (the default),
+#' [get_agent_report()] will return a `ptblank_agent_report` object. If
+#' `display_table` is set to `FALSE`, we'll get a data frame back instead.
+#' 
+#' Exporting the report as standalone HTML file can be accomplished by using the
+#' [export_report()] function. This function can accept either the
+#' `ptblank_agent` object or the `ptblank_agent_report` as input. Each HTML
+#' document written to disk in this way is self-contained and easily viewable in
+#' a web browser.
 #'
 #' @section Data Products Obtained from an Agent:
+#' 
 #' A very detailed list object, known as an x-list, can be obtained by using the
 #' [get_agent_x_list()] function on the *agent*. This font of information can be
 #' taken as a whole, or, broken down by the step number (with the `i` argument).
@@ -62,23 +147,17 @@
 #' on the *agent*. However, in practice, it's not often the case that all data
 #' validation steps are free from any failing units.
 #' 
-#' While printing an *agent* will display the *agent* report in the Viewer, we
-#' can alternatively use the [get_agent_report()] to take advantage of other
-#' options (e.g., overriding the language, modifying the arrangement of report
-#' rows, etc.), and to return the report as independent objects. For example,
-#' with the `display_table = TRUE` option (the default), [get_agent_report()]
-#' will return a **gt** table object (`"gt_tbl"`). If `display_table` is set to
-#' `FALSE`, we'll get a data frame back instead.
-#' 
 #' @section YAML: 
+#' 
 #' A **pointblank** agent can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
 #' or interrogate the target table (via [yaml_agent_interrogate()]). Here is an
 #' example of how a complex call of `create_agent()` is expressed in R code and
 #' in the corresponding YAML representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' create_agent(
 #'   tbl = ~ small_table,
 #'   tbl_name = "small_table",
@@ -86,7 +165,16 @@
 #'   actions = action_levels(
 #'     warn_at = 0.10,
 #'     stop_at = 0.25,
-#'     notify_at = 0.35
+#'     notify_at = 0.35,
+#'     fns = list(notify = ~ email_blast(
+#'       x,
+#'       to = "joe_public@example.com",
+#'       from = "pb_notif@example.com",
+#'       msg_subject = "Table Validation",
+#'       credentials = blastula::creds_key(
+#'         id = "smtp2go"
+#'       )
+#'     ))
 #'   ), 
 #'   end_fns = list(
 #'     ~ beepr::beep(2),
@@ -96,8 +184,11 @@
 #'   lang = "fr", 
 #'   locale = "fr_CA"
 #' )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' type: agent
 #' tbl: ~small_table
 #' tbl_name: small_table
@@ -106,15 +197,21 @@
 #' locale: fr_CA
 #' actions:
 #'   warn_fraction: 0.1
-#' stop_fraction: 0.25
-#' notify_fraction: 0.35
+#'   stop_fraction: 0.25
+#'   notify_fraction: 0.35
+#'   fns:
+#'     notify: ~email_blast(x, to = "joe_public@example.com",
+#'       from = "pb_notif@example.com",
+#'       msg_subject = "Table Validation",
+#'       credentials = blastula::creds_key(id = "smtp2go"))
 #' end_fns:
 #' - ~beepr::beep(2)
 #' - ~Sys.sleep(1)
 #' embed_report: true
+#' steps: []
 #' ```
 #' 
-#' In practice, this block of YAML will be shorter since arguments with default
+#' In practice, this YAML file will be shorter since arguments with default
 #' values won't be written to YAML when using [yaml_write()] (though it is
 #' acceptable to include them with their default when generating the YAML by
 #' other means). The only requirement for writing the YAML representation of an
@@ -132,6 +229,7 @@
 #' [yaml_agent_show_exprs()].
 #' 
 #' @section Writing an Agent to Disk:
+#' 
 #' An *agent* object can be written to disk with the [x_write_disk()] function.
 #' This can be useful for keeping a history of validations and generating views
 #' of data quality over time. Agents are stored in the serialized RDS format and
@@ -143,6 +241,7 @@
 #' may change, hence the need to use an expression for this).
 #' 
 #' @section Combining Several Agents in a *multiagent* Object:
+#' 
 #' Multiple *agent* objects can be part of a *multiagent* object, and two
 #' functions can be used for this: [create_multiagent()] and
 #' [read_disk_multiagent()]. By gathering multiple agents that have performed
@@ -201,125 +300,163 @@
 #'   
 #' @return A `ptblank_agent` object.
 #'   
-#' @examples
-#' # Let's walk through a data quality
-#' # analysis of an extremely small table;
-#' # it's actually called `small_table` and
-#' # we can find it as a dataset in this
-#' # package
-#' small_table
+#' @section Examples:
 #' 
-#' # We ought to think about what's
-#' # tolerable in terms of data quality so
-#' # let's designate proportional failure
-#' # thresholds to the `warn`, `stop`, and
-#' # `notify` states using `action_levels()`
+#' ## Creating an agent, adding a validation plan, and interrogating
+#' 
+#' Let's walk through a data quality analysis of an extremely small table. It's
+#' actually called `small_table` and we can find it as a dataset in this
+#' package.
+#' 
+#' ```{r}
+#' small_table
+#' ```
+#' 
+#' We ought to think about what's tolerable in terms of data quality so let's
+#' designate proportional failure thresholds to the `warn`, `stop`, and `notify`
+#' states using [action_levels()].
+#' 
+#' ```r
 #' al <- 
 #'   action_levels(
 #'       warn_at = 0.10,
 #'       stop_at = 0.25,
 #'     notify_at = 0.35
 #'   )
+#' ```
 #' 
-#' # Now create a pointblank `agent` object
-#' # and give it the `al` object (which
-#' # serves as a default for all validation
-#' # steps which can be overridden); the
-#' # static thresholds provided by `al` will
-#' # make the reporting a bit more useful;
-#' # we also provide a target table and we'll
-#' # use `pointblank::small_table` 
+#' Now create a pointblank `agent` object and give it the `al` object (which
+#' serves as a default for all validation steps which can be overridden). The
+#' static thresholds provided by `al` will make the reporting a bit more useful.
+#' We also provide a target table and we'll use `pointblank::small_table`.
+#' 
+#' ```r
 #' agent <- 
 #'   create_agent(
 #'     tbl = pointblank::small_table,
 #'     tbl_name = "small_table",
-#'     label = "An example.",
+#'     label = "`create_agent()` example.",
 #'     actions = al
 #'   )
+#' ```
 #'
-#' # Then, as with any `agent` object, we
-#' # can add steps to the validation plan by
-#' # using as many validation functions as we
-#' # want; then, we use `interrogate()` to
-#' # physically perform the validations and
-#' # gather intel
+#' Then, as with any `agent` object, we can add steps to the validation plan by
+#' using as many validation functions as we want. then, we use [interrogate()]
+#' to actually perform the validations and gather intel.
+#' 
+#' ```r
 #' agent <-
 #'   agent %>% 
-#'   col_exists(vars(date, date_time)) %>%
+#'   col_exists(columns = vars(date, date_time)) %>%
 #'   col_vals_regex(
-#'     vars(b),
+#'     columns = vars(b),
 #'     regex = "[0-9]-[a-z]{3}-[0-9]{3}"
 #'   ) %>%
 #'   rows_distinct() %>%
-#'   col_vals_gt(vars(d), value = 100) %>%
-#'   col_vals_lte(vars(c), value = 5) %>%
-#'   col_vals_equal(
-#'     vars(d), value = vars(d),
-#'     na_pass = TRUE
-#'   ) %>%
+#'   col_vals_gt(columns = vars(d), value = 100) %>%
+#'   col_vals_lte(columns = vars(c), value = 5) %>%
 #'   col_vals_between(
-#'     vars(c),
+#'     columns = vars(c),
 #'     left = vars(a), right = vars(d),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   interrogate()
+#' ```
 #'   
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
-#' report <- get_agent_report(agent)
-#' class(report)
+#' The `agent` object can be printed to see the validation report in the
+#' Viewer.
 #' 
-#' # What can you do with the report object?
-#' # Print it from an R Markdown code
-#' # chunk, use it in a **blastula** email,
-#' # put it in a webpage, etc.
+#' ```r
+#' agent
+#' ```
 #' 
-#' # From the report we know that Step
-#' # 4 had two test units (rows, really)
-#' # that failed; we can see those rows
-#' # with `get_data_extracts()` 
+#' \if{html}{
+#' 
+#' \out{
+#' `r pb_get_image_tag(file = "man_create_agent_1.png")`
+#' }
+#' }
+#' 
+#' If we want to make use of more report display options, we can alternatively
+#' use the [get_agent_report()] function.
+#' 
+#' ```r
+#' report <-
+#'   get_agent_report(
+#'     agent = agent,
+#'     arrange_by = "severity",
+#'     title = "Validation of `small_table`"
+#'   )
+#' 
+#' report
+#' ```
+#' 
+#' \if{html}{
+#' 
+#' \out{
+#' `r pb_get_image_tag(file = "man_create_agent_2.png")`
+#' }
+#' }
+#' 
+#' ## Post-interrogation operations
+#' 
+#' We can use the `agent` object with a variety of functions to get at more
+#' of the information collected during interrogation.
+#' 
+#' We can see from the validation report that Step 4 (which used the
+#' [rows_distinct()] validation function) had two test units, corresponding to
+#' duplicated rows, that failed. We can see those rows with
+#' [get_data_extracts()].
+#' 
+#' ```r
 #' agent %>% get_data_extracts(i = 4)
+#' ```
 #' 
-#' # We can get an x-list for the whole
-#' # validation (8 steps), or, just for
-#' # the 4th step with `get_agent_x_list()`
-#' xl_step_4 <-
-#'   agent %>% get_agent_x_list(i = 4)
-#'  
-#' # And then we can peruse the different
-#' # parts of the list; let's get the
-#' # fraction of test units that failed
+#' \preformatted{## # A tibble: 2 × 8
+#' ##   date_time           date           a b            c     d e     f    
+#' ##   <dttm>              <date>     <int> <chr>    <dbl> <dbl> <lgl> <chr>
+#' ## 1 2016-01-20 04:30:00 2016-01-20     3 5-bce-6…     9  838. FALSE high 
+#' ## 2 2016-01-20 04:30:00 2016-01-20     3 5-bce-6…     9  838. FALSE high}
+#' 
+#' 
+#' 
+#' We can get an x-list for the entire validation process (7 steps), or, just
+#' for the 4th step with [get_agent_x_list()].
+#' 
+#' ```r
+#' xl_step_4 <- agent %>% get_agent_x_list(i = 4)
+#' ```
+#' 
+#' And then we can peruse the different parts of the list. Let's get the
+#' fraction of test units that failed.
+#' 
+#' ```r
 #' xl_step_4$f_failed
+#' ```
 #' 
-#' # Just printing the x-list will tell
-#' # us what's available therein
-#' xl_step_4
+#' ```
+#' #> [1] 0.15385
+#' ```
 #' 
-#' # An x-list not specific to any step
-#' # will have way more information and a
-#' # slightly different structure; see
-#' # `help(get_agent_x_list)` for more info
-#' # get_agent_x_list(agent)
-#' 
-#' @section Figures:
-#' \if{html}{\figure{man_create_agent_1.png}{options: width=100\%}}
+#' An x-list not specific to any step will have way more information and a
+#' slightly different structure. See `help(get_agent_x_list)` for more info.
 #'  
 #' @family Planning and Prep
 #' @section Function ID:
 #' 1-2
 #'   
 #' @export
-create_agent <- function(tbl = NULL,
-                         tbl_name = NULL,
-                         label = NULL,
-                         actions = NULL,
-                         end_fns = NULL,
-                         embed_report = FALSE,
-                         lang = NULL,
-                         locale = NULL,
-                         read_fn = NULL) {
+create_agent <- function(
+    tbl = NULL,
+    tbl_name = NULL,
+    label = NULL,
+    actions = NULL,
+    end_fns = NULL,
+    embed_report = FALSE,
+    lang = NULL,
+    locale = NULL,
+    read_fn = NULL
+) {
   
   # Try to infer the table name if one isn't
   # explicitly given in `tbl_name`

@@ -96,6 +96,7 @@ test_that("pointblank expectation function produce the correct results", {
   #
   # expect_col_vals_lt()
   #
+  
   expect_col_vals_lt(tbl, columns = vars(d), value = 11000)
   expect_success(expect_col_vals_lt(tbl, columns = vars(d), value = 11000))
 
@@ -726,210 +727,6 @@ test_that("pointblank expectation function produce the correct results", {
   )
   
   #
-  # expect_conjointly()
-  #
-  
-  expect_conjointly(
-    tbl_conjointly,
-    ~ col_vals_gt(., vars(a), 3),
-    ~ col_vals_lt(., vars(b), 12),
-    ~ col_vals_not_null(., vars(b))
-  )
-  
-  expect_success(
-    expect_conjointly(
-      tbl_conjointly,
-      ~ col_vals_gt(., vars(a), 6),
-      ~ col_vals_lt(., vars(b), 10),
-      ~ col_vals_not_null(., vars(c)),
-      threshold = 5
-    )
-  )
-  
-  expect_failure(
-    expect_conjointly(
-      tbl_conjointly,
-      ~ col_vals_gt(., vars(a), 6),
-      ~ col_vals_lt(., vars(b), 10),
-      ~ col_vals_not_null(., vars(c))
-    )
-  )
-  
-  expect_error(
-    expect_conjointly(
-      tbl_conjointly,
-      ~ col_vals_gt(., vars(a), 6),
-      ~ col_vals_lt(., vars(b), 10),
-      ~ col_vals_not_null(., vars(c))
-    ), 
-    class = "expectation_failure"
-  )
-  
-  expect_failure(
-    expect_conjointly(
-      tbl_conjointly,
-      ~ col_vals_gt(., vars(a), 6),
-      ~ col_vals_lt(., vars(b), 10),
-      ~ col_vals_not_null(., vars(c)),
-      threshold = 1
-    ), 
-    failed_beyond_absolute
-  )
-  
-  expect_failure(
-    expect_conjointly(
-      tbl_conjointly,
-      ~ col_vals_gt(., vars(a), 6),
-      ~ col_vals_lt(., vars(b), 10),
-      ~ col_vals_not_null(., vars(c)),
-      threshold = 0.01
-    ), 
-    failed_beyond_proportional
-  )
-  
-  expect_failure(
-    expect_conjointly(
-      tbl_conjointly,
-      ~ col_vals_gt(., vars(a), 6),
-      ~ col_vals_lt(., vars(b), 10),
-      ~ col_vals_not_null(., vars(c))
-    ), 
-    "failure level \\(4\\) >= failure threshold \\(1\\)"
-  )
-  
-  #
-  # expect_serially()
-  #
-  
-  expect_success(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_numeric(., vars(a, b)),    # PASS
-      ~ test_col_vals_not_null(., vars(a, b)), # PASS
-      ~ col_vals_gt(., vars(b), vars(a))       # PASS
-    )
-  )
-  
-  expect_success(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_numeric(., vars(a, b)),    # PASS
-      ~ test_col_vals_not_null(., vars(a, b)), # PASS
-      ~ col_vals_gt(., vars(b), vars(a)),      # PASS
-      threshold = 5
-    )
-  )
-  
-  expect_success(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_numeric(., vars(a, b)),    # PASS
-      ~ test_col_vals_not_null(., vars(a, b)), # PASS
-      ~ col_vals_gt(., vars(c), 1),            # PASS 2/3
-      threshold = 2
-    )
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_numeric(., vars(a, b)),    # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)), # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),            # PASS 2/3
-      threshold = 1
-    )
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b)),  # FAIL, would FAIL
-      ~ test_col_vals_not_null(., vars(a, b)), # would PASS, PASS
-      ~ col_vals_gt(., vars(b), vars(a)),      # would PASS
-    )
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_numeric(., vars(a, b)),      # PASS, PASS
-      ~ test_col_vals_increasing(., vars(c, b)), # PASS, FAIL
-      ~ col_vals_gt(., vars(b), vars(a)),        # would PASS
-    )
-  )
-  
-  expect_success(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(b), vars(a))                      # PASS
-    )
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),                           # FAIL
-      threshold = 1
-    )
-  )
-  
-  expect_success(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),                           # PASS
-      threshold = 2
-    )
-  )
-  
-  expect_error(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),                           # FAIL
-    ), 
-    class = "expectation_failure"
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),                           # FAIL
-      threshold = 1
-    ), 
-    failed_beyond_absolute
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),                           # FAIL
-      threshold = 0.01
-    ), 
-    failed_beyond_proportional
-  )
-  
-  expect_failure(
-    expect_serially(
-      tbl_serially,
-      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
-      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
-      ~ col_vals_gt(., vars(c), 1),                           # FAIL
-    ), 
-    "failure level \\(1\\) >= failure threshold \\(1\\)"
-  )
-  
-  #
   # expect_rows_distinct()
   #
   
@@ -1371,30 +1168,94 @@ test_that("pointblank expectation function produce the correct results", {
   # expect_row_count_match()
   #
   
-  expect_row_count_match(tbl, tbl_compare = tbl)
-  expect_row_count_match(tbl, tbl_compare = pointblank::small_table)
-  expect_row_count_match(tbl, tbl_compare = ~ pointblank::small_table)
-  expect_row_count_match(tbl, tbl_compare = function() pointblank::small_table)
+  expect_row_count_match(tbl, count = tbl)
+  expect_row_count_match(tbl, count = pointblank::small_table)
+  expect_row_count_match(tbl, count = ~ pointblank::small_table)
+  expect_row_count_match(tbl, count = function() pointblank::small_table)
+  expect_row_count_match(tbl, count = 13)
+  expect_row_count_match(tbl, count = 13L)
   
   expect_failure(
-    expect_row_count_match(tbl, tbl_compare = tbl_conjointly),
+    expect_row_count_match(tbl, count = tbl_conjointly),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_failure(
+    expect_row_count_match(tbl, count = 14),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_failure(
+    expect_row_count_match(tbl, count = 13.1),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_failure(
+    expect_row_count_match(tbl, count = Inf),
     "failure level \\(1\\) >= failure threshold \\(1\\)"
   )
   
   expect_error(
-    expect_row_count_match(tbl, tbl_compare = tbl_conjointly),
+    expect_row_count_match(tbl, count = tbl_conjointly),
     class = "expectation_failure"
   )
   
-  expect_row_count_match(tbl_conjointly, tbl_compare = tbl_complete_yes)
-  expect_row_count_match(tbl_complete_yes, tbl_compare = tbl_conjointly)
+  expect_row_count_match(tbl_conjointly, count = tbl_complete_yes)
+  expect_row_count_match(tbl_complete_yes, count = tbl_conjointly)
   
-  expect_row_count_match(tbl_complete_no, tbl_compare = tbl_complete_yes)
-  expect_row_count_match(tbl_complete_yes, tbl_compare = tbl_complete_no)
+  expect_row_count_match(tbl_complete_no, count = tbl_complete_yes)
+  expect_row_count_match(tbl_complete_yes, count = tbl_complete_no)
   
-  expect_row_count_match(increasing_tbl, tbl_compare = decreasing_tbl)
-  expect_row_count_match(decreasing_tbl, tbl_compare = increasing_tbl)
+  expect_row_count_match(increasing_tbl, count = decreasing_tbl)
+  expect_row_count_match(decreasing_tbl, count = increasing_tbl)
+  expect_row_count_match(increasing_tbl, count = 6)
+  expect_row_count_match(decreasing_tbl, count = 6)
   
+  #
+  # expect_col_count_match()
+  #
+  
+  expect_col_count_match(tbl, count = tbl)
+  expect_col_count_match(small_table, count = pointblank::small_table)
+  expect_col_count_match(small_table, count = ~ pointblank::small_table)
+  expect_col_count_match(small_table, count = function() pointblank::small_table)
+  expect_col_count_match(small_table, count = 8)
+  
+  expect_failure(
+    expect_col_count_match(tbl, count = tbl_conjointly),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_failure(
+    expect_col_count_match(tbl, count = 14),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_failure(
+    expect_col_count_match(tbl, count = 13.1),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_failure(
+    expect_col_count_match(tbl, count = Inf),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  expect_error(
+    expect_col_count_match(tbl, count = tbl_conjointly),
+    class = "expectation_failure"
+  )
+  
+  expect_col_count_match(tbl_conjointly, count = tbl_complete_yes)
+  expect_col_count_match(tbl_complete_yes, count = tbl_conjointly)
+  
+  expect_col_count_match(tbl_complete_no, count = tbl_complete_yes)
+  expect_col_count_match(tbl_complete_yes, count = tbl_complete_no)
+  
+  expect_col_count_match(increasing_tbl, count = decreasing_tbl)
+  expect_col_count_match(decreasing_tbl, count = increasing_tbl)
+  expect_col_count_match(increasing_tbl, count = 4)
+  expect_col_count_match(decreasing_tbl, count = 4)
   
   #
   # expect_tbl_match()
@@ -1476,6 +1337,291 @@ test_that("pointblank expectation function produce the correct results", {
   expect_tbl_match(tbl, tbl_compare = tbl %>% dplyr::group_by(e, f))
   expect_tbl_match(tbl %>% dplyr::group_by(e, g), tbl_compare = tbl %>% dplyr::group_by(e, f))
   expect_tbl_match(tbl %>% dplyr::group_by(e, g), tbl_compare = tbl)
+  
+  #
+  # expect_conjointly()
+  #
+  
+  expect_conjointly(
+    tbl_conjointly,
+    ~ col_vals_gt(., vars(a), 3),
+    ~ col_vals_lt(., vars(b), 12),
+    ~ col_vals_not_null(., vars(b))
+  )
+  
+  expect_success(
+    expect_conjointly(
+      tbl_conjointly,
+      ~ col_vals_gt(., vars(a), 6),
+      ~ col_vals_lt(., vars(b), 10),
+      ~ col_vals_not_null(., vars(c)),
+      threshold = 5
+    )
+  )
+  
+  expect_failure(
+    expect_conjointly(
+      tbl_conjointly,
+      ~ col_vals_gt(., vars(a), 6),
+      ~ col_vals_lt(., vars(b), 10),
+      ~ col_vals_not_null(., vars(c))
+    )
+  )
+  
+  expect_error(
+    expect_conjointly(
+      tbl_conjointly,
+      ~ col_vals_gt(., vars(a), 6),
+      ~ col_vals_lt(., vars(b), 10),
+      ~ col_vals_not_null(., vars(c))
+    ), 
+    class = "expectation_failure"
+  )
+  
+  expect_failure(
+    expect_conjointly(
+      tbl_conjointly,
+      ~ col_vals_gt(., vars(a), 6),
+      ~ col_vals_lt(., vars(b), 10),
+      ~ col_vals_not_null(., vars(c)),
+      threshold = 1
+    ), 
+    failed_beyond_absolute
+  )
+  
+  expect_failure(
+    expect_conjointly(
+      tbl_conjointly,
+      ~ col_vals_gt(., vars(a), 6),
+      ~ col_vals_lt(., vars(b), 10),
+      ~ col_vals_not_null(., vars(c)),
+      threshold = 0.01
+    ), 
+    failed_beyond_proportional
+  )
+  
+  expect_failure(
+    expect_conjointly(
+      tbl_conjointly,
+      ~ col_vals_gt(., vars(a), 6),
+      ~ col_vals_lt(., vars(b), 10),
+      ~ col_vals_not_null(., vars(c))
+    ), 
+    "failure level \\(4\\) >= failure threshold \\(1\\)"
+  )
+  
+  #
+  # expect_serially()
+  #
+  
+  expect_success(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS
+      ~ col_vals_gt(., vars(b), vars(a))       # PASS
+    )
+  )
+  
+  expect_success(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS
+      ~ col_vals_gt(., vars(b), vars(a)),      # PASS
+      threshold = 5
+    )
+  )
+  
+  expect_success(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS
+      ~ col_vals_gt(., vars(c), 1),            # PASS 2/3
+      threshold = 2
+    )
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),    # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)), # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),            # PASS 2/3
+      threshold = 1
+    )
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b)),  # FAIL, would FAIL
+      ~ test_col_vals_not_null(., vars(a, b)), # would PASS, PASS
+      ~ col_vals_gt(., vars(b), vars(a)),      # would PASS
+    )
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_numeric(., vars(a, b)),      # PASS, PASS
+      ~ test_col_vals_increasing(., vars(c, b)), # PASS, FAIL
+      ~ col_vals_gt(., vars(b), vars(a)),        # would PASS
+    )
+  )
+  
+  expect_success(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(b), vars(a))                      # PASS
+    )
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+      threshold = 1
+    )
+  )
+  
+  expect_success(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # PASS
+      threshold = 2
+    )
+  )
+  
+  expect_error(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+    ), 
+    class = "expectation_failure"
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+      threshold = 1
+    ), 
+    failed_beyond_absolute
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+      threshold = 0.01
+    ), 
+    failed_beyond_proportional
+  )
+  
+  expect_failure(
+    expect_serially(
+      tbl_serially,
+      ~ test_col_is_character(., vars(a, b), threshold = 2),  # PASS, PASS
+      ~ test_col_vals_not_null(., vars(a, b)),                # PASS, PASS
+      ~ col_vals_gt(., vars(c), 1),                           # FAIL
+    ), 
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
+  
+  #
+  # expect_specially()
+  #
+  
+  expect_specially(
+    tbl,
+    fn = function(x) nrow(x) == 13
+  )
+  
+  expect_failure(
+    expect_specially(
+      tbl,
+      fn = function(x) nrow(x) == 12
+    )
+  )
+  
+  expect_specially(
+    tbl,
+    fn = function(x) x$a[1] == 2L
+  )
+  
+  expect_failure(
+    expect_specially(
+      tbl,
+      fn = function() x$a[1] == 2L
+    )
+  )
+  
+  expect_specially(
+    tbl,
+    fn = function(x) 1 == 1
+  )
+  
+  expect_specially(
+    tbl,
+    fn = function(x) nrow(x) < nrow(pointblank::game_revenue)
+  )
+  
+  expect_specially(
+    game_revenue,
+    fn = function(x) {
+      pointblank::game_revenue_info$column == colnames(x)
+    }
+  )
+  expect_specially(
+    game_revenue,
+    fn = function(x) {
+      all(pointblank::game_revenue_info$column %in% colnames(x))
+    }
+  )
+  
+  expect_specially(
+    tbl,
+    fn = function(x) {
+      x %>%
+        dplyr::mutate(
+          h = (c < d | is.na(c)) & d < 15000
+        )
+    }
+  )
+  
+  expect_failure(
+    expect_specially(
+      tbl,
+      fn = function(x) {
+        x %>%
+          dplyr::mutate(
+            h = (c < d | is.na(c)) & d < 8000
+          )
+      }
+    )
+  )
+  
+  expect_failure(
+    expect_specially(
+      tbl,
+      fn = function(x) x$a[1] == 3L
+    ),
+    "failure level \\(1\\) >= failure threshold \\(1\\)"
+  )
 })
 
 test_that("expect errors to be expressed by pointblank under some conditions", {

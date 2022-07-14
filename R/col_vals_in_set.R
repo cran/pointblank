@@ -25,11 +25,27 @@
 #' check whether column values in a table are part of a specified `set` of
 #' values. The validation function can be used directly on a data table or with
 #' an *agent* object (technically, a `ptblank_agent` object) whereas the
-#' expectation and test functions can only be used with a data table. The types
-#' of data tables that can be used include data frames, tibbles, database tables
-#' (`tbl_dbi`), and Spark DataFrames (`tbl_spark`). Each validation step or
-#' expectation will operate over the number of test units that is equal to the
-#' number of rows in the table (after any `preconditions` have been applied).
+#' expectation and test functions can only be used with a data table. Each
+#' validation step or expectation will operate over the number of test units
+#' that is equal to the number of rows in the table (after any `preconditions`
+#' have been applied).
+#' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
 #'
 #' @section Column Names:
 #' If providing multiple column names, the result will be an expansion of
@@ -119,8 +135,9 @@
 #' a validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   col_vals_in_set(
 #'     columns = vars(a),
@@ -131,11 +148,14 @@
 #'     label = "The `col_vals_in_set()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - col_vals_in_set:
-#'     columns: vars(a)
+#'    columns: vars(a)
 #'    set:
 #'    - 1.0
 #'    - 2.0
@@ -168,70 +188,78 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #'   
-#' @examples
-#' # The `small_table` dataset in the
-#' # package will be used to validate that
-#' # column values are part of a given set
+#' @section Examples:
 #' 
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()`
+#' The `small_table` dataset in the package will be used to validate that column
+#' values are part of a given set.
 #' 
-#' # Validate that values in column `f`
-#' # are all part of the set of values
-#' # containing `low`, `mid`, and `high`
+#' ```{r}
+#' small_table
+#' ```
+#' 
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
+#' 
+#' Validate that values in column `f` are all part of the set of values
+#' containing `low`, `mid`, and `high`. We'll determine if this validation has
+#' any failing test units (there are 13 test units, one for each row).
+#' 
+#' ```r
 #' agent <-
-#'   create_agent(small_table) %>%
+#'   create_agent(tbl = small_table) %>%
 #'   col_vals_in_set(
-#'     vars(f), c("low", "mid", "high")
+#'     columns = vars(f), set = c("low", "mid", "high")
 #'   ) %>%
 #'   interrogate()
-#'   
-#' # Determine if this validation
-#' # had no failing test units (there
-#' # are 13 test units, one for each row)
-#' all_passed(agent)
+#' ```
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_col_vals_in_set_1.png")`
+#' }
+#' }
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
+#' ## B: Using the validation function directly on the data (no `agent`)
+#' 
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
 #' small_table %>%
 #'   col_vals_in_set(
-#'     vars(f), c("low", "mid", "high")
+#'     columns = vars(f), set = c("low", "mid", "high")
 #'   ) %>%
 #'   dplyr::pull(f) %>%
 #'   unique()
+#' ```
 #'
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
+#' 
+#' ```r
 #' expect_col_vals_in_set(
 #'   small_table,
-#'   vars(f), c("low", "mid", "high")
+#'   columns = vars(f), set = c("low", "mid", "high")
 #' )
+#' ```
 #' 
-#' # D: Using the test function
+#' ## D: Using the test function
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
 #' small_table %>%
 #'   test_col_vals_in_set(
-#'     vars(f), c("low", "mid", "high")
+#'     columns = vars(f), set = c("low", "mid", "high")
 #'   )
+#' ```
 #' 
 #' @family validation functions
 #' @section Function ID:
@@ -245,16 +273,18 @@ NULL
 #' @rdname col_vals_in_set
 #' @import rlang
 #' @export
-col_vals_in_set <- function(x,
-                            columns,
-                            set,
-                            preconditions = NULL,
-                            segments = NULL,
-                            actions = NULL,
-                            step_id = NULL,
-                            label = NULL,
-                            brief = NULL,
-                            active = TRUE) {
+col_vals_in_set <- function(
+    x,
+    columns,
+    set,
+    preconditions = NULL,
+    segments = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
   
   # Get `columns` as a label
   columns_expr <- 
@@ -354,11 +384,13 @@ col_vals_in_set <- function(x,
 #' @rdname col_vals_in_set
 #' @import rlang
 #' @export
-expect_col_vals_in_set <- function(object,
-                                   columns,
-                                   set,
-                                   preconditions = NULL,
-                                   threshold = 1) {
+expect_col_vals_in_set <- function(
+    object,
+    columns,
+    set,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   fn_name <- "expect_col_vals_in_set"
   
@@ -432,11 +464,13 @@ expect_col_vals_in_set <- function(object,
 #' @rdname col_vals_in_set
 #' @import rlang
 #' @export
-test_col_vals_in_set <- function(object,
-                                 columns,
-                                 set,
-                                 preconditions = NULL,
-                                 threshold = 1) {
+test_col_vals_in_set <- function(
+    object,
+    columns,
+    set,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%

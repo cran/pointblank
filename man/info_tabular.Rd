@@ -10,9 +10,9 @@ info_tabular(x, ...)
 \item{x}{An informant object of class \code{ptblank_informant}.}
 
 \item{...}{Information entries as a series of named arguments. The names
-refer to subsection titles within the \code{TABLE} section and the RHS is the
-\emph{info text} (informational text that can be written as Markdown and further
-styled with \emph{Text Tricks}).}
+refer to subsection titles within the \code{TABLE} section and the values are
+the \emph{info text} (informational text that can be written as Markdown and
+further styled with \emph{Text Tricks}).}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -79,21 +79,26 @@ resulting YAML can be used to regenerate an informant (with
 table (via \code{\link[=yaml_informant_incorporate]{yaml_informant_incorporate()}}). When \code{info_tabular()} is
 represented in YAML, \emph{info text} goes into subsections of the top-level
 \code{table} key. Here is an example of how a call of \code{info_tabular()} is
-expressed in R code and in the corresponding YAML representation.\preformatted{# R statement
-informant \%>\% 
+expressed in R code and in the corresponding YAML representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant \%>\% 
   info_tabular(
     section_1 = "*info text* 1.",
     `section 2` = "*info text* 2 and \{snippet_1\}"
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-table:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{table:
   _columns: 23
   _rows: 205.0
   _type: tbl_df
   section_1: '*info text* 1.'
   section 2: '*info text* 2 and \{snippet_1\}'
-}
+}\if{html}{\out{</div>}}
 
 Subsection titles as defined in \code{info_tabular()} can be set in backticks if
 they are not syntactically correct as an argument name without them (e.g.,
@@ -109,32 +114,26 @@ done when using the \code{\link[=incorporate]{incorporate()}} function. Thus, th
 maintained in the YAML representation and is never written in processed form.
 }
 
-\section{Figures}{
+\section{Examples}{
 
-\if{html}{\figure{man_info_tabular_1.png}{options: width=100\%}}
-}
 
-\section{Function ID}{
+Create a pointblank \code{informant} object with \code{\link[=create_informant]{create_informant()}}. We can
+specify a \code{tbl} with the \code{~} followed by a statement that gets the
+\code{small_table} dataset.
 
-3-1
-}
-
-\examples{
-# Create a pointblank `informant`
-# object with `create_informant()`;
-# we can specify a `tbl` with the
-# `~` followed by a statement that
-# gets the `small_table` dataset
-informant <- 
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- 
   create_informant(
     tbl = ~ small_table,
     tbl_name = "small_table",
     label = "An example."
   )
+}\if{html}{\out{</div>}}
 
-# We can add *info text* to describe
-# the table with `info_tabular()`
-informant <-
+We can add \emph{info text} to describe the table with the various \verb{info_*()}
+functions. In this example, we'll use \code{\link[=info_tabular]{info_tabular()}} to generally describe
+the \code{small_table} dataset.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <-
   informant \%>\%
   info_tabular(
     `Row Definition` = "A row has randomized values.",
@@ -143,32 +142,26 @@ informant <-
       "- [https://rich-iannone.github.io/pointblank/]()"
      )
    )
+}\if{html}{\out{</div>}}
 
-# Upon printing the `informant` object, we see
-# the additions made to the 'Table' section
+Upon printing the \code{informant} object, we see the additions made to the
+'Table' section of the report.
 
-if (interactive()) {
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant
+}\if{html}{\out{</div>}}
 
-# The `informant` object can be written to
-# a YAML file with the `yaml_write()`
-# function; then information can
-# be directly edited or modified
-yaml_write(
-  informant = informant,
-  filename = "informant.yml"
-)
-
-# The YAML file can then be read back
-# into an informant object with the
-# `yaml_read_informant()` function
-informant <-
-  yaml_read_informant(
-    filename = "informant.yml"
-  )
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_tabular_1.png" style="width:100\%;">
+}
+}
 }
 
+\section{Function ID}{
+
+3-1
 }
+
 \seealso{
 Other Information Functions: 
 \code{\link{info_columns_from_tbl}()},

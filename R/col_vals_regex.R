@@ -25,11 +25,27 @@
 #' whether column values in a table correspond to a `regex` matching expression.
 #' The validation function can be used directly on a data table or with an
 #' *agent* object (technically, a `ptblank_agent` object) whereas the
-#' expectation and test functions can only be used with a data table. The types
-#' of data tables that can be used include data frames, tibbles, database tables
-#' (`tbl_dbi`), and Spark DataFrames (`tbl_spark`). Each validation step or
-#' expectation will operate over the number of test units that is equal to the
-#' number of rows in the table (after any `preconditions` have been applied).
+#' expectation and test functions can only be used with a data table. Each
+#' validation step or expectation will operate over the number of test units
+#' that is equal to the number of rows in the table (after any `preconditions`
+#' have been applied).
+#' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
 #'
 #' @section Column Names:
 #' If providing multiple column names, the result will be an expansion of
@@ -125,8 +141,9 @@
 #' validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
+#' R statement:
+#' 
 #' ```
-#' # R statement
 #' agent %>% 
 #'   col_vals_regex(
 #'     columns = vars(a),
@@ -138,8 +155,11 @@
 #'     label = "The `col_vals_regex()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - col_vals_regex:
 #'     columns: vars(a)
@@ -173,73 +193,74 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #' 
-#' @examples
-#' # The `small_table` dataset in the
-#' # package has a character-based `b`
-#' # column with values that adhere to
-#' # a very particular pattern; the
-#' # following examples will validate
-#' # that that column abides by a regex
-#' # pattern
+#' @section Examples:
+#' 
+#' The `small_table` dataset in the package has a character-based `b` column
+#' with values that adhere to a very particular pattern. The following examples
+#' will validate that that column abides by a regex pattern.
+#' 
+#' ```{r}
 #' small_table
+#' ```
 #' 
-#' # This is the regex pattern that will
-#' # be used throughout
+#' This is the regex pattern that will be used throughout:
+#' 
+#' ```{r}
 #' pattern <- "[0-9]-[a-z]{3}-[0-9]{3}"
+#' ```
 #' 
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()`
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
 #' 
-#' # Validate that all values in column
-#' # `b` match the regex `pattern`
+#' Validate that all values in column `b` match the regex `pattern`. We'll
+#' determine if this validation has any failing test units (there are 13 test
+#' units, one for each row).
+#' 
+#' ```r
 #' agent <-
-#'   create_agent(small_table) %>%
-#'   col_vals_regex(vars(b), pattern) %>%
+#'   create_agent(tbl = small_table) %>%
+#'   col_vals_regex(columns = vars(b), regex = pattern) %>%
 #'   interrogate()
-#'   
-#' # Determine if this validation
-#' # had no failing test units (there
-#' # are 13 test units, one for each row)
-#' all_passed(agent)
+#' ```
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_col_vals_regex_1.png")`
+#' }
+#' }
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
+#' ## B: Using the validation function directly on the data (no `agent`)
+#' 
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
 #' small_table %>%
-#'   col_vals_regex(vars(b), pattern) %>%
+#'   col_vals_regex(columns = vars(b), regex = pattern) %>%
 #'   dplyr::slice(1:5)
+#' ```
 #'
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
-#' expect_col_vals_regex(
-#'   small_table,
-#'   vars(b), pattern
-#' )
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
 #' 
-#' # D: Using the test function
+#' ```r
+#' expect_col_vals_regex(small_table, columns = vars(b), regex = pattern)
+#' ```
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
-#' small_table %>%
-#'   test_col_vals_regex(
-#'     vars(b), pattern
-#'   )
+#' ## D: Using the test function
+#' 
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
+#' small_table %>% test_col_vals_regex(columns = vars(b), regex = pattern)
+#' ```
 #' 
 #' @family validation functions
 #' @section Function ID:
@@ -251,17 +272,19 @@ NULL
 #' @rdname col_vals_regex
 #' @import rlang
 #' @export
-col_vals_regex <- function(x,
-                           columns,
-                           regex,
-                           na_pass = FALSE,
-                           preconditions = NULL,
-                           segments = NULL,
-                           actions = NULL,
-                           step_id = NULL,
-                           label = NULL,
-                           brief = NULL,
-                           active = TRUE) {
+col_vals_regex <- function(
+    x,
+    columns,
+    regex,
+    na_pass = FALSE,
+    preconditions = NULL,
+    segments = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
   
   # Get `columns` as a label
   columns_expr <- 
@@ -362,12 +385,14 @@ col_vals_regex <- function(x,
 #' @rdname col_vals_regex
 #' @import rlang
 #' @export
-expect_col_vals_regex <- function(object,
-                                  columns,
-                                  regex,
-                                  na_pass = FALSE,
-                                  preconditions = NULL,
-                                  threshold = 1) {
+expect_col_vals_regex <- function(
+    object,
+    columns,
+    regex,
+    na_pass = FALSE,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   fn_name <- "expect_col_vals_regex"
   
@@ -442,12 +467,14 @@ expect_col_vals_regex <- function(object,
 #' @rdname col_vals_regex
 #' @import rlang
 #' @export
-test_col_vals_regex <- function(object,
-                                columns,
-                                regex,
-                                na_pass = FALSE,
-                                preconditions = NULL,
-                                threshold = 1) {
+test_col_vals_regex <- function(
+    object,
+    columns,
+    regex,
+    na_pass = FALSE,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%

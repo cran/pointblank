@@ -135,12 +135,33 @@ whether column values in a table are equal to a specified \code{value}. The
 \code{value} can be specified as a single, literal value or as a column name given
 in \code{vars()}. The validation function can be used directly on a data table or
 with an \emph{agent} object (technically, a \code{ptblank_agent} object) whereas the
-expectation and test functions can only be used with a data table. The types
-of data tables that can be used include data frames, tibbles, database tables
-(\code{tbl_dbi}), and Spark DataFrames (\code{tbl_spark}). Each validation step or
-expectation will operate over the number of test units that is equal to the
-number of rows in the table (after any \code{preconditions} have been applied).
+expectation and test functions can only be used with a data table. Each
+validation step or expectation will operate over the number of test units
+that is equal to the number of rows in the table (after any \code{preconditions}
+have been applied).
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Column Names}{
 
 If providing multiple column names to \code{columns}, the result will be an
@@ -244,8 +265,11 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 a list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{col_vals_equal()} as a
 validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   col_vals_equal(
     columns = vars(a),
     value = 1,
@@ -256,9 +280,11 @@ agent \%>\%
     label = "The `col_vals_equal()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - col_vals_equal:
     columns: vars(a)
     value: 1.0
@@ -270,7 +296,7 @@ steps:
       stop_fraction: 0.2
     label: The `col_vals_equal()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter as only the \code{columns} and
 \code{value} arguments require values. Arguments with default values won't be
@@ -280,17 +306,13 @@ possible to preview the transformation of an agent to YAML without any
 writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-3
-}
 
-\examples{
-# For all of the examples here, we'll
-# use a simple table with three numeric
-# columns (`a`, `b`, and `c`) and three
-# character columns (`d`, `e`, and `f`)
-tbl <-
+For all of the examples here, we'll use a simple table with three numeric
+columns (\code{a}, \code{b}, and \code{c}) and three character columns (\code{d}, \code{e}, and \code{f}).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <-
   dplyr::tibble(
     a = c(5, 5, 5, 5, 5, 5),
     b = c(1, 1, 1, 2, 2, 2),
@@ -301,60 +323,88 @@ tbl <-
   )
   
 tbl
+}\if{html}{\out{</div>}}
 
-# A: Using an `agent` with validation
-#    functions and then `interrogate()` 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 6
+##       a     b     c d     e     f    
+##   <dbl> <dbl> <dbl> <chr> <chr> <chr>
+## 1     5     1     1 A     A     A    
+## 2     5     1     1 B     B     B    
+## 3     5     1     1 C     C     C    
+## 4     5     2     2 E     D     D    
+## 5     5     2     2 F     E     E    
+## 6     5     2     2 G     F     F
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
 
-# Validate that values in column `a`
-# are all equal to the value of `5`
-agent <-
-  create_agent(tbl) \%>\%
-  col_vals_equal(vars(a), 5) \%>\%
+Validate that values in column \code{a} are all equal to the value of \code{5}. We'll
+determine if this validation has any failing test units (there are 6 test
+units, one for each row).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
+  create_agent(tbl = tbl) \%>\%
+  col_vals_equal(columns = vars(a), value = 5) \%>\%
   interrogate()
+}\if{html}{\out{</div>}}
 
-# Determine if this validation
-# had no failing test units (there
-# are 6 test units, one for each row)
-all_passed(agent)
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\% 
-  col_vals_equal(vars(a), 5) \%>\%
-  dplyr::pull(a)
-  
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_col_vals_equal(tbl, vars(a), 5)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-test_col_vals_equal(tbl, vars(a), 5)
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_vals_equal_1.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% 
+  col_vals_equal(columns = vars(a), value = 5) \%>\%
+  dplyr::pull(a)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] 5 5 5 5 5 5
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_col_vals_equal(tbl, columns = vars(a), value = 5)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{test_col_vals_equal(tbl, columns = vars(a), value = 5)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
+\section{Function ID}{
+
+2-3
+}
+
 \seealso{
 The analogue to this function: \code{\link[=col_vals_not_equal]{col_vals_not_equal()}}.
 
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

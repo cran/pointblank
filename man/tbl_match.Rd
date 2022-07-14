@@ -200,12 +200,15 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{tbl_match()} as a
 validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   tbl_match(
     tbl_compare = ~ file_tbl(
       file = from_github(
-        file = "all_revenue_large.rds",
+        file = "sj_all_revenue_large.rds",
         repo = "rich-iannone/intendo",
         subdir = "data-large"
         )
@@ -216,13 +219,15 @@ agent \%>\%
     label = "The `tbl_match()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - tbl_match:
     tbl_compare: ~ file_tbl(
       file = from_github(
-        file = "all_revenue_large.rds",
+        file = "sj_all_revenue_large.rds",
         repo = "rich-iannone/intendo",
         subdir = "data-large"
         )
@@ -234,7 +239,7 @@ steps:
       stop_fraction: 0.2
     label: The `tbl_match()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter. Arguments with default
 values won't be written to YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is
@@ -244,15 +249,12 @@ to YAML without any writing to disk by using the \code{\link[=yaml_agent_string]
 function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-32
-}
 
-\examples{
-# Create a simple table with three
-# columns and four rows of values
-tbl <-
+Create a simple table with three columns and four rows of values.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <-
   dplyr::tibble(
     a = c(5, 7, 6, 5),
     b = c(7, 1, 0, 0),
@@ -260,72 +262,108 @@ tbl <-
   )
 
 tbl
+}\if{html}{\out{</div>}}
 
-# Create a second table which is 
-# the same as `tbl`
-tbl_2 <-
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     7     1
+## 2     7     1     1
+## 3     6     0     1
+## 4     5     0     3
+}\if{html}{\out{</div>}}
+
+Create a second table which is the same as \code{tbl}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl_2 <-
   dplyr::tibble(
     a = c(5, 7, 6, 5),
     b = c(7, 1, 0, 0),
     c = c(1, 1, 1, 3)
   )
 
-# A: Using an `agent` with validation
-#    functions and then `interrogate()` 
+tbl_2
+}\if{html}{\out{</div>}}
 
-# Validate that the target table
-# (`tbl`) and the comparison table
-# (`tbl_2`) are equivalent in terms
-# of content
-agent <-
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     7     1
+## 2     7     1     1
+## 3     6     0     1
+## 4     5     0     3
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+Validate that the target table (\code{tbl}) and the comparison table (\code{tbl_2}) are
+equivalent in terms of content.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   create_agent(tbl = tbl) \%>\%
   tbl_match(tbl_compare = tbl_2) \%>\%
   interrogate()
+}\if{html}{\out{</div>}}
 
-# Determine if this validation passed
-# by using `all_passed()`
-all_passed(agent)
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\%
-  tbl_match(tbl_compare = tbl_2)
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_tbl_match(
-  tbl, tbl_compare = tbl_2
-)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-tbl \%>\% 
-  tbl_match(
-    tbl_compare = tbl_2
-  )
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_tbl_match_1.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% tbl_match(tbl_compare = tbl_2)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     7     1
+## 2     7     1     1
+## 3     6     0     1
+## 4     5     0     3
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_tbl_match(tbl, tbl_compare = tbl_2)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% test_tbl_match(tbl_compare = tbl_2)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
+\section{Function ID}{
+
+2-33
+}
+
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

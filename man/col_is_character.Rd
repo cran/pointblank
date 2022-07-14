@@ -98,11 +98,32 @@ many of the \verb{col_is_*()}-type functions in \strong{pointblank}, the only
 requirement is a specification of the column names. The validation function
 can be used directly on a data table or with an \emph{agent} object (technically,
 a \code{ptblank_agent} object) whereas the expectation and test functions can only
-be used with a data table. The types of data tables that can be used include
-data frames, tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames
-(\code{tbl_spark}). Each validation step or expectation will operate over a single
-test unit, which is whether the column is a character-type column or not.
+be used with a data table. Each validation step or expectation will operate
+over a single test unit, which is whether the column is a character-type
+column or not.
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Column Names}{
 
 If providing multiple column names, the result will be an expansion of
@@ -145,17 +166,22 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 as a list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{col_is_character()} as
 a validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   col_is_character(
-    vars(a),
+    columns = vars(a),
     actions = action_levels(warn_at = 0.1, stop_at = 0.2),
     label = "The `col_is_character()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - col_is_character:
     columns: vars(a)
     actions:
@@ -163,7 +189,7 @@ steps:
       stop_fraction: 0.2
     label: The `col_is_character()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter as only the \code{columns}
 argument requires a value. Arguments with default values won't be written to
@@ -173,69 +199,106 @@ to preview the transformation of an agent to YAML without any writing to disk
 by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
+\section{Examples}{
+
+
+For all examples here, we'll use a simple table with a numeric column (\code{a})
+and a character column (\code{b}).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <-
+  dplyr::tibble(
+    a = c(5, 7, 6, 5, 8, 7),
+    b = LETTERS[1:6]
+  )
+
+tbl
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 2
+##       a b    
+##   <dbl> <chr>
+## 1     5 A    
+## 2     7 B    
+## 3     6 C    
+## 4     5 D    
+## 5     8 E    
+## 6     7 F
+}\if{html}{\out{</div>}}
+
+We'll use this table with the different function variants.
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+Validate that column \code{b} has the \code{character} class.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
+  create_agent(tbl = tbl) \%>\%
+  col_is_character(columns = vars(b)) \%>\%
+  interrogate()
+}\if{html}{\out{</div>}}
+
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
+
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_is_character_1.png" style="width:100\%;">
+}
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% 
+  col_is_character(columns = vars(b)) \%>\%
+  dplyr::slice(1:5)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 5 × 2
+##       a b    
+##   <dbl> <chr>
+## 1     5 A    
+## 2     7 B    
+## 3     6 C    
+## 4     5 D    
+## 5     8 E
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_col_is_character(tbl, columns = vars(b))
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% test_col_is_character(columns = vars(b))
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
 \section{Function ID}{
 
 2-22
 }
 
-\examples{
-# For all examples here, we'll use
-# a simple table with a numeric column
-# (`a`) and a character column (`b`)
-tbl <-
-  dplyr::tibble(
-    a = c(5, 7, 6, 5, 8, 7),
-    b = LETTERS[1:6]
-  )
-  
-# A: Using an `agent` with validation
-#    functions and then `interrogate()`
-
-# Validate that column `b` has the
-# `character` class
-agent <-
-  create_agent(tbl) \%>\%
-  col_is_character(vars(b)) \%>\%
-  interrogate()
-
-# Determine if this validation
-# had no failing test units (1)
-all_passed(agent)
-
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\% col_is_character(vars(b))
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_col_is_character(tbl, vars(b))
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-tbl \%>\% test_col_is_character(vars(b))
-
-}
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_date}()},
 \code{\link{col_is_factor}()},

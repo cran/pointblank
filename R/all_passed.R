@@ -21,7 +21,7 @@
 #'
 #' @description
 #' Given an agent's validation plan that had undergone interrogation via
-#' `interrogate()`, did every single validation step result in zero *failing*
+#' [interrogate()], did every single validation step result in zero *failing*
 #' test units? Using the `all_passed()` function will let us know whether that's
 #' `TRUE` or not.
 #' 
@@ -48,33 +48,47 @@
 #'
 #' @return A logical value.
 #' 
-#' @examples
-#' # Create a simple table with
-#' # a column of numerical values
-#' tbl <- 
-#'   dplyr::tibble(a = c(4, 5, 7, 8))
+#' @section Examples:
 #' 
-#' # Validate that values in column
-#' # `a` are always greater than 4
+#' Create a simple table with a column of numerical values.
+#' 
+#' ```{r}
+#' tbl <- dplyr::tibble(a = c(4, 5, 7, 8))
+#' 
+#' tbl
+#' ```
+#' 
+#' Validate that values in column `a` are always greater than 4.
+#' 
+#' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'   col_vals_gt(vars(a), value = 3) %>%
-#'   col_vals_lte(vars(a), value = 10) %>%
-#'   col_vals_increasing(vars(a)) %>%
+#'   col_vals_gt(columns = vars(a), value = 3) %>%
+#'   col_vals_lte(columns = vars(a), value = 10) %>%
+#'   col_vals_increasing(columns = vars(a)) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # Determine if these column
-#' # validations have all passed by
-#' # using `all_passed()` (they do)
+#' Determine if these column validations have all passed by using `all_passed()`
+#' (they do).
+#' 
+#' ```r
 #' all_passed(agent = agent)
+#' ```
+#' 
+#' ```
+#' #> [1] TRUE
+#' ```
 #' 
 #' @family Post-interrogation
 #' @section Function ID:
 #' 8-4
 #' 
 #' @export
-all_passed <- function(agent,
-                       i = NULL) {
+all_passed <- function(
+    agent,
+    i = NULL
+) {
   
   # Stop function if the agent did not interrogate the target data
   if (!has_agent_intel(agent)) {

@@ -93,145 +93,148 @@
 #' @return A **gt** table object if `display_table = TRUE` or a tibble if
 #'   `display_table = FALSE`.
 #' 
-#' @examples 
-#' if (interactive()) {
+#' @section Examples:
 #' 
-#' # Let's walk through several theoretical
-#' # data quality analyses of an extremely
-#' # small table; that table is called
-#' # `small_table` and we can find it as a
-#' # dataset in this package
+#' Let's walk through several theoretical data quality analyses of an extremely
+#' small table. that table is called `small_table` and we can find it as a
+#' dataset in this package.
+#' 
+#' ```{r}
 #' small_table
+#' ```
 #' 
-#' # To set failure limits and signal
-#' # conditions, we designate proportional
-#' # failure thresholds to the `warn`, `stop`,
-#' # and `notify` states using `action_levels()`
+#' To set failure limits and signal conditions, we designate proportional
+#' failure thresholds to the `warn`, `stop`, and `notify` states using
+#' `action_levels()`.
+#' 
+#' ```r
 #' al <- 
 #'   action_levels(
 #'     warn_at = 0.05,
 #'     stop_at = 0.10,
 #'     notify_at = 0.20
 #'   )
+#' ```
 #' 
-#' # We will create four different agents
-#' # and have slightly different validation
-#' # steps in each of them; in the first,
-#' # `agent_1`, eight different validation
-#' # steps are created and the agent will
-#' # interrogate the `small_table`
+#' We will create four different agents and have slightly different validation
+#' steps in each of them. In the first, `agent_1`, eight different validation
+#' steps are created and the agent will interrogate the `small_table`.
+#' 
+#' ```r
 #' agent_1 <-
 #'   create_agent(
 #'     tbl = small_table,
-#'     tbl_name = "small_table",
-#'     label = "`get_multiagent_report()`",
+#'     label = "An example.",
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
-#'     vars(date_time),
+#'     columns = vars(date_time),
 #'     value = vars(date),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   col_vals_gt(
-#'     vars(b), 
+#'     columns = vars(b), 
 #'     value = vars(g),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   rows_distinct() %>%
 #'   col_vals_equal(
-#'     vars(d), 
+#'     columns = vars(d), 
 #'     value = vars(d),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   col_vals_between(
-#'     vars(c), 
+#'     columns = vars(c), 
 #'     left = vars(a), right = vars(d)
 #'   ) %>%
 #'   col_vals_not_between(
-#'     vars(c),
+#'     columns = vars(c),
 #'     left = 10, right = 20,
 #'     na_pass = TRUE
 #'   ) %>%
-#'   rows_distinct(vars(d, e, f)) %>%
-#'   col_is_integer(vars(a)) %>%
+#'   rows_distinct(columns = vars(d, e, f)) %>%
+#'   col_is_integer(columns = vars(a)) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # The second agent, `agent_2`, retains
-#' # all of the steps of `agent_1` and adds
-#' # two more (the last of which is inactive)
+#' The second agent, `agent_2`, retains all of the steps of `agent_1` and adds
+#' two more (the last of which is inactive).
+#' 
+#' ```r
 #' agent_2 <- 
 #'   agent_1 %>%
-#'   col_exists(vars(date, date_time)) %>%
+#'   col_exists(columns = vars(date, date_time)) %>%
 #'   col_vals_regex(
-#'     vars(b), 
+#'     columns = vars(b), 
 #'     regex = "[0-9]-[a-z]{3}-[0-9]{3}",
 #'     active = FALSE
 #'   ) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # The third agent, `agent_3`, adds a single
-#' # validation step, removes the fifth one,
-#' # and deactivates the first
+#' The third agent, `agent_3`, adds a single validation step, removes the fifth
+#' one, and deactivates the first.
+#' 
+#' ```r
 #' agent_3 <- 
 #'   agent_2 %>%
 #'   col_vals_in_set(
-#'     vars(f),
+#'     columns = vars(f),
 #'     set = c("low", "mid", "high")
 #'   ) %>%
 #'   remove_steps(i = 5) %>%
 #'   deactivate_steps(i = 1) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # The fourth and final agent, `agent_4`,
-#' # reactivates steps 1 and 10, and removes
-#' # the sixth step
+#' The fourth and final agent, `agent_4`, reactivates steps 1 and 10, and
+#' removes the sixth step.
+#' 
+#' ```r
 #' agent_4 <-
 #'   agent_3 %>%
 #'   activate_steps(i = 1) %>%
 #'   activate_steps(i = 10) %>%
 #'   remove_steps(i = 6) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # While all the agents are slightly
-#' # different from each other, we can still
-#' # get a combined report of them by
-#' # creating a 'multiagent'
+#' While all the agents are slightly different from each other, we can still get
+#' a combined report of them by creating a 'multiagent'.
+#' 
+#' ```r
 #' multiagent <-
 #'   create_multiagent(
 #'     agent_1, agent_2, agent_3, agent_4
 #'   )
+#' ```
 #' 
-#' # Calling `multiagent` in the console
-#' # prints the multiagent report; but we
-#' # can use some non-default option with
-#' # the `get_multiagent_report()` function
+#' Calling `multiagent` in the console prints the multiagent report. But we can
+#' generate a `"ptblank_multiagent_report"` object with the
+#' `get_multiagent_report()` function and specify options for layout and
+#' presentation.
 #' 
-#' # By default, `get_multiagent_report()`
-#' # gives you a tall report with agent
-#' # reports being stacked
-#' report_1 <- 
-#'   get_multiagent_report(multiagent)
-#'   
-#' # We can modify the title with that's
-#' # more suitable or use a keyword like
-#' # `:tbl_name:` to give us the target
-#' # table name in each section
-#' report_2 <- 
-#'   get_multiagent_report(
-#'     multiagent,
-#'     title = ":tbl_name:"
-#'   )
+#' By default, `get_multiagent_report()` gives you a long report with agent
+#' reports being stacked. Think of this `"long"` option as the serial mode of
+#' agent reports. However if we want to view interrogation results of the same
+#' table over time, the wide view may be preferable. In this way we can see
+#' whether the results of common validation steps improved or worsened over
+#' consecutive interrogations of the data.
 #' 
-#' # We can opt for a wide display of
-#' # the reporting info, and this is
-#' # great when reporting on multiple
-#' # validations of the same target
-#' # table
-#' report_3 <- 
+#' ```r
+#' report_wide <- 
 #'   get_multiagent_report(
 #'     multiagent,
 #'     display_mode = "wide"
 #'   )
+#'   
+#' report_wide
+#' ```
+#' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_get_multiagent_report_1.png")`
+#' }
 #' }
 #'
 #' @family The multiagent
@@ -239,12 +242,14 @@
 #' 10-3
 #'
 #' @export
-get_multiagent_report <- function(multiagent,
-                                  display_table = TRUE,
-                                  display_mode = c("long", "wide"),
-                                  title = ":default:",
-                                  lang = NULL,
-                                  locale = NULL) {
+get_multiagent_report <- function(
+    multiagent,
+    display_table = TRUE,
+    display_mode = c("long", "wide"),
+    title = ":default:",
+    lang = NULL,
+    locale = NULL
+) {
 
   if (is.null(lang)) {
     lang <- "en"
@@ -786,7 +791,7 @@ get_multiagent_report <- function(multiagent,
     ) %>%
     gt::fmt_markdown(columns = 2:n_columns) %>%
     gt::fmt_markdown(columns = "sha1") %>%
-    gt::fmt_missing(
+    gt_missing(
       columns = columns_used_tbl,
       missing_text = gt::html(
         as.character(
@@ -801,7 +806,7 @@ get_multiagent_report <- function(multiagent,
         )
       )
     ) %>%
-    gt::fmt_missing(
+    gt_missing(
       columns = columns_not_used,
       missing_text = ""
     ) %>%
@@ -894,8 +899,10 @@ get_multiagent_report <- function(multiagent,
   report_tbl
 }
 
-generate_cell_content <- function(layout_type,
-                                  vals_step) {
+generate_cell_content <- function(
+    layout_type,
+    vals_step
+) {
 
   if (!vals_step$eval_active) {
     border_indicator <- "#777777"

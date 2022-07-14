@@ -41,12 +41,10 @@
 #' \item{Sample}{A table that provides the head and tail rows of the dataset}
 #' }
 #' 
-#' The output HTML report will appear in the RStudio Viewer and can also be
-#' integrated in R Markdown HTML output. If you need the output HTML as a
-#' string, it's possible to get that by using `as.character()` (e.g.,
-#' `scan_data(tbl = mtcars) %>% as.character()`). The resulting HTML string is a
-#' complete HTML document where **Bootstrap** and **jQuery** are embedded
-#' within.
+#' The resulting object can be printed to make it viewable in the RStudio
+#' Viewer. It's also a `"shiny.tag.list"` object and so can be integrated in R
+#' Markdown HTML output or in Shiny applications. If you need the output HTML,
+#' it's to export that to a file with the [export_report()] function.
 #' 
 #' @param tbl The input table. This can be a data frame, tibble, a `tbl_dbi`
 #'   object, or a `tbl_spark` object.
@@ -73,30 +71,37 @@
 #'   (United States) and `"fr_FR"` for French (France); more simply, this can be
 #'   a language identifier without a country designation, like `"es"` for
 #'   Spanish (Spain, same as `"es_ES"`).
-#'   
-#' @examples
-#' if (interactive()) {
 #' 
-#' # Get an HTML document that describes all of
-#' # the data in the `dplyr::storms` dataset
+#' @return A `ptblank_tbl_scan` object.
+#' 
+#' @section Examples:
+#' 
+#' Get an HTML document that describes all of the data in the `dplyr::storms`
+#' dataset.
+#' 
+#' ```r
 #' tbl_scan <- scan_data(tbl = dplyr::storms)
+#' ```
 #' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_scan_data_1.png")`
 #' }
-#' 
-#' @section Figures:
-#' \if{html}{\figure{man_scan_data_1.png}{options: width=100\%}}
+#' }
 #' 
 #' @family Planning and Prep
 #' @section Function ID:
 #' 1-1
 #' 
 #' @export
-scan_data <- function(tbl,
-                      sections = "OVICMS",
-                      navbar = TRUE,
-                      width = NULL,
-                      lang = NULL,
-                      locale = NULL) {
+scan_data <- function(
+    tbl,
+    sections = "OVICMS",
+    navbar = TRUE,
+    width = NULL,
+    lang = NULL,
+    locale = NULL
+) {
 
   # If the document is undergoing knitting then adjust some options
   if (isTRUE(getOption("knitr.in.progress"))) {
@@ -277,9 +282,11 @@ scan_data <- function(tbl,
 # Generate section components such as tables and plots
 #
 
-probe_overview_stats <- function(data,
-                                 lang,
-                                 locale) {
+probe_overview_stats <- function(
+    data,
+    lang,
+    locale
+) {
   
   n_cols <- get_table_total_columns(data = data)
   n_rows <- get_table_total_rows(data = data)
@@ -392,9 +399,11 @@ probe_overview_stats <- function(data,
   )
 }
 
-probe_columns <- function(data,
-                          lang,
-                          locale) {
+probe_columns <- function(
+    data,
+    lang,
+    locale
+) {
   
   n_rows <- get_table_total_rows(data = data)
   
@@ -486,10 +495,12 @@ probe_columns <- function(data,
   column_descriptions
 }
 
-get_column_description_gt <- function(data_column,
-                                      n_rows,
-                                      lang,
-                                      locale) {
+get_column_description_gt <- function(
+    data_column,
+    n_rows,
+    lang,
+    locale
+) {
 
   distinct_count <- get_table_column_distinct_rows(data_column = data_column)
   
@@ -520,9 +531,11 @@ get_column_description_gt <- function(data_column,
   column_description_gt
 }
 
-get_numeric_stats_gt <- function(data_column,
-                                 lang,
-                                 locale) {
+get_numeric_stats_gt <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   summary_stats <- get_table_column_summary(data_column = data_column)
 
@@ -558,9 +571,11 @@ get_numeric_stats_gt <- function(data_column,
   column_stats_gt
 }
 
-get_quantile_stats_gt <- function(data_column,
-                                  lang,
-                                  locale) {
+get_quantile_stats_gt <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   if (inherits(data_column, "tbl_dbi")) {
     
@@ -631,9 +646,11 @@ get_df_column_quantile_stats <- function(data_column) {
   quantile_stats
 }
 
-get_descriptive_stats_gt <- function(data_column,
-                                     lang,
-                                     locale) {
+get_descriptive_stats_gt <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   if (inherits(data_column, "tbl_dbi") ||
       inherits(data_column, "tbl_spark")) {
@@ -707,9 +724,11 @@ get_descriptive_stats_gt <- function(data_column,
     )
 }
 
-get_common_values_gt <- function(data_column,
-                                 lang,
-                                 locale) {
+get_common_values_gt <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   n_rows <- get_table_total_rows(data = data_column)
 
@@ -777,7 +796,7 @@ get_common_values_gt <- function(data_column,
         n = get_lsv("table_scan/tbl_lab_count")[[lang]],
         frequency = get_lsv("table_scan/tbl_lab_frequency")[[lang]],
       ) %>%
-      gt::fmt_missing(columns = "value", missing_text = "**NA**") %>%
+      gt_missing(columns = "value", missing_text = "**NA**") %>%
       gt::text_transform(
         locations = gt::cells_body(columns = "value"),
         fn = function(x) {
@@ -815,7 +834,7 @@ get_common_values_gt <- function(data_column,
         n = get_lsv("table_scan/tbl_lab_count")[[lang]],
         frequency = get_lsv("table_scan/tbl_lab_frequency")[[lang]],
       ) %>%
-      gt::fmt_missing(columns = "value", missing_text = "**NA**") %>%
+      gt_missing(columns = "value", missing_text = "**NA**") %>%
       gt::text_transform(
         locations = gt::cells_body(columns = "value"),
         fn = function(x) ifelse(x == "**NA**", "<code>NA</code>", x)
@@ -842,9 +861,11 @@ get_head_tail_slices <- function(data_column) {
   head_tail_slices$probe_sample
 }
 
-get_top_bottom_slice <- function(data_column,
-                                 lang,
-                                 locale) {
+get_top_bottom_slice <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   n_rows <- get_table_total_rows(data = data_column)
 
@@ -897,9 +918,11 @@ get_top_bottom_slice <- function(data_column,
   )
 }
 
-get_character_nchar_stats_gt <- function(data_column,
-                                         lang,
-                                         locale) {
+get_character_nchar_stats_gt <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   character_nchar_stats <- 
     data_column %>%
@@ -935,9 +958,11 @@ get_character_nchar_stats_gt <- function(data_column,
     )
 }
 
-get_character_nchar_plot <- function(data_column,
-                                     lang,
-                                     locale) {
+get_character_nchar_plot <- function(
+    data_column,
+    lang,
+    locale
+) {
   
   suppressWarnings(
     plot_histogram <- 
@@ -978,12 +1003,14 @@ get_character_nchar_plot <- function(data_column,
   image_html
 }
 
-probe_columns_numeric <- function(data,
-                                  column,
-                                  col_label,
-                                  n_rows,
-                                  lang,
-                                  locale) {
+probe_columns_numeric <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   data_column <- dplyr::select(data, {{ column }})
   
@@ -1044,12 +1071,14 @@ probe_columns_numeric <- function(data,
   )
 }
 
-probe_columns_integer <- function(data,
-                                  column,
-                                  col_label,
-                                  n_rows,
-                                  lang,
-                                  locale) {
+probe_columns_integer <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   probe_columns_integer_list <- 
     probe_columns_numeric(
@@ -1066,12 +1095,14 @@ probe_columns_integer <- function(data,
   probe_columns_integer_list
 }
 
-probe_columns_character <- function(data,
-                                    column,
-                                    col_label,
-                                    n_rows,
-                                    lang,
-                                    locale) {
+probe_columns_character <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   data_column <- data %>% dplyr::select({{ column }})
   
@@ -1115,12 +1146,14 @@ probe_columns_character <- function(data,
   )
 }
 
-probe_columns_logical <- function(data,
-                                  column,
-                                  col_label,
-                                  n_rows,
-                                  lang,
-                                  locale) {
+probe_columns_logical <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   data_column <- data %>% dplyr::select({{ column }})
   
@@ -1140,12 +1173,14 @@ probe_columns_logical <- function(data,
   )
 }
 
-probe_columns_factor <- function(data,
-                                 column,
-                                 col_label,
-                                 n_rows,
-                                 lang,
-                                 locale) {
+probe_columns_factor <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   data_column <- data %>% dplyr::select({{ column }})
   
@@ -1165,12 +1200,14 @@ probe_columns_factor <- function(data,
   )
 }
 
-probe_columns_date <- function(data,
-                               column,
-                               col_label,
-                               n_rows,
-                               lang,
-                               locale) {
+probe_columns_date <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   data_column <- data %>% dplyr::select({{ column }})
   
@@ -1190,12 +1227,14 @@ probe_columns_date <- function(data,
   )
 }
 
-probe_columns_posix <- function(data,
-                                column,
-                                col_label,
-                                n_rows,
-                                lang,
-                                locale) {
+probe_columns_posix <- function(
+    data,
+    column,
+    col_label,
+    n_rows,
+    lang,
+    locale
+) {
   
   data_column <- data %>% dplyr::select({{ column }})
   
@@ -1215,10 +1254,12 @@ probe_columns_posix <- function(data,
   )
 }
 
-probe_columns_other <- function(data,
-                                column,
-                                col_label,
-                                n_rows) {
+probe_columns_other <- function(
+    data,
+    column,
+    col_label,
+    n_rows
+) {
   
   data_column <- data %>% dplyr::select({{ column }})
   
@@ -1359,8 +1400,10 @@ probe_correlations <- function(data) {
   )
 }
 
-get_corr_plot <- function(mat,
-                          labels_vec) {
+get_corr_plot <- function(
+    mat,
+    labels_vec
+) {
   
   corr_df <- 
     as.data.frame(as.table(mat)) %>%
@@ -1423,6 +1466,7 @@ get_corr_plot <- function(mat,
 }
 
 probe_missing <- function(data) {
+  
   n_rows <- get_table_total_rows(data = data)
   col_names <- get_table_column_names(data = data)
 
@@ -1478,16 +1522,21 @@ probe_missing <- function(data) {
 }
 
 probe_sample <- function(data) {
-  
+
   probe_sample <-
     data %>%
     gt::gt_preview(top_n = 5, bottom_n = 5) %>%
-    gt::fmt_missing(columns = gt::everything(), missing_text = "**NA**") %>%
+    gt_missing(columns = gt::everything(), missing_text = "**NA**") %>%
     gt::text_transform(
       locations = gt::cells_body(columns = gt::everything()),
       fn = function(x) ifelse(x == "**NA**", "<code>NA</code>", x)
     ) %>%
-    gt::tab_options(table.width = "100%")
+    gt::tab_options(table.width = "100%") %>% 
+    gt::tab_style(style = gt::cell_text(font = "monospace"),
+      locations = list(gt::cells_column_labels(), gt::cells_body())) %>% 
+    gt::text_transform(locations = gt::cells_body(), 
+      fn = function(x) {ifelse(x == "<code>NA</code>",
+        "<code style=\"color:#3A70FB\">NA</code>", x)})
   
   list(probe_sample = probe_sample)
 }
@@ -1505,13 +1554,15 @@ bootstrap_lib <- function() {
   )
 }
 
-build_table_scan_page <- function(data,
-                                  tbl_name,
-                                  sections,
-                                  navbar,
-                                  lang,
-                                  locale,
-                                  width = NULL) {
+build_table_scan_page <- function(
+    data,
+    tbl_name,
+    sections,
+    navbar,
+    lang,
+    locale,
+    width = NULL
+) {
   
   if (navbar) {
     navbar <- navbar(sections = sections, lang = lang)
@@ -1657,10 +1708,12 @@ build_table_scan_page <- function(data,
   table_scan
 }
 
-probe_overview_stats_assemble <- function(data,
-                                          tbl_name,
-                                          lang,
-                                          locale) {
+probe_overview_stats_assemble <- function(
+    data,
+    tbl_name,
+    lang,
+    locale
+) {
   
   cli::cli_div(
     theme = list(
@@ -1782,9 +1835,11 @@ probe_overview_stats_assemble <- function(data,
   overview_stats_tags
 }
 
-probe_columns_assemble <- function(data,
-                                   lang,
-                                   locale) {
+probe_columns_assemble <- function(
+    data,
+    lang,
+    locale
+) {
   
   cli::cli_div(
     theme = list(
@@ -2347,8 +2402,10 @@ probe_columns_assemble <- function(data,
   columns_tags
 }
 
-probe_interactions_assemble <- function(data,
-                                        lang) {
+probe_interactions_assemble <- function(
+    data,
+    lang
+) {
   
   cli::cli_div(
     theme = list(
@@ -2411,8 +2468,10 @@ probe_interactions_assemble <- function(data,
   interactions_tags
 }
 
-probe_correlations_assemble <- function(data,
-                                        lang) {
+probe_correlations_assemble <- function(
+    data,
+    lang
+) {
   
   cli::cli_div(
     theme = list(
@@ -2526,8 +2585,10 @@ probe_correlations_assemble <- function(data,
   correlations_tags
 }
 
-probe_missing_assemble <- function(data,
-                                   lang) {
+probe_missing_assemble <- function(
+    data,
+    lang
+) {
   
   cli::cli_div(
     theme = list(
@@ -2590,8 +2651,10 @@ probe_missing_assemble <- function(data,
   missing_tags
 }
 
-probe_sample_assemble <- function(data,
-                                  lang) {
+probe_sample_assemble <- function(
+    data,
+    lang
+) {
 
   cli::cli_div(
     theme = list(
@@ -2658,8 +2721,10 @@ probe_sample_assemble <- function(data,
 # Components of the page
 #
 
-navbar <- function(sections,
-                   lang) {
+navbar <- function(
+    sections,
+    lang
+) {
   
   # Compose the list of navigational links for the navbar
   item_list <-
@@ -2726,9 +2791,11 @@ navbar <- function(sections,
   )
 }
 
-tab_panel <- function(id,
-                      panel_component_list,
-                      active = FALSE) {
+tab_panel <- function(
+    id,
+    panel_component_list,
+    active = FALSE
+) {
   
   htmltools::tags$div(
     role = "tabpanel",
@@ -2738,8 +2805,10 @@ tab_panel <- function(id,
   )
 }
 
-row_header <- function(id,
-                       header) {
+row_header <- function(
+    id,
+    header
+) {
   
   htmltools::tags$div(
     class = "row header",
@@ -2756,9 +2825,11 @@ row_header <- function(id,
 
 # nolint start
 
-panel_component <- function(size,
-                            content,
-                            title = NULL) {
+panel_component <- function(
+    size,
+    content,
+    title = NULL
+) {
   
   glue_list <- list(size = size, title = title)
   
@@ -2772,9 +2843,11 @@ panel_component <- function(size,
   )
 }
 
-nav_pill_li <- function(label,
-                        id,
-                        active = FALSE) { 
+nav_pill_li <- function(
+    label,
+    id,
+    active = FALSE
+) { 
   
   glue_list <- list(label = label, id = id)
   
@@ -2792,8 +2865,7 @@ nav_pill_li <- function(label,
   )
 }
 
-pb_glue_data <- function(.x,
-                         ...) {
+pb_glue_data <- function(.x, ...) {
   glue::glue_data(.x, ..., .transformer = get, .envir = emptyenv())
 }
 

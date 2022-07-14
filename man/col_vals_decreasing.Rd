@@ -149,12 +149,32 @@ consecutive values don't change), and even on for allowing increasing
 movements up to a certain threshold. The validation function can be used
 directly on a data table or with an \emph{agent} object (technically, a
 \code{ptblank_agent} object) whereas the expectation and test functions can only
-be used with a data table. The types of data tables that can be used include
-data frames, tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames
-(\code{tbl_spark}). Each validation step or expectation will operate over the
-number of test units that is equal to the number of rows in the table (after
-any \code{preconditions} have been applied).
+be used with a data table. Each validation step or expectation will operate
+over the number of test units that is equal to the number of rows in the
+table (after any \code{preconditions} have been applied).
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Column Names}{
 
 If providing multiple column names to \code{columns}, the result will be an
@@ -258,8 +278,11 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 key as a list member), the syntax closely follows the signature of the
 validation function. Here is an example of how a complex call of
 \code{col_vals_decreasing()} as a validation step is expressed in R code and in
-the corresponding YAML representation.\preformatted{# R statement
-agent \%>\% 
+the corresponding YAML representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   col_vals_decreasing(
     columns = vars(a),
     allow_stationary = TRUE,
@@ -270,10 +293,12 @@ agent \%>\%
     actions = action_levels(warn_at = 0.1, stop_at = 0.2),
     label = "The `col_vals_decreasing()` step.",
     active = FALSE
-  ) \%>\% yaml_agent_string()
+  )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - col_vals_decreasing:
     columns: vars(a)
     allow_stationary: true
@@ -286,7 +311,7 @@ steps:
       stop_fraction: 0.2
     label: The `col_vals_decreasing()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter as only the \code{columns}
 argument requires a value. Arguments with default values won't be written to
@@ -296,21 +321,15 @@ to preview the transformation of an agent to YAML without any writing to disk
 by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-14
-}
 
-\examples{
-# The `game_revenue` dataset in
-# the package has the column
-# `session_start`, which contains
-# date-time values; let's create
-# a column of difftime values (in
-# `time_left`) that describes the
-# time remaining in the month
-# relative to the session start
-game_revenue_2 <-
+The \code{game_revenue} dataset in the package has the column \code{session_start},
+which contains date-time values. Let's create a column of difftime values (in
+\code{time_left}) that describes the time remaining in the month relative to the
+session start.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{game_revenue_2 <-
   game_revenue \%>\%
   dplyr::mutate(
     time_left = 
@@ -319,84 +338,119 @@ game_revenue_2 <-
       ) - session_start
   )
 
-# Let's ensure that the difftime
-# values in the new `time_left`
-# column has values that are
-# decreasing from top to bottom
+game_revenue_2
+}\if{html}{\out{</div>}}
 
-# A: Using an `agent` with validation
-#    functions and then `interrogate()`
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 2,000 × 12
+##    player_id       session_id  session_start       time                item_type
+##    <chr>           <chr>       <dttm>              <dttm>              <chr>    
+##  1 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 01:31:03 2015-01-01 01:31:27 iap      
+##  2 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 01:31:03 2015-01-01 01:36:57 iap      
+##  3 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 01:31:03 2015-01-01 01:37:45 iap      
+##  4 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 01:31:03 2015-01-01 01:42:33 ad       
+##  5 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 11:50:02 2015-01-01 11:55:20 ad       
+##  6 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 11:50:02 2015-01-01 12:08:56 ad       
+##  7 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 11:50:02 2015-01-01 12:14:08 ad       
+##  8 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 11:50:02 2015-01-01 12:21:44 ad       
+##  9 ECPANOIXLZHF896 ECPANOIXLZ… 2015-01-01 11:50:02 2015-01-01 12:24:20 ad       
+## 10 FXWUORGYNJAE271 FXWUORGYNJ… 2015-01-01 15:17:18 2015-01-01 15:19:36 ad       
+## # … with 1,990 more rows, and 7 more variables: item_name <chr>,
+## #   item_revenue <dbl>, session_duration <dbl>, start_day <date>,
+## #   acquisition <chr>, country <chr>, time_left <drtn>
+}\if{html}{\out{</div>}}
 
-# Validate that all difftime values
-# in the column `time_left` are
-# decreasing, and, allow for repeating
-# values (`allow_stationary` will be
-# set to `TRUE`)
-agent <-
-  create_agent(game_revenue_2) \%>\%
+Let's ensure that the \code{"difftime"} values in the new \code{time_left} column has
+values that are decreasing from top to bottom.
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+Validate that all \code{"difftime"} values in the column \code{time_left} are
+decreasing, and, allow for repeating values (\code{allow_stationary} will be set
+to \code{TRUE}).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
+  create_agent(tbl = game_revenue_2) \%>\%
   col_vals_decreasing(
-    vars(time_left),
+    columns = vars(time_left),
     allow_stationary = TRUE
   ) \%>\%
   interrogate()
-  
-# Determine if this validation
-# had no failing test units (there
-# are 2000 test units)
-all_passed(agent)
+}\if{html}{\out{</div>}}
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# B: Using the validation function
-#    directly on the data (no `agent`)
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_vals_decreasing_1.png" style="width:100\%;">
+}
+}
+}
 
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-game_revenue_2 \%>\%
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{game_revenue_2 \%>\%
   col_vals_decreasing(
-    vars(time_left),
+    columns = vars(time_left),
     allow_stationary = TRUE
   ) \%>\%
   dplyr::select(time_left) \%>\%
   dplyr::distinct() \%>\%
   dplyr::count()
+}\if{html}{\out{</div>}}
 
-# C: Using the expectation function
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 1 × 1
+##       n
+##   <int>
+## 1   618
+}\if{html}{\out{</div>}}
+}
 
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_col_vals_decreasing(
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_col_vals_decreasing(
   game_revenue_2,
-  vars(time_left),
+  columns = vars(time_left),
   allow_stationary = TRUE
 )
+}\if{html}{\out{</div>}}
+}
 
-# D: Using the test function
+\subsection{D: Using the test function}{
 
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-game_revenue_2 \%>\%
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{game_revenue_2 \%>\%
   test_col_vals_decreasing(
-    vars(time_left),
+    columns = vars(time_left),
     allow_stationary = TRUE
   )
+}\if{html}{\out{</div>}}
 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
 }
+}
+
+\section{Function ID}{
+
+2-14
+}
+
 \seealso{
 The analogous function that moves in the opposite direction:
 \code{\link[=col_vals_increasing]{col_vals_increasing()}}.
 
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

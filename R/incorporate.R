@@ -33,24 +33,30 @@
 #' 
 #' @return A `ptblank_informant` object.
 #' 
-#' @examples 
-#' if (interactive()) {
+#' @section Examples:
 #' 
-#' # Take the `small_table` and
-#' # assign it to `test_table`; we'll
-#' # modify it later
-#' test_table <- small_table
+#' Take the `small_table` and assign it to `changing_table` (we'll modify it
+#' later):
 #' 
-#' # Generate an informant object, add
-#' # two snippets with `info_snippet()`,
-#' # add information with some other
-#' # `info_*()` functions and then
-#' # `incorporate()` the snippets into
-#' # the info text
+#' ```{r}
+#' changing_table <- small_table
+#' 
+#' changing_table
+#' ```
+#' 
+#' Use [create_informant()] to generate an informant object with
+#' `changing_table` given to the `tbl` argument with a leading `~` (ensures that
+#' the table will be fetched each time it is needed, instead of being statically
+#' stored in the object). We'll add two snippets with [info_snippet()], add
+#' information with the [info_columns()] and [info_section()] functions and then
+#' use `incorporate()` to work the snippets into the info text.
+#' 
+#' ```r
 #' informant <- 
 #'   create_informant(
-#'     tbl = ~ test_table,
-#'     tbl_name = "test_table"
+#'     tbl = ~ changing_table,
+#'     tbl_name = "changing_table",
+#'     label = "`informant()` example"
 #'   ) %>%
 #'   info_snippet(
 #'     snippet_name = "row_count",
@@ -62,7 +68,7 @@
 #'   ) %>%
 #'   info_columns(
 #'     columns = vars(a),
-#'     info = "In the range of 1 to 10. (SIMPLE)"
+#'     info = "In the range of 1 to 10. ((SIMPLE))"
 #'   ) %>%
 #'   info_columns(
 #'     columns = starts_with("date"),
@@ -70,34 +76,57 @@
 #'   ) %>%
 #'   info_columns(
 #'     columns = "date",
-#'     info = "The date part of `date_time`. (CALC)"
+#'     info = "The date part of `date_time`. ((CALC))"
 #'   ) %>%
 #'   info_section(
 #'     section_name = "rows",
 #'     row_count = "There are {row_count} rows available."
 #'   ) %>%
 #'   incorporate()
+#' ```
+#' We can print the resulting object to see the information report.
 #' 
-#' # We can print the `informant` object
-#' # to see the information report
+#' ```r
+#' informant
+#' ```
 #' 
-#' # Let's modify `test_table` to give
-#' # it more rows and an extra column
-#' test_table <- 
-#'   dplyr::bind_rows(test_table, test_table) %>%
+#' \if{html}{
+#' 
+#' \out{
+#' `r pb_get_image_tag(file = "man_incorporate_1.png")`
+#' }
+#' }
+#' 
+#' Let's modify `test_table` to give it more rows and an extra column.
+#' 
+#' ```r
+#' changing_table <- 
+#'   dplyr::bind_rows(changing_table, changing_table) %>%
 #'   dplyr::mutate(h = a + c)
+#' ```
 #' 
-#' # Using `incorporate()` will cause
-#' # the snippets to be reprocessed, and,
-#' # the strings to be updated
-#' informant <-
-#'   informant %>% incorporate()
-#'   
-#' # When printed again, we'll see that the
-#' # row and column counts in the header
-#' # have been updated to reflect the
-#' # changed `test_table`
+#' Using `incorporate()` will cause the snippets to be reprocessed and
+#' accordingly the content of the report will be updated to keep up with the
+#' current state of the `changing_table`.
 #' 
+#' ```r
+#' informant <- informant %>% incorporate()
+#' ```
+#' 
+#' When printed again, we'll also see that the row and column counts in the
+#' header have been updated to reflect the new dimensions of the target table.
+#' Furthermore, the info text in the `ROWS` section has updated text
+#' (`"There are 26 rows available."`).
+#' 
+#' ```r
+#' informant
+#' ```
+#' 
+#' \if{html}{
+#' 
+#' \out{
+#' `r pb_get_image_tag(file = "man_incorporate_2.png")`
+#' }
 #' }
 #' 
 #' @family Incorporate and Report
@@ -385,8 +414,10 @@ incorporate <- function(informant) {
   informant
 }
 
-create_cli_header_i <- function(snippets_to_process,
-                                quiet) {
+create_cli_header_i <- function(
+    snippets_to_process,
+    quiet
+) {
   
   if (quiet) return()
   

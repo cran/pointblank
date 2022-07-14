@@ -17,22 +17,24 @@
 #
 
 
-create_validation_step <- function(agent,
-                                   assertion_type,
-                                   i_o = NULL,
-                                   columns_expr = NULL,
-                                   column = NULL,
-                                   values = NULL,
-                                   na_pass = NULL,
-                                   preconditions = NULL,
-                                   seg_expr = NULL,
-                                   seg_col = NULL,
-                                   seg_val = NULL,
-                                   actions = NULL,
-                                   step_id = NULL,
-                                   label = NULL,
-                                   brief = NULL,
-                                   active = NULL) {
+create_validation_step <- function(
+    agent,
+    assertion_type,
+    i_o = NULL,
+    columns_expr = NULL,
+    column = NULL,
+    values = NULL,
+    na_pass = NULL,
+    preconditions = NULL,
+    seg_expr = NULL,
+    seg_col = NULL,
+    seg_val = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = NULL
+) {
   
   # Get the next step number (i)
   i <- get_next_validation_set_row(agent)
@@ -184,12 +186,14 @@ apply_preconditions <- function(tbl, preconditions) {
   tbl
 }
 
-create_autobrief <- function(agent,
-                             assertion_type,
-                             preconditions = NULL,
-                             column = NULL,
-                             values = NULL) {
-
+create_autobrief <- function(
+    agent,
+    assertion_type,
+    preconditions = NULL,
+    column = NULL,
+    values = NULL
+) {
+  
   if (assertion_type == "serially") {
 
     # Develop a brief that explains how many tests are included
@@ -235,12 +239,12 @@ create_autobrief <- function(agent,
   
   column_text <- prep_column_text(column = column)
   
-  values_text <- prep_values_text(values = values, lang = lang)
-  
   if (assertion_type %in%
       c("col_vals_gt", "col_vals_gte",
         "col_vals_lt", "col_vals_lte",
         "col_vals_equal", "col_vals_not_equal")) {
+    
+    values_text <- prep_values_text(values = values, lang = lang)
     
     operator <- prep_operator_text(fn_name = assertion_type)
 
@@ -266,6 +270,8 @@ create_autobrief <- function(agent,
   
   if (assertion_type %in% c("col_vals_in_set", "col_vals_not_in_set")) {
     
+    values_text <- prep_values_text(values = values, lang = lang)
+    
     expectation_text <- 
       prep_in_set_expectation_text(
         column_text,
@@ -280,6 +286,8 @@ create_autobrief <- function(agent,
   
   if (assertion_type == "col_vals_make_set") {
     
+    values_text <- prep_values_text(values = values, lang = lang)
+    
     expectation_text <- 
       prep_make_set_expectation_text(
         column_text,
@@ -292,6 +300,8 @@ create_autobrief <- function(agent,
   }
   
   if (assertion_type == "col_vals_make_subset") {
+    
+    values_text <- prep_values_text(values = values, lang = lang)
     
     expectation_text <- 
       prep_make_subset_expectation_text(
@@ -318,6 +328,8 @@ create_autobrief <- function(agent,
   }
   
   if (assertion_type %in% c("col_vals_between", "col_vals_not_between")) {
+    
+    values_text <- prep_values_text(values = values, lang = lang)
     
     value_1 <- strsplit(values_text, ", ") %>% unlist() %>% .[1]
     value_2 <- strsplit(values_text, ", ") %>% unlist() %>% .[2]
@@ -361,6 +373,8 @@ create_autobrief <- function(agent,
   
   if (assertion_type == "col_vals_regex") {
     
+    values_text <- prep_values_text(values = values, lang = lang)
+    
     expectation_text <- 
       prep_regex_expectation_text(
         column_text,
@@ -373,6 +387,8 @@ create_autobrief <- function(agent,
   }
   
   if (assertion_type == "col_vals_within_spec") {
+    
+    values_text <- prep_values_text(values = values, lang = lang)
     
     expectation_text <- 
       prep_within_spec_expectation_text(
@@ -419,9 +435,46 @@ create_autobrief <- function(agent,
     autobrief <- finalize_autobrief(expectation_text, precondition_text)
   }
   
+  if (assertion_type == "row_count_match") {
+    
+    if (!is.numeric(values)) {
+      
+      expectation_text <- prep_row_count_match_expectation_text(lang = lang)
+      autobrief <- finalize_autobrief(expectation_text, precondition_text) 
+      
+    } else {
+      
+      values_text <- prep_values_text(values = values, lang = lang)
+      
+      expectation_text <- 
+        prep_row_count_match_n_expectation_text(values_text, lang = lang)
+      autobrief <- finalize_autobrief(expectation_text, precondition_text) 
+    }
+  }
+  
+  if (assertion_type == "col_count_match") {
+    
+    if (!is.numeric(values)) {
+      
+      expectation_text <- prep_col_count_match_expectation_text(lang = lang)
+      autobrief <- finalize_autobrief(expectation_text, precondition_text) 
+      
+    } else {
+      
+      values_text <- prep_values_text(values = values, lang = lang)
+      
+      expectation_text <- 
+        prep_col_count_match_n_expectation_text(values_text, lang = lang)
+      autobrief <- finalize_autobrief(expectation_text, precondition_text) 
+    }
+  }
+  
   if (assertion_type == "conjointly") {
 
-    values_text <- values_text %>% tidy_gsub("\"", "'")
+    values_text <- 
+      prep_values_text(values = values, lang = lang) %>%
+      tidy_gsub("\"", "'")
+    
     expectation_text <- 
       prep_conjointly_expectation_text(values_text, lang = lang)
     autobrief <- finalize_autobrief(expectation_text, precondition_text)
@@ -430,12 +483,6 @@ create_autobrief <- function(agent,
   if (assertion_type == "specially") {
     
     expectation_text <- prep_specially_expectation_text(lang = lang)
-    autobrief <- finalize_autobrief(expectation_text, precondition_text) 
-  }
-  
-  if (assertion_type == "row_count_match") {
-    
-    expectation_text <- prep_row_count_match_expectation_text(lang = lang)
     autobrief <- finalize_autobrief(expectation_text, precondition_text) 
   }
   
@@ -466,25 +513,29 @@ create_autobrief <- function(agent,
   autobrief
 }
 
-finalize_autobrief <- function(expectation_text,
-                               precondition_text) {
+finalize_autobrief <- function(
+    expectation_text,
+    precondition_text
+) {
   
   glue::glue("{expectation_text} {precondition_text}") %>%
     as.character() %>%
     tidy_gsub("\\s{2,}", " ")
 }
 
-generate_autobriefs <- function(agent,
-                                columns,
-                                preconditions,
-                                values,
-                                assertion_type) {
+generate_autobriefs <- function(
+    agent,
+    columns,
+    preconditions,
+    values,
+    assertion_type
+) {
 
   vapply(
     columns,
     USE.NAMES = FALSE,
     FUN.VALUE = character(1),
-    FUN = function(x)
+    FUN = function(x) {
       create_autobrief(
         agent = agent,
         assertion_type = assertion_type,
@@ -492,6 +543,7 @@ generate_autobriefs <- function(agent,
         column = x,
         values = values
       )
+    }
   )
 }
 
@@ -526,8 +578,10 @@ prep_col_type <- function(fn_name) {
   col_type
 }
 
-prep_precondition_text <- function(preconditions,
-                                   lang) {
+prep_precondition_text <- function(
+    preconditions,
+    lang
+) {
   
   if (is.null(preconditions)) return("")
 
@@ -545,9 +599,11 @@ prep_precondition_text <- function(preconditions,
   )
 }
 
-prep_column_computed_text <- function(agent,
-                                      column,
-                                      lang) {
+prep_column_computed_text <- function(
+    agent,
+    column,
+    lang
+) {
   
   if (is.null(column) || is.null(agent$col_names)) return("")
   
@@ -568,9 +624,11 @@ prep_column_text <- function(column) {
   paste0("`", column, "`")
 }
 
-prep_values_text <- function(values,
-                             limit = 3,
-                             lang) {
+prep_values_text <- function(
+    values,
+    limit = 3,
+    lang
+) {
   
   # Normalize the `columns` expression enclosed in `vars()`
   if (inherits(values, "quosures")) {
@@ -608,21 +666,23 @@ prep_values_text <- function(values,
 
 # nolint start
 
-prep_compare_expectation_text <- function(column_text,
-                                          column_computed_text,
-                                          operator,
-                                          values_text,
-                                          lang) {
-
+prep_compare_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    operator,
+    values_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/compare_expectation_text")[[lang]])
 }
 
-prep_in_set_expectation_text <- function(column_text,
-                                         column_computed_text,
-                                         values_text,
-                                         not = FALSE,
-                                         lang) {
-  
+prep_in_set_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    values_text,
+    not = FALSE,
+    lang
+) {
   if (!not) {
     glue::glue(get_lsv("autobriefs/in_set_expectation_text")[[lang]])
   } else {
@@ -630,29 +690,32 @@ prep_in_set_expectation_text <- function(column_text,
   }
 }
 
-prep_make_set_expectation_text <- function(column_text,
-                                           column_computed_text,
-                                           values_text,
-                                           lang) {
-  
+prep_make_set_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    values_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/make_set_expectation_text")[[lang]])
 }
 
-prep_make_subset_expectation_text <- function(column_text,
-                                              column_computed_text,
-                                              values_text,
-                                              lang) {
-  
+prep_make_subset_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    values_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/make_subset_expectation_text")[[lang]])
 }
 
-prep_between_expectation_text <- function(column_text,
-                                          column_computed_text,
-                                          value_1,
-                                          value_2,
-                                          not = FALSE,
-                                          lang) {
-  
+prep_between_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    value_1,
+    value_2,
+    not = FALSE,
+    lang
+) {
   if (!not) {
     glue::glue(get_lsv("autobriefs/between_expectation_text")[[lang]])
   } else {
@@ -660,11 +723,12 @@ prep_between_expectation_text <- function(column_text,
   }
 }
 
-prep_null_expectation_text <- function(column_text,
-                                       column_computed_text,
-                                       not = FALSE,
-                                       lang) {
-  
+prep_null_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    not = FALSE,
+    lang
+) {
   if (!not) {
     glue::glue(get_lsv("autobriefs/null_expectation_text")[[lang]])
   } else {
@@ -672,79 +736,84 @@ prep_null_expectation_text <- function(column_text,
   }
 }
 
-prep_increasing_expectation_text <- function(column_text,
-                                             column_computed_text,
-                                             lang) {
-  
+prep_increasing_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/increasing_expectation_text")[[lang]])
 }
 
-prep_decreasing_expectation_text <- function(column_text,
-                                             column_computed_text,
-                                             lang) {
-  
+prep_decreasing_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/decreasing_expectation_text")[[lang]])
 }
 
 
-prep_regex_expectation_text <- function(column_text,
-                                        column_computed_text,
-                                        values_text,
-                                        lang) {
-
+prep_regex_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    values_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/regex_expectation_text")[[lang]])
 }
 
-prep_within_spec_expectation_text <- function(column_text,
-                                              column_computed_text,
-                                              values_text,
-                                              lang) {
-  
+prep_within_spec_expectation_text <- function(
+    column_text,
+    column_computed_text,
+    values_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/within_spec_expectation_text")[[lang]])
 }
 
-prep_conjointly_expectation_text <- function(values_text,
-                                             lang) {
-  
+prep_conjointly_expectation_text <- function(
+    values_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/conjointly_expectation_text")[[lang]])
 }
 
 prep_specially_expectation_text <- function(lang) {
-  
   glue::glue(get_lsv("autobriefs/specially_expectation_text")[[lang]])
 }
 
-get_serially_test_text <- function(test_step_count,
-                                   lang) {
-  
+get_serially_test_text <- function(
+    test_step_count,
+    lang
+) {
   if (test_step_count > 1) {
-    
     as.character(
       glue::glue(get_lsv("autobriefs/serially_expectation_tests_text")[[lang]])
     )
-    
   } else {
-    
     get_lsv("autobriefs/serially_expectation_test_text")[[lang]]
   }
 }
 
-prep_col_exists_expectation_text <- function(column_text,
-                                             lang) {
-  
+prep_col_exists_expectation_text <- function(
+    column_text,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/col_exists_expectation_text")[[lang]])
 }
 
-prep_col_is_expectation_text <- function(column_text,
-                                         col_type,
-                                         lang) {
-  
+prep_col_is_expectation_text <- function(
+    column_text,
+    col_type,
+    lang
+) {
   glue::glue(get_lsv("autobriefs/col_is_expectation_text")[[lang]])
 }
 
-prep_row_distinct_expectation_text <- function(column_text,
-                                               lang) {
-
+prep_row_distinct_expectation_text <- function(
+    column_text,
+    lang
+) {
   if (column_text == "``") {
     glue::glue(
       get_lsv("autobriefs/all_row_distinct_expectation_text")[[lang]]
@@ -756,9 +825,10 @@ prep_row_distinct_expectation_text <- function(column_text,
   }
 }
 
-prep_row_complete_expectation_text <- function(column_text,
-                                               lang) {
-  
+prep_row_complete_expectation_text <- function(
+    column_text,
+    lang
+) {
   if (column_text == "``") {
     glue::glue(
       get_lsv("autobriefs/all_row_complete_expectation_text")[[lang]]
@@ -771,29 +841,39 @@ prep_row_complete_expectation_text <- function(column_text,
 }
 
 prep_col_schema_match_expectation_text <- function(lang) {
-  
   glue::glue(get_lsv("autobriefs/col_schema_match_expectation_text")[[lang]])
 }
 
 prep_row_count_match_expectation_text <- function(lang) {
-  
   glue::glue(get_lsv("autobriefs/row_count_match_expectation_text")[[lang]])
 }
 
+prep_row_count_match_n_expectation_text <- function(values_text, lang) {
+  glue::glue(get_lsv("autobriefs/row_count_match_n_expectation_text")[[lang]])
+}
+
+prep_col_count_match_expectation_text <- function(lang) {
+  glue::glue(get_lsv("autobriefs/col_count_match_expectation_text")[[lang]])
+}
+
+prep_col_count_match_n_expectation_text <- function(values_text, lang) {
+  glue::glue(get_lsv("autobriefs/col_count_match_n_expectation_text")[[lang]])
+}
+
 prep_tbl_match_expectation_text <- function(lang) {
-  
   glue::glue(get_lsv("autobriefs/tbl_match_expectation_text")[[lang]])
 }
 
 prep_col_vals_expr_expectation_text <- function(lang) {
-  
   glue::glue(get_lsv("autobriefs/col_vals_expr_expectation_text")[[lang]])
 }
 
 # nolint end
 
-failure_message_gluestring <- function(fn_name,
-                                       lang) {
+failure_message_gluestring <- function(
+    fn_name,
+    lang
+) {
   
   if (!grepl("^expect", fn_name)) {
     fn_name <- paste0("expect_", fn_name)
@@ -834,6 +914,7 @@ failure_message_gluestring <- function(fn_name,
       "expect_rows_complete" = get_lsv("autobriefs/all_row_complete_failure_text")[[lang]],
       "expect_col_schema_match" = get_lsv("autobriefs/col_schema_match_failure_text")[[lang]],
       "expect_row_count_match" = get_lsv("autobriefs/row_count_match_failure_text")[[lang]],
+      "expect_col_count_match" = get_lsv("autobriefs/col_count_match_failure_text")[[lang]],
       "expect_tbl_match" = get_lsv("autobriefs/tbl_match_failure_text")[[lang]]
     )
   

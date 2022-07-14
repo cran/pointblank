@@ -148,10 +148,12 @@ multiple validation steps (this may happen when providing multiple \code{columns
 or any \code{segments})
 }
 
-Here's an example of how to arrange expressions:\preformatted{~ test_col_exists(., columns = vars(count)),
+Here's an example of how to arrange expressions:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{~ test_col_exists(., columns = vars(count)),
 ~ test_col_is_numeric(., columns = vars(count)),
 ~ col_vals_gt(., columns = vars(count), value = 2)
-}
+}\if{html}{\out{</div>}}
 
 This series concentrates on the column called \code{count} and first checks
 whether the column exists, then checks if that column is numeric, and then
@@ -165,6 +167,28 @@ integer value (as an absolute threshold of failing test units) or a
 decimal value between \code{0} and \code{1} (serving as a fractional threshold of
 failing test units).
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Column Names}{
 
 If providing multiple column names in any of the supplied validation steps,
@@ -229,24 +253,29 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{serially()} as a
 validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   serially(
-    ~ col_vals_lt(., vars(a), 8),
-    ~ col_vals_gt(., vars(c), vars(a)),
-    ~ col_vals_not_null(., vars(b)),
+    ~ col_vals_lt(., columns = vars(a), value = 8),
+    ~ col_vals_gt(., columns = vars(c), value = vars(a)),
+    ~ col_vals_not_null(., columns = vars(b)),
     preconditions = ~ . \%>\% dplyr::filter(a < 10),
     actions = action_levels(warn_at = 0.1, stop_at = 0.2), 
     label = "The `serially()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - serially:
     fns:
-    - ~col_vals_lt(., vars(a), 8)
-    - ~col_vals_gt(., vars(c), vars(a))
+    - ~col_vals_lt(., columns = vars(a), value = 8)
+    - ~col_vals_gt(., columns = vars(c), value = vars(a))
     - ~col_vals_not_null(., vars(b))
     preconditions: ~. \%>\% dplyr::filter(a < 10)
     actions:
@@ -254,7 +283,7 @@ steps:
       stop_fraction: 0.2
     label: The `serially()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter as only the expressions for
 validation steps are necessary. Arguments with default values won't be
@@ -264,18 +293,14 @@ possible to preview the transformation of an agent to YAML without any
 writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-34
-}
 
-\examples{
-# For all examples here, we'll use
-# a simple table with three numeric
-# columns (`a`, `b`, and `c`); this is
-# a very basic table but it'll be more
-# useful when explaining things later
-tbl <-
+For all examples here, we'll use a simple table with three numeric columns
+(\code{a}, \code{b}, and \code{c}). This is a very basic table but it'll be more useful when
+explaining things later.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <-
   dplyr::tibble(
     a = c(5, 2, 6),
     b = c(6, 4, 9),
@@ -283,102 +308,132 @@ tbl <-
   )
   
 tbl
-  
-# A: Using an `agent` with validation
-#    functions and then `interrogate()`
+}\if{html}{\out{</div>}}
 
-# The `serially()` function can be set
-# up to perform a series of tests and
-# then perform a validation (only if
-# all tests pass); here, we are going
-# to (1) test whether columns `a` and
-# `b` are numeric, (2) check that both
-# don't have any `NA` values, and (3)
-# perform a finalizing validation that
-# checks whether values in `b` are
-# greater than values in `a`
-agent_1 <-
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 3 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     6     1
+## 2     2     4     2
+## 3     6     9     3
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+The \code{serially()} function can be set up to perform a series of tests and then
+perform a validation (only if all tests pass). Here, we are going to (1) test
+whether columns \code{a} and \code{b} are numeric, (2) check that both don't have any
+\code{NA} values, and (3) perform a finalizing validation that checks whether
+values in \code{b} are greater than values in \code{a}. We'll determine if this
+validation has any failing test units (there are 4 tests and a final
+validation).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent_1 <-
   create_agent(tbl = tbl) \%>\%
   serially(
-    ~ test_col_is_numeric(., vars(a, b)),
-    ~ test_col_vals_not_null(., vars(a, b)),
-    ~ col_vals_gt(., vars(b), vars(a))
+    ~ test_col_is_numeric(., columns = vars(a, b)),
+    ~ test_col_vals_not_null(., columns = vars(a, b)),
+    ~ col_vals_gt(., columns = vars(b), value = vars(a))
     ) \%>\%
   interrogate()
-  
-# Determine if this validation
-# had no failing test units (there are
-# 4 tests and a final validation)
-all_passed(agent_1)
+}\if{html}{\out{</div>}}
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent_1)`
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# What's going on? All four of the tests
-# passed and so the final validation
-# occurred; there were no failing test
-# units in that either!
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_serially_1.png" style="width:100\%;">
+}
+}
 
-# The final validation is optional; here
-# is a different agent where only the
-# serial tests are performed
-agent_2 <-
+What's going on? All four of the tests passed and so the final validation
+occurred. There were no failing test units in that either!
+
+The final validation is optional and so here is a variation where only the
+serial tests are performed.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent_2 <-
   create_agent(tbl = tbl) \%>\%
   serially(
-    ~ test_col_is_numeric(., vars(a, b)),
-    ~ test_col_vals_not_null(., vars(a, b))
+    ~ test_col_is_numeric(., columns = vars(a, b)),
+    ~ test_col_vals_not_null(., columns = vars(a, b))
   ) \%>\%
   interrogate()
-  
-# Everything is good here too:
-all_passed(agent_2)
+}\if{html}{\out{</div>}}
 
-# B: Using the validation function
-#    directly on the data (no `agent`)
+Everything is good here too:
 
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\%
-  serially(
-    ~ test_col_is_numeric(., vars(a, b)),
-    ~ test_col_vals_not_null(., vars(a, b)),
-    ~ col_vals_gt(., vars(b), vars(a))
-  )
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_serially(
-  tbl,
-  ~ test_col_is_numeric(., vars(a, b)),
-  ~ test_col_vals_not_null(., vars(a, b)),
-  ~ col_vals_gt(., vars(b), vars(a))
-)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-tbl \%>\%
-  test_serially(
-    ~ test_col_is_numeric(., vars(a, b)),
-    ~ test_col_vals_not_null(., vars(a, b)),
-    ~ col_vals_gt(., vars(b), vars(a))
-  )
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_serially_2.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\%
+  serially(
+    ~ test_col_is_numeric(., columns = vars(a, b)),
+    ~ test_col_vals_not_null(., columns = vars(a, b)),
+    ~ col_vals_gt(., columns = vars(b), value = vars(a))
+  )
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 3 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     6     1
+## 2     2     4     2
+## 3     6     9     3
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_serially(
+  tbl,
+  ~ test_col_is_numeric(., columns = vars(a, b)),
+  ~ test_col_vals_not_null(., columns = vars(a, b)),
+  ~ col_vals_gt(., columns = vars(b), value = vars(a))
+)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\%
+  test_serially(
+    ~ test_col_is_numeric(., columns = vars(a, b)),
+    ~ test_col_vals_not_null(., columns = vars(a, b)),
+    ~ col_vals_gt(., columns = vars(b), value = vars(a))
+  )
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
+\section{Function ID}{
+
+2-35
+}
+
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

@@ -8,36 +8,45 @@
 \usage{
 row_count_match(
   x,
-  tbl_compare,
+  count,
   preconditions = NULL,
   segments = NULL,
   actions = NULL,
   step_id = NULL,
   label = NULL,
   brief = NULL,
-  active = TRUE
+  active = TRUE,
+  tbl_compare = NULL
 )
 
 expect_row_count_match(
   object,
-  tbl_compare,
+  count,
   preconditions = NULL,
-  threshold = 1
+  threshold = 1,
+  tbl_compare = NULL
 )
 
-test_row_count_match(object, tbl_compare, preconditions = NULL, threshold = 1)
+test_row_count_match(
+  object,
+  count,
+  preconditions = NULL,
+  threshold = 1,
+  tbl_compare = NULL
+)
 }
 \arguments{
 \item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), Spark DataFrame
 (\code{tbl_spark}), or, an \emph{agent} object of class \code{ptblank_agent} that is
 created with \code{\link[=create_agent]{create_agent()}}.}
 
-\item{tbl_compare}{A table to compare against the target table in terms of
-row count values. This can either be a table object, a table-prep
-formula.This can be a table object such as a data frame, a tibble, a
-\code{tbl_dbi} object, or a \code{tbl_spark} object. Alternatively, a table-prep
-formula (\verb{~ <table reading code>}) or a function (\verb{function() <table reading code>}) can be used to lazily read in the table at interrogation
-time.}
+\item{count}{Either a literal value for the number of rows, or, a table to
+compare against the target table in terms of row count values. If supplying
+a comparison table, it can either be a table object such as a data frame, a
+tibble, a \code{tbl_dbi} object, or a \code{tbl_spark} object. Alternatively, a
+table-prep formula (\verb{~ <table reading code>}) or a function
+(\verb{function() <table reading code>}) can be used to lazily read in the
+comparison table at interrogation time.}
 
 \item{preconditions}{An optional expression for mutating the input table
 before proceeding with the validation. This can either be provided as a
@@ -92,6 +101,9 @@ validation step active on the basis of one or more columns existing in the
 table (e.g., \code{~ . \%>\% has_columns(vars(d, e))}). The default for \code{active}
 is \code{TRUE}.}
 
+\item{tbl_compare}{The \code{tbl_compare} argument is deprecated. Instead, use
+\code{count}.}
+
 \item{object}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or Spark
 DataFrame (\code{tbl_spark}) that serves as the target table for the expectation
 function or the test function.}
@@ -120,13 +132,33 @@ expectation function, and the \code{test_row_count_match()} test function all
 check whether the row count in the target table matches that of a comparison
 table. The validation function can be used directly on a data table or with
 an \emph{agent} object (technically, a \code{ptblank_agent} object) whereas the
-expectation and test functions can only be used with a data table. The types
-of data tables that can be used include data frames, tibbles, database tables
-(\code{tbl_dbi}), and Spark DataFrames (\code{tbl_spark}). As a validation step or as
-an expectation, there is a single test unit that hinges on whether the row
-counts for the two tables are the same (after any \code{preconditions} have been
-applied).
+expectation and test functions can only be used with a data table. As a
+validation step or as an expectation, there is a single test unit that hinges
+on whether the row counts for the two tables are the same (after any
+\code{preconditions} have been applied).
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Preconditions}{
 
 Providing expressions as \code{preconditions} means \strong{pointblank} will preprocess
@@ -207,12 +239,15 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 as a list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{row_count_match()} as
 a validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   row_count_match(
-    tbl_compare = ~ file_tbl(
+    count = ~ file_tbl(
       file = from_github(
-        file = "all_revenue_large.rds",
+        file = "sj_all_revenue_large.rds",
         repo = "rich-iannone/intendo",
         subdir = "data-large"
         )
@@ -223,13 +258,15 @@ agent \%>\%
     label = "The `row_count_match()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - row_count_match:
-    tbl_compare: ~ file_tbl(
+    count: ~ file_tbl(
       file = from_github(
-        file = "all_revenue_large.rds",
+        file = "sj_all_revenue_large.rds",
         repo = "rich-iannone/intendo",
         subdir = "data-large"
         )
@@ -241,7 +278,7 @@ steps:
       stop_fraction: 0.2
     label: The `row_count_match()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter. Arguments with default
 values won't be written to YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is
@@ -251,15 +288,12 @@ to YAML without any writing to disk by using the \code{\link[=yaml_agent_string]
 function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-31
-}
 
-\examples{
-# Create a simple table with three
-# columns and four rows of values
-tbl <-
+Create a simple table with three columns and four rows of values.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <-
   dplyr::tibble(
     a = c(5, 7, 6, 5),
     b = c(7, 1, 0, 0),
@@ -267,72 +301,108 @@ tbl <-
   )
 
 tbl
+}\if{html}{\out{</div>}}
 
-# Create a second table which is
-# quite different but has the
-# same number of rows as `tbl`
-tbl_2 <-
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     7     1
+## 2     7     1     1
+## 3     6     0     1
+## 4     5     0     3
+}\if{html}{\out{</div>}}
+
+Create a second table which is quite different but has the same number of
+rows as \code{tbl}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl_2 <-
   dplyr::tibble(
     e = c("a", NA, "a", "c"),
     f = c(2.6, 1.2, 0, NA)
   )
 
-# A: Using an `agent` with validation
-#    functions and then `interrogate()` 
+tbl_2
+}\if{html}{\out{</div>}}
 
-# Validate that the count of rows
-# in the target table (`tbl`) matches
-# that of the comparison table
-# (`tbl_2`)
-agent <-
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 2
+##   e         f
+##   <chr> <dbl>
+## 1 a       2.6
+## 2 <NA>    1.2
+## 3 a       0  
+## 4 c      NA
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+Validate that the count of rows in the target table (\code{tbl}) matches that of
+the comparison table (\code{tbl_2}).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   create_agent(tbl = tbl) \%>\%
-  row_count_match(tbl_compare = tbl_2) \%>\%
+  row_count_match(count = tbl_2) \%>\%
   interrogate()
+}\if{html}{\out{</div>}}
 
-# Determine if this validation passed
-# by using `all_passed()`
-all_passed(agent)
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\%
-  row_count_match(tbl_compare = tbl_2)
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_row_count_match(
-  tbl, tbl_compare = tbl_2
-)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-tbl \%>\% 
-  row_count_match(
-    tbl_compare = tbl_2
-  )
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_row_count_match_1.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% row_count_match(count = tbl_2)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     7     1
+## 2     7     1     1
+## 3     6     0     1
+## 4     5     0     3
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_row_count_match(tbl, count = tbl_2)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% test_row_count_match(count = 4)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
+\section{Function ID}{
+
+2-31
+}
+
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

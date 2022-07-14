@@ -26,15 +26,30 @@
 #' selection of specified `columns`). The validation function can be used
 #' directly on a data table or with an *agent* object (technically, a
 #' `ptblank_agent` object) whereas the expectation and test functions can only
-#' be used with a data table. The types of data tables that can be used include
-#' data frames, tibbles, database tables (`tbl_dbi`), and Spark DataFrames
-#' (`tbl_spark`). As a validation step or as an expectation, this will operate
-#' over the number of test units that is equal to the number of rows in the
-#' table (after any `preconditions` have been applied).
+#' be used with a data table. As a validation step or as an expectation, this
+#' will operate over the number of test units that is equal to the number of
+#' rows in the table (after any `preconditions` have been applied).
 #'
 #' We can specify the constraining column names in quotes, in `vars()`, and with
 #' the following **tidyselect** helper functions: `starts_with()`,
 #' `ends_with()`, `contains()`, `matches()`, and `everything()`.
+#' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
 #' 
 #' @section Preconditions:
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
@@ -112,8 +127,9 @@
 #' validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   rows_complete(
 #'     columns = vars(a, b),
@@ -123,8 +139,11 @@
 #'     label = "The `rows_complete()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - rows_complete:
 #'     columns: vars(a, b)
@@ -154,9 +173,11 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #'   
-#' @examples
-#' # Create a simple table with three
-#' # columns of numerical values
+#' @section Examples:
+#' 
+#' Create a simple table with three columns of numerical values.
+#' 
+#' ```{r}
 #' tbl <-
 #'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5, 8, 7),
@@ -165,59 +186,59 @@
 #'   )
 #' 
 #' tbl
+#' ```
 #' 
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()` 
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
 #' 
-#' # Validate that when considering only
-#' # data in columns `a` and `b`, there
-#' # are only complete rows (i.e., all
-#' # rows have no `NA` values)
+#' Validate that when considering only data in columns `a` and `b`, there are
+#' only complete rows (i.e., all rows have no `NA` values).
+#' 
+#' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'   rows_complete(vars(a, b)) %>%
+#'   rows_complete(columns = vars(a, b)) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # Determine if this validation passed
-#' # by using `all_passed()`
-#' all_passed(agent)
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_rows_complete_1.png")`
+#' }
+#' }
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' ## B: Using the validation function directly on the data (no `agent`)
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
 #' tbl %>%
-#'   rows_complete(vars(a, b)) %>%
+#'   rows_complete(columns = vars(a, b)) %>%
 #'   dplyr::pull(a)
+#' ```
 #' 
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
-#' expect_rows_complete(
-#'   tbl, vars(a, b)
-#' )
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
 #' 
-#' # D: Using the test function
+#' ```r
+#' expect_rows_complete(tbl, columns = vars(a, b))
+#' ```
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
-#' test_rows_complete(
-#'   tbl, vars(a, b)
-#' )
+#' ## D: Using the test function
+#' 
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
+#' test_rows_complete(tbl, columns = vars(a, b))
+#' ```
 #' 
 #' @family validation functions
 #' @section Function ID:
@@ -229,15 +250,17 @@ NULL
 #' @rdname rows_complete
 #' @import rlang
 #' @export
-rows_complete <- function(x,
-                          columns = NULL,
-                          preconditions = NULL,
-                          segments = NULL,
-                          actions = NULL,
-                          step_id = NULL,
-                          label = NULL,
-                          brief = NULL,
-                          active = TRUE) {
+rows_complete <- function(
+    x,
+    columns = NULL,
+    preconditions = NULL,
+    segments = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
   
   # Get `columns` as a label
   columns_expr <- 
@@ -247,11 +270,19 @@ rows_complete <- function(x,
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
   
-  # Resolve the columns based on the expression
-  if (!is.null(rlang::eval_tidy(columns)) && !is.null(columns)) {
-    columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+  if (uses_tidyselect(expr_text = columns_expr)) {
+    
+    # Resolve the columns based on the expression
+    columns <- resolve_columns(x = x, var_expr = columns, preconditions = NULL)
+    
   } else {
-    columns <- NULL
+    
+    # Resolve the columns based on the expression
+    if (!is.null(rlang::eval_tidy(columns)) && !is.null(columns)) {
+      columns <- resolve_columns(x = x, var_expr = columns, preconditions)
+    } else {
+      columns <- NULL
+    }
   }
   
   # Resolve segments into list
@@ -343,10 +374,12 @@ rows_complete <- function(x,
 #' @rdname rows_complete
 #' @import rlang
 #' @export
-expect_rows_complete <- function(object,
-                                 columns = NULL,
-                                 preconditions = NULL,
-                                 threshold = 1) {
+expect_rows_complete <- function(
+    object,
+    columns = NULL,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   fn_name <- "expect_rows_complete"
   
@@ -396,10 +429,12 @@ expect_rows_complete <- function(object,
 #' @rdname rows_complete
 #' @import rlang
 #' @export
-test_rows_complete <- function(object,
-                               columns = NULL,
-                               preconditions = NULL,
-                               threshold = 1) {
+test_rows_complete <- function(
+    object,
+    columns = NULL,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%

@@ -44,27 +44,34 @@
 #' 
 #' @return A `tibble` object.
 #' 
-#' @examples 
-#' # Get summary statistics for the
-#' # `game_revenue` dataset that is
-#' # included in the package
-#' tt_summary_stats(game_revenue)
+#' @section Examples:
 #' 
-#' # Ensure that the maximum revenue
-#' # for individual purchases in the
-#' # `game_revenue` table is less than
-#' # $150
-#' tt_summary_stats(game_revenue) %>%
+#' Get summary statistics for the `game_revenue` dataset that is included in the
+#' **pointblank** package.
+#' 
+#' ```{r}
+#' tt_summary_stats(tbl = game_revenue)
+#' ```
+#' 
+#' Table transformers work great in conjunction with validation functions. Let's
+#' ensure that the maximum revenue for individual purchases in the
+#' `game_revenue` table is less than $150.
+#' 
+#' ```{r}
+#' tt_summary_stats(tbl = game_revenue) %>%
 #'   col_vals_lt(
 #'     columns = vars(item_revenue),
 #'     value = 150,
 #'     segments = .param. ~ "max"
 #'   )
+#' ```
 #' 
-#' # For in-app purchases in the
-#' # `game_revenue` table, check that
-#' # median revenue is somewhere
-#' # between $8 and $12
+#' We see data, and not an error, so the validation was successful!
+#' 
+#' Let's do another: for in-app purchases in the `game_revenue` table, check
+#' that the median revenue is somewhere between $8 and $12.
+#' 
+#' ```{r}
 #' game_revenue %>% 
 #'   dplyr::filter(item_type == "iap") %>%
 #'   tt_summary_stats() %>%
@@ -73,21 +80,22 @@
 #'     left = 8, right = 12,
 #'     segments = .param. ~ "med"
 #'   )
+#' ```
 #'
-#' # While performing validations of the
-#' # `game_revenue` table with an agent
-#' # we can include the same revenue
-#' # check by using `tt_summary_stats()`
-#' # in the `preconditions` argument (this
-#' # will transform the target table for
-#' # the validation step); we also need
-#' # to get just a segment of that table
-#' # (the row with the median values)
+#' We can get more creative with this transformer. Why not use a transformed
+#' table in a validation plan? While performing validations of the
+#' `game_revenue` table with an agent we can include the same revenue check as
+#' above by using `tt_summary_stats()` in the `preconditions` argument. This
+#' transforms the target table into a summary table for the validation step. The
+#' final step of the transformation in `preconditions` is a `dplyr::filter()`
+#' step that isolates the row of the median statistic.
+#' 
+#' ```r
 #' agent <- 
 #'   create_agent(
 #'     tbl = game_revenue,
 #'     tbl_name = "game_revenue",
-#'     label = "An example.",
+#'     label = "`tt_summary_stats()` example.",
 #'     actions = action_levels(
 #'       warn_at = 0.10,
 #'       stop_at = 0.25,
@@ -101,13 +109,22 @@
 #'     left = 8, right = 12,
 #'     preconditions = ~ . %>%
 #'       dplyr::filter(item_type == "iap") %>%
-#'       tt_summary_stats(),
-#'     segments = .param. ~ "med"
+#'       tt_summary_stats() %>%
+#'       dplyr::filter(.param. == "med")
 #'   ) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # This should all pass but let's check:
-#' all_passed(agent)
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report. Take note of the final step
+#' (`STEP 3`) as it shows the entry that corresponds to the [col_vals_between()]
+#' validation step that uses the summary stats table as its target.
+#' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_tt_summary_stats_1.png")`
+#' }
+#' }
 #' 
 #' @family Table Transformers
 #' @section Function ID:
@@ -194,17 +211,20 @@ tt_summary_stats <- function(tbl) {
 #' 
 #' @return A `tibble` object.
 #' 
-#' @examples 
-#' # Get string information for the
-#' # string-based columns in the
-#' # `game_revenue` dataset
-#' tt_string_info(game_revenue)
+#' @section Examples:
 #' 
-#' # Ensure that `player_id` and
-#' # `session_id` values always have
-#' # the same number of characters
-#' # throughout the table
-#' tt_string_info(game_revenue) %>%
+#' Get string information for the string-based columns in the `game_revenue`
+#' dataset that is included in the **pointblank** package.
+#' 
+#' ```{r}
+#' tt_string_info(tbl = game_revenue)
+#' ```
+#' 
+#' Ensure that `player_id` and `session_id` values always have the same fixed
+#' numbers of characters (`15` and `24`, respectively) throughout the table.
+#' 
+#' ```{r}
+#' tt_string_info(tbl = game_revenue) %>%
 #'   col_vals_equal(
 #'     columns = vars(player_id),
 #'     value = 15
@@ -213,16 +233,21 @@ tt_summary_stats <- function(tbl) {
 #'     columns = vars(session_id),
 #'     value = 24
 #'   )
+#' ```
 #' 
-#' # Check that the maximum string
-#' # length in column `f` of the
-#' # `small_table` dataset is no
-#' # greater than `4`
-#' tt_string_info(small_table) %>%
+#' We see data, and not an error, so both validations were successful!
+#' 
+#' Let's use a `tt_string_info()`-transformed table with the
+#' [test_col_vals_lte()] to check that the maximum string length in column `f`
+#' of the `small_table` dataset is no greater than `4`.
+#' 
+#' ```{r}
+#' tt_string_info(tbl = small_table) %>%
 #'   test_col_vals_lte(
 #'     columns = vars(f),
 #'     value = 4
 #'   )
+#' ```
 #' 
 #' @family Table Transformers
 #' @section Function ID:
@@ -285,32 +310,38 @@ tt_string_info <- function(tbl) {
 #' 
 #' @return A `tibble` object.
 #' 
-#' @examples
-#' # Get the dimensions of the
-#' # `game_revenue` dataset that's
-#' # included in the package
-#' tt_tbl_dims(game_revenue)
+#' @section Examples:
 #' 
-#' # This output table is useful when
-#' # you want to validate the
-#' # dimensions of the table; here,
-#' # we check that `game_revenue` has
-#' # at least 1500 rows
-#' tt_tbl_dims(game_revenue) %>%
+#' Get the dimensions of the `game_revenue` dataset that is included in the
+#' **pointblank** package.
+#' 
+#' ```{r}
+#' tt_tbl_dims(tbl = game_revenue)
+#' ```
+#' 
+#' This output table is useful when a table validation depends on its
+#' dimensions. Here, we check that `game_revenue` has at least `1500` rows.
+#' 
+#' ```{r}
+#' tt_tbl_dims(tbl = game_revenue) %>%
 #'   dplyr::filter(.param. == "rows") %>%
 #'   test_col_vals_gt(
 #'     columns = vars(value),
 #'     value = 1500
 #'   )
+#' ```
 #' 
-#' # We can check `small_table` for
-#' # an exact number of columns (`8`)
-#' tt_tbl_dims(small_table) %>%
+#' We can check `small_table` to ensure that number of columns is less than
+#' `10`.
+#' 
+#' ```{r}
+#' tt_tbl_dims(tbl = small_table) %>%
 #'   dplyr::filter(.param. == "columns") %>%
-#'   test_col_vals_equal(
+#'   test_col_vals_lt(
 #'     columns = vars(value),
-#'     value = 8
+#'     value = 10
 #'   )
+#' ```
 #' 
 #' @family Table Transformers
 #' @section Function ID:
@@ -336,7 +367,6 @@ tt_tbl_dims <- function(tbl) {
   tbl_dims_tbl
 }
 
-
 #' Table Transformer: get a table's column names
 #' 
 #' @description
@@ -352,27 +382,34 @@ tt_tbl_dims <- function(tbl) {
 #' 
 #' @return A `tibble` object.
 #' 
-#' @examples
-#' # Get the column names of the
-#' # `game_revenue` dataset that's
-#' # included in the package
-#' tt_tbl_colnames(game_revenue)
+#' @section Examples:
 #' 
-#' # This output table is useful when
-#' # you want to validate the
-#' # column names of the table; here,
-#' # we check that `game_revenue` has
-#' # certain column names present
-#' tt_tbl_colnames(game_revenue) %>%
+#' Get the column names of the `game_revenue` dataset that is included in the
+#' **pointblank** package.
+#' 
+#' ```{r}
+#' tt_tbl_colnames(tbl = game_revenue)
+#' ```
+#' 
+#' This output table is useful when you want to validate the column names of the
+#' table. Here, we check that `game_revenue` table, included in the
+#' **pointblank** package, has certain column names present with
+#' [test_col_vals_make_subset()].
+#' 
+#' ```{r}
+#' tt_tbl_colnames(tbl = game_revenue) %>%
 #'   test_col_vals_make_subset(
 #'     columns = vars(value),
 #'     set = c("acquisition", "country")
 #'   )
+#' ```
 #' 
-#' # We can check to see whether the
-#' # column names in the `specifications`
-#' # table are all less than 15
-#' # characters in length
+#' We can check to see whether the column names in the `specifications` table
+#' are all less than `15` characters in length. For this, we would use the
+#' combination of `tt_tbl_colnames()`, then [tt_string_info()], and finally
+#' [test_col_vals_lt()] to perform the test.
+#' 
+#' ```{r}
 #' specifications %>%
 #'   tt_tbl_colnames() %>%
 #'   tt_string_info() %>%
@@ -380,6 +417,10 @@ tt_tbl_dims <- function(tbl) {
 #'     columns = vars(value),
 #'     value = 15
 #'   )
+#' ```
+#' 
+#' This returned `FALSE` and this is because the column name
+#' `credit_card_numbers` is 16 characters long.
 #' 
 #' @family Table Transformers
 #' @section Function ID:
@@ -437,32 +478,40 @@ tt_tbl_colnames <- function(tbl) {
 #' @return A data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object
 #'   depending on what was provided as `tbl`.
 #' 
-#' @examples
-#' # With the `game_revenue` dataset,
-#' # which has entries in the first
-#' # 21 days of 2015, move all of the
-#' # date and date-time values to the
-#' # beginning of 2021
+#' @section Examples:
+#' 
+#' Let's use the `game_revenue` dataset, included in the **pointblank** package,
+#' as the input table for the first demo. It has entries in the first 21 days of
+#' 2015 and we'll move all of the date and date-time values to the beginning of
+#' 2021 with the `tt_time_shift()` function and the `"6y"` `time_shift`
+#' specification.
+#' 
+#' ```{r}
 #' tt_time_shift(
 #'   tbl = game_revenue,
 #'   time_shift = "6y"
 #' )
+#' ```
 #' 
-#' # Keeping only the `date_time` and
-#' # `a`-`f` columns of `small_table`,
-#' # shift the times back 2 days and
-#' # 12 hours
+#' Keeping only the `date_time` and `a`-`f` columns of `small_table`, also
+#' included in the package, shift the times back 2 days and 12 hours with the
+#' `"-2d 12H"` specification.
+#' 
+#' ```{r}
 #' small_table %>%
 #'   dplyr::select(-date) %>%
 #'   tt_time_shift("-2d 12H")
+#' ```
 #' 
 #' @family Table Transformers
 #' @section Function ID:
 #' 12-5
 #' 
 #' @export
-tt_time_shift <- function(tbl,
-                          time_shift = "0y 0m 0d 0H 0M 0S") {
+tt_time_shift <- function(
+    tbl,
+    time_shift = "0y 0m 0d 0H 0M 0S"
+) {
   
   # nocov start
   
@@ -612,40 +661,47 @@ tt_time_shift <- function(tbl,
 #' @return A data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object
 #'   depending on what was provided as `tbl`.
 #' 
-#' @examples
-#' # With the `game_revenue` dataset,
-#' # which has entries in the first
-#' # 21 days of 2015, elect to get all
-#' # of the records where the `time`
-#' # values are strictly for the first
-#' # 15 days of 2015
+#' @section Examples:
+#' 
+#' Let's use the `game_revenue` dataset, included in the **pointblank** package,
+#' as the input table for the first demo. It has entries in the first 21 days of
+#' 2015 and we'll elect to get all of the records where the `time` values are
+#' strictly for the first 15 days of 2015. The `keep` argument has a default of
+#' `"left"` so all rows where the `time` column is less than
+#' `"2015-01-16 00:00:00"` will be kept.
+#' 
+#' ```{r}
 #' tt_time_slice(
 #'   tbl = game_revenue,
 #'   time_column = "time",
 #'   slice_point = "2015-01-16"
 #' )
+#' ```
 #' 
-#' # Omit the first 25% of records
-#' # from `small_table` on the basis
-#' # of a timeline that begins at 
-#' # `2016-01-04 11:00:00` and
-#' # ends at `2016-01-30 11:23:00`
+#' Omit the first 25% of records from `small_table`, also included in the
+#' package, with a fractional `slice_point` of `0.25` on the basis of a timeline
+#' that begins at `2016-01-04 11:00:00` and ends at `2016-01-30 11:23:00`.
+#' 
+#' ```{r}
 #' small_table %>%
 #'   tt_time_slice(
 #'     slice_point = 0.25,
 #'     keep = "right"
 #'   )
+#' ```
 #' 
 #' @family Table Transformers
 #' @section Function ID:
 #' 12-6
 #' 
 #' @export
-tt_time_slice <- function(tbl,
-                          time_column = NULL,
-                          slice_point = 0,
-                          keep = c("left", "right"),
-                          arrange = FALSE) {
+tt_time_slice <- function(
+    tbl,
+    time_column = NULL,
+    slice_point = 0,
+    keep = c("left", "right"),
+    arrange = FALSE
+) {
   
   # nocov start
   
@@ -794,19 +850,28 @@ tt_time_slice <- function(tbl,
 #'   [tt_tbl_colnames()] functions will always generate a two-column summary
 #'   table).
 #'   
-#' @examples 
-#' # Get summary statistics for the
-#' # first quarter of the `game_revenue`
-#' # dataset that's included in the package
-#' stat_tbl <- 
+#' @section Examples:
+#' 
+#' Get summary statistics for the first quarter of the `game_revenue` dataset
+#' that's included in the **pointblank** package.
+#' 
+#' ```{r}
+#' stats_tbl <- 
 #'   game_revenue %>%
 #'   tt_time_slice(slice_point = 0.25) %>%
 #'   tt_summary_stats()
+#'   
+#' stats_tbl
+#' ```
 #' 
-#' # Based on player behavior for the first
-#' # quarter of the year, test whether the
-#' # maximum session duration during the
-#' # rest of the year is never higher
+#' Sometimes you need a single value from the table generated by the
+#' [tt_summary_stats()] function. For that, we can use the `get_tt_param()`
+#' function. So if we wanted to test whether the maximum session duration during
+#' the rest of the time period (the remaining 0.75) is never higher than that of
+#' the first quarter of the year, we can supply a value from `stats_tbl` to
+#' [test_col_vals_lte()]:
+#' 
+#' ```{r}
 #' game_revenue %>%
 #'   tt_time_slice(
 #'     slice_point = 0.25,
@@ -815,20 +880,23 @@ tt_time_slice <- function(tbl,
 #'   test_col_vals_lte(
 #'     columns = vars(session_duration), 
 #'     value = get_tt_param(
-#'       tbl = stat_tbl,
+#'       tbl = stats_tbl,
 #'       param = "max",
 #'       column = "session_duration"
 #'     )
 #'   )
+#' ```
 #' 
 #' @family Table Transformers
 #' @section Function ID:
 #' 12-7
 #' 
 #' @export
-get_tt_param <- function(tbl,
-                         param,
-                         column = NULL) {
+get_tt_param <- function(
+    tbl,
+    param,
+    column = NULL
+) {
   
   # Stop function if the `tt_type` attribute isn't present
   # in the table object

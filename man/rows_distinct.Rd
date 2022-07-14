@@ -117,17 +117,37 @@ whether row values (optionally constrained to a selection of specified
 \code{columns}) are, when taken as a complete unit, distinct from all other units
 in the table. The validation function can be used directly on a data table or
 with an \emph{agent} object (technically, a \code{ptblank_agent} object) whereas the
-expectation and test functions can only be used with a data table. The types
-of data tables that can be used include data frames, tibbles, database tables
-(\code{tbl_dbi}), and Spark DataFrames (\code{tbl_spark}). As a validation step or as
-an expectation, this will operate over the number of test units that is equal
-to the number of rows in the table (after any \code{preconditions} have been
-applied).
+expectation and test functions can only be used with a data table. As a
+validation step or as an expectation, this will operate over the number of
+test units that is equal to the number of rows in the table (after any
+\code{preconditions} have been applied).
 
 We can specify the constraining column names in quotes, in \code{vars()}, and with
 the following \strong{tidyselect} helper functions: \code{starts_with()},
 \code{ends_with()}, \code{contains()}, \code{matches()}, and \code{everything()}.
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Preconditions}{
 
 Providing expressions as \code{preconditions} means \strong{pointblank} will preprocess
@@ -209,8 +229,11 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 a list member), the syntax closely follows the signature of the validation
 function. Here is an example of how a complex call of \code{rows_distinct()} as a
 validation step is expressed in R code and in the corresponding YAML
-representation.\preformatted{# R statement
-agent \%>\% 
+representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   rows_distinct(
     columns = vars(a, b),
     preconditions = ~ . \%>\% dplyr::filter(a < 10),
@@ -219,9 +242,11 @@ agent \%>\%
     label = "The `rows_distinct()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{steps:
 - rows_distinct:
     columns: vars(a, b)
     preconditions: ~. \%>\% dplyr::filter(a < 10)
@@ -231,7 +256,7 @@ steps:
       stop_fraction: 0.2
     label: The `rows_distinct()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter. A value for \code{columns} is
 only necessary if checking for unique values across a subset of columns.
@@ -242,15 +267,12 @@ transformation of an agent to YAML without any writing to disk by using the
 \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
-\section{Function ID}{
+\section{Examples}{
 
-2-20
-}
 
-\examples{
-# Create a simple table with three
-# columns of numerical values
-tbl <-
+Create a simple table with three columns of numerical values.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <-
   dplyr::tibble(
     a = c(5, 7, 6, 5, 8, 7),
     b = c(7, 1, 0, 0, 8, 3),
@@ -258,63 +280,85 @@ tbl <-
   )
 
 tbl
+}\if{html}{\out{</div>}}
 
-# A: Using an `agent` with validation
-#    functions and then `interrogate()` 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 3
+##       a     b     c
+##   <dbl> <dbl> <dbl>
+## 1     5     7     1
+## 2     7     1     1
+## 3     6     0     1
+## 4     5     0     3
+## 5     8     8     3
+## 6     7     3     3
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
 
-# Validate that when considering only
-# data in columns `a` and `b`, there
-# are no duplicate rows (i.e., all
-# rows are distinct)
-agent <-
+Validate that when considering only data in columns \code{a} and \code{b}, there are no
+duplicate rows (i.e., all rows are distinct).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   create_agent(tbl = tbl) \%>\%
-  rows_distinct(vars(a, b)) \%>\%
+  rows_distinct(columns = vars(a, b)) \%>\%
   interrogate()
+}\if{html}{\out{</div>}}
 
-# Determine if this validation passed
-# by using `all_passed()`
-all_passed(agent)
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
 
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-tbl \%>\%
-  rows_distinct(vars(a, b)) \%>\%
-  dplyr::pull(a)
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_rows_distinct(
-  tbl, vars(a, b)
-)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-test_rows_distinct(
-  tbl, vars(a, b)
-)
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_rows_distinct_1.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\%
+  rows_distinct(columns = vars(a, b)) \%>\%
+  dplyr::pull(a)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] 5 7 6 5 8 7
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_rows_distinct(tbl, columns = vars(a, b))
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{test_rows_distinct(tbl, columns = vars(a, b))
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
+\section{Function ID}{
+
+2-20
+}
+
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

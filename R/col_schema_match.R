@@ -27,8 +27,7 @@
 #' that of the target table. The validation function can be used directly on a
 #' data table or with an *agent* object (technically, a `ptblank_agent` object)
 #' whereas the expectation and test functions can only be used with a data
-#' table. The types of data tables that can be used include data frames,
-#' tibbles, database tables (`tbl_dbi`), and Spark DataFrames (`tbl_spark`).
+#' table.
 #' 
 #' The validation step or expectation operates over a single test unit, which is
 #' whether the schema matches that of the table (within the constraints enforced
@@ -48,6 +47,23 @@
 #' means that all column classes/types don't have to be provided for a
 #' particular column. It can even be `NULL`, skipping the check of the column
 #' type.
+#' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
 #'
 #' @section Actions:
 #' Often, we will want to specify `actions` for the validation. This argument,
@@ -78,8 +94,9 @@
 #' a validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   col_schema_match(
 #'     schema = col_schema(
@@ -93,8 +110,11 @@
 #'     label = "The `col_schema_match()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - col_schema_match:
 #'     schema:
@@ -145,14 +165,14 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #' 
-#' @examples
-#' # For all examples here, we'll use
-#' # a simple table with two columns:
-#' # one `integer` (`a`) and the other
-#' # `character` (`b`); the following
-#' # examples will validate that the
-#' # table columns abides match a schema
-#' # object as created by `col_schema()`
+#' @section Examples:
+#' 
+#' For all examples here, we'll use a simple table with two columns: one
+#' `integer` (`a`) and the other `character` (`b`). The following examples will
+#' validate that the table columns abides match a schema object as created by
+#' [col_schema()].
+#' 
+#' ```{r}
 #' tbl <- 
 #'   dplyr::tibble(
 #'     a = 1:5,
@@ -160,64 +180,71 @@
 #'   )
 #'   
 #' tbl
+#' ```
 #' 
-#' # Create a column schema object with
-#' # the helper function `col_schema()`
-#' # that describes the columns and
-#' # their types (in the expected order)
+#' Create a column schema object with the helper function `col_schema()` that
+#' describes the columns and their types (in the expected order).
+#' 
+#' ```{r}
 #' schema_obj <- 
 #'   col_schema(
 #'     a = "integer",
 #'     b = "character"
 #'   )
+#' 
+#' schema_obj
+#' ```
 #'   
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()`
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
 #' 
-#' # Validate that the schema object
-#' # `schema_obj` exactly defines
-#' # the column names and column types
+#' Validate that the schema object `schema_obj` exactly defines the column names
+#' and column types. We'll determine if this validation has a failing test unit
+#' (there is a single test unit governed by whether there is a match).
+#' 
+#' ```r
 #' agent <-
-#'   create_agent(tbl) %>%
-#'   col_schema_match(schema_obj) %>%
+#'   create_agent(tbl = tbl) %>%
+#'   col_schema_match(schema = schema_obj) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # Determine if this validation
-#' # had no failing test units (there is
-#' # a single test unit governed by
-#' # whether there is a match)
-#' all_passed(agent)
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_col_schema_match_1.png")`
+#' }
+#' }
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' ## B: Using the validation function directly on the data (no `agent`)
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
-#' tbl %>% col_schema_match(schema_obj)
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
+#' tbl %>% col_schema_match(schema = schema_obj)
+#' ```
 #'
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
-#' expect_col_schema_match(tbl, schema_obj)
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
 #' 
-#' # D: Using the test function
+#' ```r
+#' expect_col_schema_match(tbl, scheam = schema_obj)
+#' ```
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
-#' tbl %>% test_col_schema_match(schema_obj)
+#' ## D: Using the test function
+#' 
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
+#' tbl %>% test_col_schema_match(schema = schema_obj)
+#' ```
 #' 
 #' @family validation functions
 #' @section Function ID:
@@ -229,16 +256,18 @@ NULL
 #' @rdname col_schema_match
 #' @import rlang
 #' @export
-col_schema_match <- function(x,
-                             schema,
-                             complete = TRUE,
-                             in_order = TRUE,
-                             is_exact = TRUE,
-                             actions = NULL,
-                             step_id = NULL,
-                             label = NULL,
-                             brief = NULL,
-                             active = TRUE) {
+col_schema_match <- function(
+    x,
+    schema,
+    complete = TRUE,
+    in_order = TRUE,
+    is_exact = TRUE,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
 
   if (!inherits(schema, "col_schema")) {
     
@@ -308,7 +337,7 @@ col_schema_match <- function(x,
   # values in earlier validation steps
   check_step_id_duplicates(step_id, agent)
   
-  # Add a validation step
+  # Add the validation step
   agent <-
     create_validation_step(
       agent = agent,
@@ -329,12 +358,14 @@ col_schema_match <- function(x,
 #' @rdname col_schema_match
 #' @import rlang
 #' @export
-expect_col_schema_match <- function(object,
-                                    schema,
-                                    complete = TRUE,
-                                    in_order = TRUE,
-                                    is_exact = TRUE,
-                                    threshold = 1) {
+expect_col_schema_match <- function(
+    object,
+    schema,
+    complete = TRUE,
+    in_order = TRUE,
+    is_exact = TRUE,
+    threshold = 1
+) {
   
   fn_name <- "expect_col_schema_match"
   
@@ -386,12 +417,14 @@ expect_col_schema_match <- function(object,
 #' @rdname col_schema_match
 #' @import rlang
 #' @export
-test_col_schema_match <- function(object,
-                                  schema,
-                                  complete = TRUE,
-                                  in_order = TRUE,
-                                  is_exact = TRUE,
-                                  threshold = 1) {
+test_col_schema_match <- function(
+    object,
+    schema,
+    complete = TRUE,
+    in_order = TRUE,
+    is_exact = TRUE,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%
@@ -443,42 +476,57 @@ test_col_schema_match <- function(object,
 #' @param .db_col_types Determines whether the column types refer to R column
 #'   types (`"r"`) or SQL column types (`"sql"`).
 #'   
-#' @examples 
-#' # Create a simple table with two
-#' # columns: one `integer` and the
-#' # other `character`
+#' @section Examples:
+#' 
+#' Create a simple table with two columns: one `integer` and the other
+#' `character`.
+#' 
+#' ```{r}
 #' tbl <- 
 #'   dplyr::tibble(
 #'     a = 1:5,
 #'     b = letters[1:5]
 #'   )
 #' 
-#' # Create a column schema object
-#' # that describes the columns and
-#' # their types (in the expected
-#' # order)
+#' tbl
+#' ```
+#' 
+#' Create a column schema object that describes the columns and their types (in
+#' the expected order).
+#' 
+#' ```{r}
 #' schema_obj <- 
 #'   col_schema(
 #'     a = "integer",
 #'     b = "character"
 #'   )
 #' 
-#' # Validate that the schema object
-#' # `schema_obj` exactly defines
-#' # the column names and column types
-#' # of the `tbl` table
+#' schema_obj
+#' ```
+#' 
+#' Validate that the schema object `schema_obj` exactly defines the column names
+#' and column types of the `tbl` table.
+#' 
+#' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
 #'   col_schema_match(schema_obj) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # Determine if this validation step
-#' # passed by using `all_passed()`
+#' Determine if this validation step passed by using `all_passed()`.
+#' 
+#' ```r
 #' all_passed(agent)
+#' ```
 #' 
-#' # We can alternatively create
-#' # a column schema object from a
-#' # `tbl_df` object
+#' ```
+#' ## [1] TRUE
+#' ```
+#' 
+#' We can alternatively create a column schema object from a `tbl_df` object.
+#' 
+#' ```r
 #' schema_obj <-
 #'   col_schema(
 #'     .tbl = dplyr::tibble(
@@ -486,23 +534,32 @@ test_col_schema_match <- function(object,
 #'       b = character(0)
 #'     )
 #'   )
+#' ```
 #'
-#' # This should provide the same
-#' # interrogation results as in the
-#' # previous example
+#' This should provide the same interrogation results as in the previous
+#' example.
+#' 
+#' ```r
 #' create_agent(tbl = tbl) %>%
 #'   col_schema_match(schema_obj) %>%
 #'   interrogate() %>%
 #'   all_passed()
-#'   
+#' ```
+#' 
+#' ```
+#' ## [1] TRUE
+#' ```
+#' 
 #' @family Utility and Helper Functions
 #' @section Function ID:
 #' 13-1
 #' 
 #' @export
-col_schema <- function(...,
-                       .tbl = NULL,
-                       .db_col_types = c("r", "sql")) {
+col_schema <- function(
+    ...,
+    .tbl = NULL,
+    .db_col_types = c("r", "sql")
+) {
   
   db_col_types <- match.arg(.db_col_types)
 
@@ -573,14 +630,11 @@ create_col_schema_from_df <- function(tbl) {
       tbl %>%
       utils::head(1) %>%
       dplyr::collect()
-    
   }
   
   lapply(tbl, class)
 }
 
-col_schema_from_names_types <- function(names,
-                                        types) {
-  
+col_schema_from_names_types <- function(names, types) {
   as.list(stats::setNames(types, names))
 }

@@ -81,8 +81,10 @@ generate useful reporting information for assessing the level of data quality
 for the target table. We can supply as many validation functions as the user
 wishes to write, thereby increasing the level of validation coverage for that
 table. The \emph{agent} assigned by the \code{create_agent()} call takes validation
-functions, which expand to validation steps (each one is numbered). This
-process is known as developing a \emph{validation plan}.
+functions (e.g., \code{\link[=col_vals_between]{col_vals_between()}}, \code{\link[=rows_distinct]{rows_distinct()}}, etc.), which
+translate to discrete validation steps (each one is numbered and will later
+provide its own set of results). This process is known as developing a
+\emph{validation plan}.
 
 The validation functions, when called on an \emph{agent}, are merely instructions
 up to the point the \code{\link[=interrogate]{interrogate()}} function is called. That kicks off the
@@ -92,7 +94,95 @@ the \emph{agent} has intel. Calling the \emph{agent} itself will result in a rep
 table. This reporting of the interrogation can also be accessed with the
 \code{\link[=get_agent_report]{get_agent_report()}} function, where there are more reporting options.
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
+\section{The Use of an Agent for Validation Is Just One Option of Several}{
+
+
+There are a few validation workflows and using an \emph{agent} is the one that
+provides the most options. It is probably the best choice for assessing the
+state of data quality since it yields detailed reporting, has options for
+further exploration of root causes, and allows for granular definition of
+actions to be taken based on the severity of validation failures (e.g.,
+emailing, logging, etc.).
+
+Different situations, however, call for different validation workflows. You
+use validation functions (the same ones you would with an \emph{agent}) directly
+on the data. This acts as a sort of data filter in that the input table will
+become output data (without modification), but there may be warnings, errors,
+or other side effects that you can define if validation fails. Basically,
+instead of this
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{create_agent(tbl = small_table) \%>\% rows_distinct() \%>\% interrogate()
+}\if{html}{\out{</div>}}
+
+you would use this:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table \%>\% rows_distinct()
+}\if{html}{\out{</div>}}
+
+This results in an error (with the default failure threshold settings),
+displaying the reason for the error in the console. Notably, the data is not
+passed though.
+
+We can use variants of the validation functions, the \emph{test} (\verb{test_*()}) and
+\emph{expectation} (\verb{expect_*()}) versions, directly on the data for different
+workflows. The first returns to us a logical value. So this
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table \%>\% test_rows_distinct()
+}\if{html}{\out{</div>}}
+
+returns \code{FALSE} instead of an error.
+
+In a unit testing scenario, we can use \emph{expectation} functions exactly as we
+would with \strong{testthat}'s library of \verb{expect_*()} functions:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table \%>\% expect_rows_distinct()
+}\if{html}{\out{</div>}}
+
+This test of \code{small_table} would be counted as a failure.
+}
+
+\section{The Agent Report}{
+
+
+While printing an \emph{agent} (a \code{ptblank_agent} object) will display its
+reporting in the Viewer, we can alternatively use the \code{\link[=get_agent_report]{get_agent_report()}} to
+take advantage of other options (e.g., overriding the language, modifying the
+arrangement of report rows, etc.), and to return the report as independent
+objects. For example, with the \code{display_table = TRUE} option (the default),
+\code{\link[=get_agent_report]{get_agent_report()}} will return a \code{ptblank_agent_report} object. If
+\code{display_table} is set to \code{FALSE}, we'll get a data frame back instead.
+
+Exporting the report as standalone HTML file can be accomplished by using the
+\code{\link[=export_report]{export_report()}} function. This function can accept either the
+\code{ptblank_agent} object or the \code{ptblank_agent_report} as input. Each HTML
+document written to disk in this way is self-contained and easily viewable in
+a web browser.
+}
+
 \section{Data Products Obtained from an Agent}{
+
 
 A very detailed list object, known as an x-list, can be obtained by using the
 \code{\link[=get_agent_x_list]{get_agent_x_list()}} function on the \emph{agent}. This font of information can be
@@ -117,31 +207,36 @@ If we just need to know whether all validations completely passed (i.e., all
 steps had no failing test units), the \code{\link[=all_passed]{all_passed()}} function could be used
 on the \emph{agent}. However, in practice, it's not often the case that all data
 validation steps are free from any failing units.
-
-While printing an \emph{agent} will display the \emph{agent} report in the Viewer, we
-can alternatively use the \code{\link[=get_agent_report]{get_agent_report()}} to take advantage of other
-options (e.g., overriding the language, modifying the arrangement of report
-rows, etc.), and to return the report as independent objects. For example,
-with the \code{display_table = TRUE} option (the default), \code{\link[=get_agent_report]{get_agent_report()}}
-will return a \strong{gt} table object (\code{"gt_tbl"}). If \code{display_table} is set to
-\code{FALSE}, we'll get a data frame back instead.
 }
 
 \section{YAML}{
+
 
 A \strong{pointblank} agent can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an agent (with \code{\link[=yaml_read_agent]{yaml_read_agent()}})
 or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}}). Here is an
 example of how a complex call of \code{create_agent()} is expressed in R code and
-in the corresponding YAML representation.\preformatted{# R statement
-create_agent(
+in the corresponding YAML representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{create_agent(
   tbl = ~ small_table,
   tbl_name = "small_table",
   label = "An example.",
   actions = action_levels(
     warn_at = 0.10,
     stop_at = 0.25,
-    notify_at = 0.35
+    notify_at = 0.35,
+    fns = list(notify = ~ email_blast(
+      x,
+      to = "joe_public@example.com",
+      from = "pb_notif@example.com",
+      msg_subject = "Table Validation",
+      credentials = blastula::creds_key(
+        id = "smtp2go"
+      )
+    ))
   ), 
   end_fns = list(
     ~ beepr::beep(2),
@@ -151,9 +246,11 @@ create_agent(
   lang = "fr", 
   locale = "fr_CA"
 )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-type: agent
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{type: agent
 tbl: ~small_table
 tbl_name: small_table
 label: An example.
@@ -161,15 +258,21 @@ lang: fr
 locale: fr_CA
 actions:
   warn_fraction: 0.1
-stop_fraction: 0.25
-notify_fraction: 0.35
+  stop_fraction: 0.25
+  notify_fraction: 0.35
+  fns:
+    notify: ~email_blast(x, to = "joe_public@example.com",
+      from = "pb_notif@example.com",
+      msg_subject = "Table Validation",
+      credentials = blastula::creds_key(id = "smtp2go"))
 end_fns:
 - ~beepr::beep(2)
 - ~Sys.sleep(1)
 embed_report: true
-}
+steps: []
+}\if{html}{\out{</div>}}
 
-In practice, this block of YAML will be shorter since arguments with default
+In practice, this YAML file will be shorter since arguments with default
 values won't be written to YAML when using \code{\link[=yaml_write]{yaml_write()}} (though it is
 acceptable to include them with their default when generating the YAML by
 other means). The only requirement for writing the YAML representation of an
@@ -189,6 +292,7 @@ of the R expressions that are used to regenerate that agent with
 
 \section{Writing an Agent to Disk}{
 
+
 An \emph{agent} object can be written to disk with the \code{\link[=x_write_disk]{x_write_disk()}} function.
 This can be useful for keeping a history of validations and generating views
 of data quality over time. Agents are stored in the serialized RDS format and
@@ -202,6 +306,7 @@ may change, hence the need to use an expression for this).
 
 \section{Combining Several Agents in a \emph{multiagent} Object}{
 
+
 Multiple \emph{agent} objects can be part of a \emph{multiagent} object, and two
 functions can be used for this: \code{\link[=create_multiagent]{create_multiagent()}} and
 \code{\link[=read_disk_multiagent]{read_disk_multiagent()}}. By gathering multiple agents that have performed
@@ -212,9 +317,156 @@ monitoring and management, and, the reporting (which can be customized with
 a given target table.
 }
 
-\section{Figures}{
+\section{Examples}{
 
-\if{html}{\figure{man_create_agent_1.png}{options: width=100\%}}
+\subsection{Creating an agent, adding a validation plan, and interrogating}{
+
+Let's walk through a data quality analysis of an extremely small table. It's
+actually called \code{small_table} and we can find it as a dataset in this
+package.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 13 × 8
+##    date_time           date           a b             c      d e     f    
+##    <dttm>              <date>     <int> <chr>     <dbl>  <dbl> <lgl> <chr>
+##  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-345     3  3423. TRUE  high 
+##  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-163     8 10000. TRUE  low  
+##  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-938     3  2343. TRUE  high 
+##  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-903    NA  3892. FALSE mid  
+##  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-038     7   284. TRUE  low  
+##  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4  3291. TRUE  mid  
+##  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3   843. TRUE  high 
+##  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2  1036. FALSE low  
+##  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+## 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+## 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7   834. TRUE  low  
+## 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8   108. FALSE low  
+## 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA  2230. TRUE  high
+}\if{html}{\out{</div>}}
+
+We ought to think about what's tolerable in terms of data quality so let's
+designate proportional failure thresholds to the \code{warn}, \code{stop}, and \code{notify}
+states using \code{\link[=action_levels]{action_levels()}}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{al <- 
+  action_levels(
+      warn_at = 0.10,
+      stop_at = 0.25,
+    notify_at = 0.35
+  )
+}\if{html}{\out{</div>}}
+
+Now create a pointblank \code{agent} object and give it the \code{al} object (which
+serves as a default for all validation steps which can be overridden). The
+static thresholds provided by \code{al} will make the reporting a bit more useful.
+We also provide a target table and we'll use \code{pointblank::small_table}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <- 
+  create_agent(
+    tbl = pointblank::small_table,
+    tbl_name = "small_table",
+    label = "`create_agent()` example.",
+    actions = al
+  )
+}\if{html}{\out{</div>}}
+
+Then, as with any \code{agent} object, we can add steps to the validation plan by
+using as many validation functions as we want. then, we use \code{\link[=interrogate]{interrogate()}}
+to actually perform the validations and gather intel.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
+  agent \%>\% 
+  col_exists(columns = vars(date, date_time)) \%>\%
+  col_vals_regex(
+    columns = vars(b),
+    regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
+  ) \%>\%
+  rows_distinct() \%>\%
+  col_vals_gt(columns = vars(d), value = 100) \%>\%
+  col_vals_lte(columns = vars(c), value = 5) \%>\%
+  col_vals_between(
+    columns = vars(c),
+    left = vars(a), right = vars(d),
+    na_pass = TRUE
+  ) \%>\%
+  interrogate()
+}\if{html}{\out{</div>}}
+
+The \code{agent} object can be printed to see the validation report in the
+Viewer.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent
+}\if{html}{\out{</div>}}
+
+\if{html}{
+
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_agent_1.png" style="width:100\%;">
+}
+}
+
+If we want to make use of more report display options, we can alternatively
+use the \code{\link[=get_agent_report]{get_agent_report()}} function.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{report <-
+  get_agent_report(
+    agent = agent,
+    arrange_by = "severity",
+    title = "Validation of `small_table`"
+  )
+
+report
+}\if{html}{\out{</div>}}
+
+\if{html}{
+
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_agent_2.png" style="width:100\%;">
+}
+}
+}
+
+\subsection{Post-interrogation operations}{
+
+We can use the \code{agent} object with a variety of functions to get at more
+of the information collected during interrogation.
+
+We can see from the validation report that Step 4 (which used the
+\code{\link[=rows_distinct]{rows_distinct()}} validation function) had two test units, corresponding to
+duplicated rows, that failed. We can see those rows with
+\code{\link[=get_data_extracts]{get_data_extracts()}}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% get_data_extracts(i = 4)
+}\if{html}{\out{</div>}}
+
+\preformatted{## # A tibble: 2 × 8
+##   date_time           date           a b            c     d e     f    
+##   <dttm>              <date>     <int> <chr>    <dbl> <dbl> <lgl> <chr>
+## 1 2016-01-20 04:30:00 2016-01-20     3 5-bce-6…     9  838. FALSE high 
+## 2 2016-01-20 04:30:00 2016-01-20     3 5-bce-6…     9  838. FALSE high}
+
+
+
+We can get an x-list for the entire validation process (7 steps), or, just
+for the 4th step with \code{\link[=get_agent_x_list]{get_agent_x_list()}}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{xl_step_4 <- agent \%>\% get_agent_x_list(i = 4)
+}\if{html}{\out{</div>}}
+
+And then we can peruse the different parts of the list. Let's get the
+fraction of test units that failed.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{xl_step_4$f_failed
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{#> [1] 0.15385
+}\if{html}{\out{</div>}}
+
+An x-list not specific to any step will have way more information and a
+slightly different structure. See \code{help(get_agent_x_list)} for more info.
+}
 }
 
 \section{Function ID}{
@@ -222,109 +474,6 @@ a given target table.
 1-2
 }
 
-\examples{
-# Let's walk through a data quality
-# analysis of an extremely small table;
-# it's actually called `small_table` and
-# we can find it as a dataset in this
-# package
-small_table
-
-# We ought to think about what's
-# tolerable in terms of data quality so
-# let's designate proportional failure
-# thresholds to the `warn`, `stop`, and
-# `notify` states using `action_levels()`
-al <- 
-  action_levels(
-      warn_at = 0.10,
-      stop_at = 0.25,
-    notify_at = 0.35
-  )
-
-# Now create a pointblank `agent` object
-# and give it the `al` object (which
-# serves as a default for all validation
-# steps which can be overridden); the
-# static thresholds provided by `al` will
-# make the reporting a bit more useful;
-# we also provide a target table and we'll
-# use `pointblank::small_table` 
-agent <- 
-  create_agent(
-    tbl = pointblank::small_table,
-    tbl_name = "small_table",
-    label = "An example.",
-    actions = al
-  )
-
-# Then, as with any `agent` object, we
-# can add steps to the validation plan by
-# using as many validation functions as we
-# want; then, we use `interrogate()` to
-# physically perform the validations and
-# gather intel
-agent <-
-  agent \%>\% 
-  col_exists(vars(date, date_time)) \%>\%
-  col_vals_regex(
-    vars(b),
-    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
-  ) \%>\%
-  rows_distinct() \%>\%
-  col_vals_gt(vars(d), value = 100) \%>\%
-  col_vals_lte(vars(c), value = 5) \%>\%
-  col_vals_equal(
-    vars(d), value = vars(d),
-    na_pass = TRUE
-  ) \%>\%
-  col_vals_between(
-    vars(c),
-    left = vars(a), right = vars(d),
-    na_pass = TRUE
-  ) \%>\%
-  interrogate()
-  
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-report <- get_agent_report(agent)
-class(report)
-
-# What can you do with the report object?
-# Print it from an R Markdown code
-# chunk, use it in a **blastula** email,
-# put it in a webpage, etc.
-
-# From the report we know that Step
-# 4 had two test units (rows, really)
-# that failed; we can see those rows
-# with `get_data_extracts()` 
-agent \%>\% get_data_extracts(i = 4)
-
-# We can get an x-list for the whole
-# validation (8 steps), or, just for
-# the 4th step with `get_agent_x_list()`
-xl_step_4 <-
-  agent \%>\% get_agent_x_list(i = 4)
- 
-# And then we can peruse the different
-# parts of the list; let's get the
-# fraction of test units that failed
-xl_step_4$f_failed
-
-# Just printing the x-list will tell
-# us what's available therein
-xl_step_4
-
-# An x-list not specific to any step
-# will have way more information and a
-# slightly different structure; see
-# `help(get_agent_x_list)` for more info
-# get_agent_x_list(agent)
-
-}
 \seealso{
 Other Planning and Prep: 
 \code{\link{action_levels}()},

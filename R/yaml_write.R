@@ -62,34 +62,37 @@
 #'   
 #' @return Invisibly returns `TRUE` if the YAML file has been written. 
 #'   
-#' @examples
-#' if (interactive()) {
+#' @section Examples:
 #' 
-#' # Let's go through the process of
-#' # developing an agent with a validation
-#' # plan (to be used for the data quality
-#' # analysis of the `small_table` dataset),
-#' # and then offloading that validation
-#' # plan to a pointblank YAML file
+#' ## Writing an `agent` object to a YAML file
 #' 
-#' # Creating an `action_levels` object is a
-#' # common workflow step when creating a
-#' # pointblank agent; we designate failure
-#' # thresholds to the `warn`, `stop`, and
-#' # `notify` states using `action_levels()`
+#' Let's go through the process of developing an agent with a validation plan.
+#' We'll use the `small_table` dataset in the following examples, which will
+#' eventually offload the developed validation plan to a YAML file.
+#' 
+#' ```{r}
+#' small_table
+#' ```
+#' 
+#' Creating an `action_levels` object is a common workflow step when creating a
+#' **pointblank** agent. We designate failure thresholds to the `warn`, `stop`,
+#' and `notify` states using [action_levels()].
+#' 
+#' ```r
 #' al <- 
 #'   action_levels(
 #'     warn_at = 0.10,
 #'     stop_at = 0.25,
 #'     notify_at = 0.35
 #'   )
+#' ```
 #' 
-#' # Now create a pointblank `agent` object
-#' # and give it the `al` object (which
-#' # serves as a default for all validation
-#' # steps which can be overridden); the
-#' # data will be referenced in `tbl`
-#' # (a requirement for writing to YAML)
+#' Now let's create the `agent` and pass it the `al` object (which serves as a
+#' default for all validation steps which can be overridden). The data will be
+#' referenced in `tbl` with a leading `~` and this is a requirement for writing
+#' to YAML since the preparation of the target table must be self contained.
+#' 
+#' ```r
 #' agent <- 
 #'   create_agent(
 #'     tbl = ~ small_table,
@@ -97,77 +100,273 @@
 #'     label = "A simple example with the `small_table`.",
 #'     actions = al
 #'   )
+#' ```
 #' 
-#' # Then, as with any `agent` object, we
-#' # can add steps to the validation plan by
-#' # using as many validation functions as we
-#' # want
+#' Then, as with any `agent` object, we can add steps to the validation plan by
+#' using as many validation functions as we want.
+#' 
+#' ```r
 #' agent <-
 #'   agent %>% 
-#'   col_exists(vars(date, date_time)) %>%
+#'   col_exists(columns = vars(date, date_time)) %>%
 #'   col_vals_regex(
-#'     vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}"
+#'     columns = vars(b),
+#'     regex = "[0-9]-[a-z]{3}-[0-9]{3}"
 #'   ) %>%
 #'   rows_distinct() %>%
-#'   col_vals_gt(vars(d), value = 100) %>%
-#'   col_vals_lte(vars(c), value = 5)
+#'   col_vals_gt(columns = vars(d), value = 100) %>%
+#'   col_vals_lte(columns = vars(c), value = 5)
+#' ```
 #'
-#' # The agent can be written to a pointblank
-#' # YAML file with `yaml_write()`
-#' yaml_write(
-#'   agent,
-#'   filename = "agent-small_table.yml"
-#' )
+#' The agent can be written to a **pointblank**-readable YAML file with the
+#' `yaml_write()` function. Here, we'll use the filename
+#' `"agent-small_table.yml"` and, after writing, the YAML file will be in the
+#' working directory:
 #' 
-#' # The 'agent-small_table.yml' file is
-#' # available in the package through
-#' # `system.file()`
-#' yml_file <- 
+#' ```r
+#' yaml_write(agent, filename = "agent-small_table.yml")
+#' ```
+#' 
+#' We can view the YAML file in the console with the [yaml_agent_string()]
+#' function.
+#' 
+#' ```r
+#' yaml_agent_string(filename = "agent-small_table.yml")
+#' ```
+#' 
+#' ```yaml
+#' type: agent
+#' tbl: ~small_table
+#' tbl_name: small_table
+#' label: A simple example with the `small_table`.
+#' lang: en
+#' locale: en
+#' actions:
+#'   warn_fraction: 0.1
+#'   stop_fraction: 0.25
+#'   notify_fraction: 0.35
+#' steps:
+#' - col_exists:
+#'     columns: vars(date, date_time)
+#' - col_vals_regex:
+#'     columns: vars(b)
+#'     regex: '[0-9]-[a-z]{3}-[0-9]{3}'
+#' - rows_distinct:
+#'     columns: ~
+#' - col_vals_gt:
+#'     columns: vars(d)
+#'     value: 100.0
+#' - col_vals_lte:
+#'     columns: vars(c)
+#'     value: 5.0
+#' ```
+#' 
+#' Incidentally, we can also use [yaml_agent_string()] to print YAML in the
+#' console when supplying an agent as the input. This can be useful for
+#' previewing YAML output just before writing it to disk with `yaml_write()`.
+#' 
+#' ## Reading an `agent` object from a YAML file
+#'
+#' There's a YAML file available in the **pointblank** package that's also
+#' called `"agent-small_table.yml"`. The path for it can be accessed through
+#' `system.file()`:
+#' 
+#' ```r
+#' yml_file_path <- 
 #'   system.file(
 #'     "yaml", "agent-small_table.yml",
 #'     package = "pointblank"
 #'   )
+#' ```
 #' 
-#' # We can view the YAML file in the console
-#' # with the `yaml_agent_string()` function
-#' yaml_agent_string(filename = yml_file)
+#' The YAML file can be read as an agent with a pre-existing validation plan by
+#' using the [yaml_read_agent()] function.
 #' 
-#' # The YAML can also be printed in the console
-#' # by supplying the agent as the input
-#' yaml_agent_string(agent = agent)
+#' ```r
+#' agent <- yaml_read_agent(filename = yml_file_path)
 #' 
-#' # At some later time, the YAML file can
-#' # be read as a new agent with the
-#' # `yaml_read_agent()` function
-#' agent <- 
-#'   yaml_read_agent(filename = yml_file)
+#' agent
+#' ```
 #' 
-#' class(agent)
-#' 
-#' # We can interrogate the data (which
-#' # is accessible through `tbl`)
-#' # with `interrogate()` and get an
-#' # agent with intel, or, we can
-#' # interrogate directly from the YAML
-#' # file with `yaml_agent_interrogate()`
-#' agent <- 
-#'   yaml_agent_interrogate(filename = yml_file)
-#' 
-#' class(agent)
-#' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_yaml_write_1.png")`
 #' }
+#' }
+#' 
+#' This particular agent is using `~ tbl_source("small_table", "tbl_store.yml")`
+#' to source the table-prep from a YAML file that holds a table store (can be
+#' seen using `yaml_agent_string(agent = agent)`). Let's put that file in the
+#' working directory (the **pointblank** package has the corresponding YAML
+#' file):
+#' 
+#' ```r
+#' yml_tbl_store_path <-
+#'   system.file(
+#'     "yaml", "tbl_store.yml",
+#'     package = "pointblank"
+#'   )
+#' 
+#' file.copy(from = yml_tbl_store_path, to = ".")
+#' ```
+#' 
+#' As can be seen from the validation report, no interrogation was yet
+#' performed. Saving an agent to YAML will remove any traces of interrogation
+#' data and serve as a plan for a new interrogation on the same target table. We
+#' can either follow this up with with [interrogate()] and get an agent with
+#' intel, or, we can interrogate directly from the YAML file with
+#' [yaml_agent_interrogate()]:
+#' 
+#' ```r
+#' agent <- yaml_agent_interrogate(filename = yml_file_path)
+#' 
+#' agent
+#' ```
+#' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_yaml_write_2.png")`
+#' }
+#' }
+#' 
+#' ## Writing an `informant` object to a YAML file
+#' 
+#' Let's walk through how we can generate some useful information for a really
+#' small table. We can create an `informant` object with [create_informant()]
+#' and we'll again use the `small_table` dataset.
+#' 
+#' ```r
+#' informant <- 
+#'   create_informant(
+#'     tbl = ~ small_table,
+#'     tbl_name = "small_table",
+#'     label = "A simple example with the `small_table`."
+#'   )
+#' ```
+#' 
+#' Then, as with any `informant` object, we can add info text to the
+#' using as many `info_*()` functions as we want.
+#' 
+#' ```r
+#' informant <- 
+#'   informant %>%
+#'   info_columns(
+#'     columns = vars(a),
+#'     info = "In the range of 1 to 10. (SIMPLE)"
+#'   ) %>%
+#'   info_columns(
+#'     columns = starts_with("date"),
+#'     info = "Time-based values (e.g., `Sys.time()`)."
+#'   ) %>%
+#'   info_columns(
+#'     columns = "date",
+#'     info = "The date part of `date_time`. (CALC)"
+#'   )
+#' ```
+#' 
+#' The informant can be written to a **pointblank**-readable YAML file with the
+#' `yaml_write()` function. Here, we'll use the filename
+#' `"informant-small_table.yml"` and, after writing, the YAML file will be in
+#' the working directory:
+#' 
+#' ```r
+#' yaml_write(informant, filename = "informant-small_table.yml")
+#' ```
+#' 
+#' We can inspect the YAML file in the working directory and expect to see the
+#' following:
+#' 
+#' ```yaml
+#' type: informant
+#' tbl: ~small_table
+#' tbl_name: small_table
+#' info_label: A simple example with the `small_table`.
+#' lang: en
+#' locale: en
+#' table:
+#'   name: small_table
+#'   _columns: 8
+#'   _rows: 13.0
+#'   _type: tbl_df
+#' columns:
+#'   date_time:
+#'   _type: POSIXct, POSIXt
+#' info: Time-based values (e.g., `Sys.time()`).
+#' date:
+#'   _type: Date
+#'   info: Time-based values (e.g., `Sys.time()`). The date part of `date_time`. (CALC)
+#' a:
+#'   _type: integer
+#'   info: In the range of 1 to 10. (SIMPLE)
+#' b:
+#'   _type: character
+#' c:
+#'   _type: numeric
+#' d:
+#'   _type: numeric
+#' e:
+#'   _type: logical
+#' f:
+#'   _type: character
+#' ```
+#' 
+#' ## Reading an `informant` object from a YAML file
+#'
+#' There's a YAML file available in the **pointblank** package that's also
+#' called `"informant-small_table.yml"`. The path for it can be accessed through
+#' `system.file()`:
+#' 
+#' ```r
+#' yml_file_path <- 
+#'   system.file(
+#'     "yaml", "informant-small_table.yml",
+#'     package = "pointblank"
+#'   )
+#' ```
+#' 
+#' The YAML file can be read as an informant by using the
+#' [yaml_read_informant()] function.
+#' 
+#' ```r
+#' informant <- yaml_read_informant(filename = yml_file_path)
+#' 
+#' informant
+#' ```
+#' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_yaml_write_3.png")`
+#' }
+#' }
+#' 
+#' As can be seen from the information report, the available table metadata was
+#' restored and reported. If you expect metadata to change with time, it might
+#' be beneficial to use [incorporate()] to query the target table. Or, we can
+#' perform this querying directly from the YAML file with
+#' [yaml_informant_incorporate()]:
+#' 
+#' ```r
+#' informant <- yaml_informant_incorporate(filename = yml_file_path)
+#' ```
+#' 
+#' There will be no apparent difference in this particular case since
+#' `small_data` is a static table with no alterations over time. However,
+#' using [yaml_informant_incorporate()] is good practice since this refreshing
+#' of data will be important with real-world datasets.
 #' 
 #' @family pointblank YAML
 #' @section Function ID:
 #' 11-1
 #' 
 #' @export
-yaml_write <- function(...,
-                       .list = list2(...),
-                       filename = NULL,
-                       path = NULL,
-                       expanded = FALSE,
-                       quiet = FALSE) {
+yaml_write <- function(
+    ...,
+    .list = list2(...),
+    filename = NULL,
+    path = NULL,
+    expanded = FALSE,
+    quiet = FALSE
+) {
 
   # Collect a list of pointblank objects
   obj_list <- .list
@@ -347,77 +546,71 @@ yaml_write <- function(...,
 #'   `FALSE` so expressions as written will be retained in the YAML
 #'   representation.
 #'   
-#' @examples 
-#' if (interactive()) {
-#' 
-#' # Let's create a validation plan for the
-#' # data quality analysis of the `small_table`
-#' # dataset; we need an agent and its
-#' # table-prep formula enables retrieval
-#' # of the target table
-#' agent <- 
-#'   create_agent(
-#'     tbl = ~ small_table,
-#'     tbl_name = "small_table",
-#'     label = "A simple example with the `small_table`.",
-#'     actions = action_levels(
-#'       warn_at = 0.10,
-#'       stop_at = 0.25,
-#'       notify_at = 0.35
-#'     )
-#'   ) %>%
-#'   col_exists(vars(date, date_time)) %>%
-#'   col_vals_regex(
-#'     vars(b),
-#'     regex = "[0-9]-[a-z]{3}-[0-9]{3}"
-#'   ) %>%
-#'   rows_distinct() %>%
-#'   col_vals_gt(vars(d), value = 100) %>%
-#'   col_vals_lte(vars(c), value = 5)
+#' @section Examples:
 #'
-#' # We can view the YAML file in the console
-#' # with the `yaml_agent_string()` function,
-#' # providing the `agent` object as the input
-#' yaml_agent_string(agent = agent)
-#'
-#' # The agent can be written to a pointblank
-#' # YAML file with `yaml_write()`
-#' yaml_write(
-#'   agent = agent,
-#'   filename = "agent-small_table.yml"
-#' )
+#' There's a YAML file available in the **pointblank** package that's called
+#' `"agent-small_table.yml"`. The path for it can be accessed through
+#' `system.file()`:
 #' 
-#' # There's a similar file in the package
-#' # ('agent-small_table.yml') and it's
-#' # accessible with `system.file()`
-#' yml_file <- 
+#' ```r
+#' yml_file_path <- 
 #'   system.file(
 #'     "yaml", "agent-small_table.yml",
 #'     package = "pointblank"
 #'   )
+#' ```
 #' 
-#' # The `yaml_agent_string()` function can
-#' # be used with the YAML file as well,
-#' # use the `filename` argument instead
-#' yaml_agent_string(filename = yml_file)
+#' We can view the contents of the YAML file in the console with the
+#' `yaml_agent_string()` function.
 #' 
-#' # At some later time, the YAML file can
-#' # be read as a new agent with the
-#' # `yaml_read_agent()` function
-#' agent <- yaml_read_agent(filename = yml_file)
-#' class(agent)
+#' ```r
+#' yaml_agent_string(filename = yml_file_path)
+#' ```
 #' 
-#' }
-#'   
+#' ```yaml
+#' type: agent
+#' tbl: ~ tbl_source("small_table", "tbl_store.yml")
+#' tbl_name: small_table
+#' label: A simple example with the `small_table`.
+#' lang: en
+#' locale: en
+#' actions:
+#'   warn_fraction: 0.1
+#'   stop_fraction: 0.25
+#'   notify_fraction: 0.35
+#' steps:
+#' - col_exists:
+#'     columns: vars(date)
+#' - col_exists:
+#'     columns: vars(date_time)
+#' - col_vals_regex:
+#'     columns: vars(b)
+#'     regex: '[0-9]-[a-z]{3}-[0-9]{3}'
+#' - rows_distinct:
+#'     columns: ~
+#' - col_vals_gt:
+#'     columns: vars(d)
+#'     value: 100.0
+#' - col_vals_lte:
+#'     columns: vars(c)
+#'     value: 5.0
+#' ```
+#' 
+#' Incidentally, we can also use `yaml_agent_string()` to print YAML in the
+#' console when supplying an *agent object* as the input. This can be useful for
+#' previewing YAML output just before writing it to disk with [yaml_write()].
+#' 
 #' @family pointblank YAML
 #' @section Function ID:
 #' 11-5
 #' 
 #' @export
-yaml_agent_string <- function(agent = NULL,
-                              filename = NULL,
-                              path = NULL,
-                              expanded = FALSE) {
+yaml_agent_string <- function(
+    agent = NULL,
+    filename = NULL,
+    path = NULL,
+    expanded = FALSE
+) {
   
   if (is.null(agent) && is.null(filename)) {
     stop(
@@ -1098,8 +1291,87 @@ as_agent_yaml_list <- function(agent,
             active = as_list_active(step_list$active)
           )
         )
+      
+    } else if (validation_fn == "row_count_match") {
+      
+      count <- step_list$values[[1]]
+      
+      # Disallow YAML writing if value obtained is a table object
+      if (is_a_table_object(count)) {
+        stop(
+          "We cannot write a table object supplied as `count` to YAML:\n",
+          "* Use a table-prep formula or a function that instead",
+          call. = FALSE
+        )
+      }
+      
+      if (is.function(count)) {
+        count <- capture_function(fn = count)
+      }
+      
+      if (rlang::is_formula(count)) {
+        count <- capture_formula(count, separate = FALSE)
+      }
+      
+      if (is.numeric(count)) {
+        count <- as.integer(count)
+      }
+        
+      lst_step <- 
+        list(
+          validation_fn = list(
+            count = count,
+            preconditions = as_list_preconditions(step_list$preconditions),
+            segments = as_list_segments(step_list$seg_expr),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
+      
+    } else if (validation_fn == "col_count_match") {
+      
+      count <- step_list$values[[1]]
+      
+      # Disallow YAML writing if value obtained is a table object
+      if (is_a_table_object(count)) {
+        stop(
+          "We cannot write a table object supplied as `count` to YAML:\n",
+          "* Use a table-prep formula or a function that instead",
+          call. = FALSE
+        )
+      }
+      
+      if (is.function(count)) {
+        count <- capture_function(fn = count)
+      }
+      
+      if (rlang::is_formula(count)) {
+        count <- capture_formula(count, separate = FALSE)
+      }
+      
+      if (is.numeric(count)) {
+        count <- as.integer(count)
+      }
+      
+      lst_step <- 
+        list(
+          validation_fn = list(
+            count = count,
+            preconditions = as_list_preconditions(step_list$preconditions),
+            actions = as_action_levels(
+              step_list$actions[[1]],
+              action_levels_default
+            ),
+            label = step_list$label,
+            active = as_list_active(step_list$active)
+          )
+        )
     
-    } else if (validation_fn %in% c("row_count_match", "tbl_match")) {
+    } else if (validation_fn == "tbl_match") {
       
       # TODO: disallow YAML writing if value obtained from
       # `get_arg_value(step_list$values)` is a table object or is
@@ -1308,8 +1580,22 @@ as_tbl_store_yaml_list <- function(tbl_store) {
   
   lst_tbls <- list(tbls = tbl_list)
   
+  if (!is.null(attr(tbl_store, which = "pb_init", exact = TRUE))) {
+    
+    init_stmt <- attr(tbl_store, which = "pb_init", exact = TRUE)
+    init_stmt <- capture_formula(init_stmt)[2]
+    
+    Sys.sleep(0.1)
+    
+    lst_init <- list(init = init_stmt)
+    
+  } else {
+    lst_init <- NULL
+  }
+  
   c(
     type = "tbl_store",           # YAML type: `tbl_store`
-    lst_tbls                      # table store list of table-prep formulas
+    lst_tbls,                     # table store list of table-prep formulas
+    lst_init                      # initialization statement
   )
 }

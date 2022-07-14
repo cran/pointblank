@@ -68,6 +68,10 @@ is_tbl_spark <- function(x) {
   inherits(x, "tbl_spark")
 }
 
+is_tbl_bigquery <- function(x) {
+  inherits(x, "tbl_BigQueryConnection")
+}
+
 is_arrow_object <- function(x) {
   inherits(x, "ArrowObject")
 }
@@ -141,6 +145,13 @@ get_next_validation_set_row <- function(agent) {
 
 exported_tidyselect_fns <- function() {
   c("starts_with", "ends_with", "contains", "matches", "everything")
+}
+
+uses_tidyselect <- function(expr_text) {
+  grepl(
+    "^starts_with\\(|^ends_with\\(|^contains\\(|^matches\\(|^everything\\(",
+    expr_text
+  )
 }
 
 get_assertion_type_at_idx <- function(agent, idx) {
@@ -478,8 +489,7 @@ check_is_a_table_object <- function(tbl) {
 # This function verifies that some target table input is provided
 # A portion of this is dedicated to checking the `read_fn` argument which
 # is undergoing soft deprecation in `create_agent()` and `create_informant()`
-check_table_input <- function(tbl,
-                              read_fn) {
+check_table_input <- function(tbl, read_fn) {
   
   if (is.null(tbl) && is.null(read_fn)) {
     
@@ -516,9 +526,8 @@ check_table_input <- function(tbl,
   tbl
 }
 
-process_table_input <- function(tbl,
-                                tbl_name) {
-
+process_table_input <- function(tbl, tbl_name) {
+  
   if (inherits(tbl, "function")) {
     
     read_fn <- tbl
@@ -537,8 +546,12 @@ process_table_input <- function(tbl,
     }
     
   } else {
-    
     read_fn <- NULL
+  }
+  
+  # Remove grouping for data frames or tibbles
+  if (is_tbl_df(tbl) && dplyr::is_grouped_df(tbl)) {
+    tbl <- dplyr::ungroup(tbl)
   }
   
   list(
@@ -595,6 +608,7 @@ all_validations_fns_vec <- function() {
     "col_exists",
     "col_schema_match",
     "row_count_match",
+    "col_count_match",
     "tbl_match",
     "conjointly",
     "serially",
@@ -780,13 +794,22 @@ get_tbl_information_dbi <- function(tbl) {
   if (grepl("sql server|sqlserver", tbl_src_details)) {
     
     # nocov start
-    
     tbl_src <- "mssql"
-    
     # nocov end
     
-  } else {
+  } else if (grepl("sql server|sqlserver", tbl_src_details)) {
     
+    # nocov start
+    tbl_src <- "mssql"
+    # nocov end
+      
+  } else if (grepl("bq_|bigquery", tbl_src_details)) {
+      
+    # nocov start
+    tbl_src <- "bigquery"
+    # nocov end
+      
+  } else {
     tbl_src <- gsub("^([a-z]*).*", "\\1", get_tbl_dbi_src_details(tbl))
   }
   
@@ -814,7 +837,37 @@ get_tbl_information_dbi <- function(tbl) {
       )
     
     # nocov end
-
+    
+  } else if (tbl_src == "bigquery") {
+    
+    # nocov start
+    
+    # Obtain BigQuery attrs for project and dataset names
+    # of the data table
+    if (
+      "pb_bq_project" %in% names(attributes(tbl)) &&
+      "pb_bq_dataset" %in% names(attributes(tbl))
+      ) {
+      
+      bq_project <- attr(tbl, "pb_bq_project", exact = TRUE)
+      bq_dataset <- attr(tbl, "pb_bq_dataset", exact = TRUE)
+      
+      q_types <-
+        as.character(
+          glue::glue(
+            "select column_name, data_type \\
+        from `{bq_project}.{bq_dataset}.INFORMATION_SCHEMA.COLUMNS` \\
+        where table_name = '{db_tbl_name}' \\
+        order by ordinal_position"
+          )
+        )
+      
+    } else {
+      q_types <- NULL
+    }
+    
+    # nocov end
+  
   } else {
 
     if (tbl_src == "mssql") {
@@ -833,7 +886,7 @@ get_tbl_information_dbi <- function(tbl) {
       
     } else { 
       
-      q_types <-
+        q_types <-
         as.character(
           glue::glue(
             "SELECT DATA_TYPE FROM \\
@@ -887,7 +940,7 @@ get_tbl_information_dbi <- function(tbl) {
     db_col_types <- 
       DBI::dbGetQuery(tbl_connection, q_types) %>%
       dplyr::collect() %>%
-      dplyr::pull(DATA_TYPE) %>%
+      dplyr::pull(ifelse(tbl_src == "bigquery", "data_type", "DATA_TYPE")) %>%
       tolower()
     
     # nocov end
@@ -1066,16 +1119,25 @@ tidy_gsub <- function(x,
   gsub(pattern, replacement, x, fixed = fixed)
 }
 
-capture_formula <- function(formula, separate = TRUE) {
+capture_formula <- function(formula,
+                            separate = TRUE,
+                            remove_whitespace = TRUE,
+                            oneline = TRUE) {
   
   # TODO: add option to use `htmltools::htmlEscape()`
   
   attributes(formula) <- NULL
   
-  output <- utils::capture.output(formula) %>% 
-    gsub("^\\s+", "", .) %>%
-    paste(collapse = "")
-
+  output <- utils::capture.output(formula)
+  
+  if (remove_whitespace) {
+    output <- gsub("^\\s+", "", output)
+  }
+  
+  if (oneline) {
+    output <- paste(output, collapse = "")
+  }
+  
   if (separate) {
     if (grepl("^~", output)) {
       output <- c(NA_character_, output)
@@ -1514,4 +1576,20 @@ print_time <- function(time_diff_s) {
       )
     )
   }
+}
+
+gt_missing <- 
+  if (packageVersion("gt") >= "0.6.0") {
+    gt::sub_missing 
+  } else {
+    gt::fmt_missing
+  }
+
+pb_get_image_tag <- function(file, dir = "images") {
+  
+  repo_url <- "https://raw.githubusercontent.com/rich-iannone/pointblank/main"
+  
+  image_url <- file.path(repo_url, dir, file)
+  
+  paste0("<img src=\"", image_url, "\" style=\"width:100\\%;\">")
 }

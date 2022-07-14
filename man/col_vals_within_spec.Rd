@@ -135,12 +135,32 @@ in a table correspond to a specification (\code{spec}) type (details of which ar
 available in the \emph{Specifications} section). The validation function can be
 used directly on a data table or with an \emph{agent} object (technically, a
 \code{ptblank_agent} object) whereas the expectation and test functions can only
-be used with a data table. The types of data tables that can be used include
-data frames, tibbles, database tables (\code{tbl_dbi}), and Spark DataFrames
-(\code{tbl_spark}). Each validation step or expectation will operate over the
-number of test units that is equal to the number of rows in the table (after
-any \code{preconditions} have been applied).
+be used with a data table. Each validation step or expectation will operate
+over the number of test units that is equal to the number of rows in the
+table (after any \code{preconditions} have been applied).
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{Specifications}{
 
 A specification type must be used with the \code{spec} argument. This is a
@@ -294,8 +314,11 @@ or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_a
 key as a list member), the syntax closely follows the signature of the
 validation function. Here is an example of how a complex call of
 \code{col_vals_within_spec()} as a validation step is expressed in R code and in
-the corresponding YAML representation.\preformatted{# R statement
-agent \%>\% 
+the corresponding YAML representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   col_vals_within_spec(
     columns = vars(a),
     spec = "email",
@@ -306,9 +329,11 @@ agent \%>\%
     label = "The `col_vals_within_spec()` step.",
     active = FALSE
   )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-steps:
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - col_vals_within_spec:
     columns: vars(a)
     spec: email
@@ -320,7 +345,7 @@ steps:
       stop_fraction: 0.2
     label: The `col_vals_within_spec()` step.
     active: false
-}
+}\if{html}{\out{</div>}}
 
 In practice, both of these will often be shorter as only the \code{columns} and
 \code{spec} arguments require values. Arguments with default values won't be
@@ -330,88 +355,120 @@ possible to preview the transformation of an agent to YAML without any
 writing to disk by using the \code{\link[=yaml_agent_string]{yaml_agent_string()}} function.
 }
 
+\section{Examples}{
+
+
+The \code{specifications} dataset in the package has columns of character data
+that correspond to each of the specifications that can be tested. The
+following examples will validate that the \code{email_addresses} column has 5
+correct values (this is true if we get a subset of the data: the first five
+rows).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{spec_slice <- specifications[1:5, ]
+
+spec_slice
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 5 × 12
+##   isbn_numbers vin_numbers zip_codes credit_card_num… iban_austria swift_numbers
+##   <chr>        <chr>       <chr>     <chr>            <chr>        <chr>        
+## 1 978 1 85715… 4UZAANDH85… 99553     340000000000009  AT582774098… RBOSGGSX     
+## 2 978-1-84159… JM1BL1S59A… 36264     378734493671000  AT220332087… RZTIAT22263  
+## 3 978 1 84159… 1GCEK14R3W… 71660     6703444444444449 AT328650112… BCEELULL     
+## 4 978 1 85715… 2B7JB21Y0X… 85225     670300000000000… AT193357281… MARKDEFF     
+## 5 978 1 85715… 4UZAANDH85… 90309     4035501000000008 AT535755326… GENODEF1JEV  
+## # … with 6 more variables: phone_numbers <chr>, email_addresses <chr>,
+## #   urls <chr>, ipv4_addresses <chr>, ipv6_addresses <chr>, mac_addresses <chr>
+}\if{html}{\out{</div>}}
+\subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
+
+Validate that all values in the column \code{email_addresses} are correct. We'll
+determine if this validation has any failing test units (there are 5 test
+units, one for each row).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
+  create_agent(tbl = spec_slice) \%>\%
+  col_vals_within_spec(
+    columns = vars(email_addresses),
+    spec = "email"
+  ) \%>\%
+  interrogate()
+}\if{html}{\out{</div>}}
+
+Printing the \code{agent} in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
+
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_vals_within_spec_1.png" style="width:100\%;">
+}
+}
+}
+
+\subsection{B: Using the validation function directly on the data (no \code{agent})}{
+
+This way of using validation functions acts as a data filter. Data is passed
+through but should \code{stop()} if there is a single test unit failing. The
+behavior of side effects can be customized with the \code{actions} option.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{spec_slice \%>\%
+  col_vals_within_spec(
+    columns = vars(email_addresses),
+    spec = "email"
+  ) \%>\%
+  dplyr::select(email_addresses)
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 5 × 1
+##   email_addresses                                                          
+##   <chr>                                                                    
+## 1 test@test.com                                                            
+## 2 mail+mail@example.com                                                    
+## 3 mail.email@e.test.com                                                    
+## 4 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@letters-in-local.org
+## 5 01234567890@numbers-in-local.net
+}\if{html}{\out{</div>}}
+}
+
+\subsection{C: Using the expectation function}{
+
+With the \verb{expect_*()} form, we would typically perform one validation at a
+time. This is primarily used in \strong{testthat} tests.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_col_vals_within_spec(
+  spec_slice,
+  columns = vars(email_addresses),
+  spec = "email"
+)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{D: Using the test function}{
+
+With the \verb{test_*()} form, we should get a single logical value returned to
+us.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{spec_slice \%>\%
+  test_col_vals_within_spec(
+    columns = vars(email_addresses),
+    spec = "email"
+  )
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+}\if{html}{\out{</div>}}
+}
+}
+
 \section{Function ID}{
 
 2-18
 }
 
-\examples{
-# The `specifications` dataset in the
-# package has columns of character data
-# that correspond to each of the
-# specifications that can be tested;
-# the following examples will validate
-# that the `email_addresses` column
-# has 5 correct values (this is true if
-# we get a subset of the data: the first
-# five rows)
-spec_slice <- specifications[1:5, ]
-
-# A: Using an `agent` with validation
-#    functions and then `interrogate()`
-
-# Validate that all values in the column
-# `email_addresses` are correct
-agent <-
-  create_agent(spec_slice) \%>\%
-  col_vals_within_spec(
-    vars(email_addresses),
-    spec = "email"
-  ) \%>\%
-  interrogate()
-  
-# Determine if this validation
-# had no failing test units (there
-# are 5 test units, one for each row)
-all_passed(agent)
-
-# Calling `agent` in the console
-# prints the agent's report; but we
-# can get a `gt_tbl` object directly
-# with `get_agent_report(agent)`
-
-# B: Using the validation function
-#    directly on the data (no `agent`)
-
-# This way of using validation functions
-# acts as a data filter: data is passed
-# through but should `stop()` if there
-# is a single test unit failing; the
-# behavior of side effects can be
-# customized with the `actions` option
-spec_slice \%>\%
-  col_vals_within_spec(
-    vars(email_addresses),
-    spec = "email"
-  ) \%>\%
-  dplyr::select(email_addresses)
-
-# C: Using the expectation function
-
-# With the `expect_*()` form, we would
-# typically perform one validation at a
-# time; this is primarily used in
-# testthat tests
-expect_col_vals_within_spec(
-  spec_slice,
-  vars(email_addresses),
-  spec = "email"
-)
-
-# D: Using the test function
-
-# With the `test_*()` form, we should
-# get a single logical value returned
-# to us
-spec_slice \%>\%
-  test_col_vals_within_spec(
-    vars(email_addresses),
-    spec = "email"
-  )
-
-}
 \seealso{
 Other validation functions: 
+\code{\link{col_count_match}()},
 \code{\link{col_exists}()},
 \code{\link{col_is_character}()},
 \code{\link{col_is_date}()},

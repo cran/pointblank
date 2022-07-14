@@ -103,13 +103,14 @@
 #' validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   tbl_match(
 #'     tbl_compare = ~ file_tbl(
 #'       file = from_github(
-#'         file = "all_revenue_large.rds",
+#'         file = "sj_all_revenue_large.rds",
 #'         repo = "rich-iannone/intendo",
 #'         subdir = "data-large"
 #'         )
@@ -120,13 +121,16 @@
 #'     label = "The `tbl_match()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - tbl_match:
 #'     tbl_compare: ~ file_tbl(
 #'       file = from_github(
-#'         file = "all_revenue_large.rds",
+#'         file = "sj_all_revenue_large.rds",
 #'         repo = "rich-iannone/intendo",
 #'         subdir = "data-large"
 #'         )
@@ -162,9 +166,11 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #'   
-#' @examples
-#' # Create a simple table with three
-#' # columns and four rows of values
+#' @section Examples:
+#' 
+#' Create a simple table with three columns and four rows of values.
+#' 
+#' ```{r}
 #' tbl <-
 #'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5),
@@ -173,9 +179,11 @@
 #'   )
 #' 
 #' tbl
+#' ```
 #'
-#' # Create a second table which is 
-#' # the same as `tbl`
+#' Create a second table which is the same as `tbl`.
+#' 
+#' ```{r}
 #' tbl_2 <-
 #'   dplyr::tibble(
 #'     a = c(5, 7, 6, 5),
@@ -183,62 +191,62 @@
 #'     c = c(1, 1, 1, 3)
 #'   )
 #' 
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()` 
+#' tbl_2
+#' ```
 #' 
-#' # Validate that the target table
-#' # (`tbl`) and the comparison table
-#' # (`tbl_2`) are equivalent in terms
-#' # of content
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
+#' 
+#' Validate that the target table (`tbl`) and the comparison table (`tbl_2`) are
+#' equivalent in terms of content.
+#' 
+#' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
 #'   tbl_match(tbl_compare = tbl_2) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # Determine if this validation passed
-#' # by using `all_passed()`
-#' all_passed(agent)
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_tbl_match_1.png")`
+#' }
+#' }
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' ## B: Using the validation function directly on the data (no `agent`)
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
-#' tbl %>%
-#'   tbl_match(tbl_compare = tbl_2)
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
 #' 
-#' # C: Using the expectation function
+#' ```{r}
+#' tbl %>% tbl_match(tbl_compare = tbl_2)
+#' ```
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
-#' expect_tbl_match(
-#'   tbl, tbl_compare = tbl_2
-#' )
+#' ## C: Using the expectation function
 #' 
-#' # D: Using the test function
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
-#' tbl %>% 
-#'   tbl_match(
-#'     tbl_compare = tbl_2
-#'   )
+#' ```r
+#' expect_tbl_match(tbl, tbl_compare = tbl_2)
+#' ```
+#' 
+#' ## D: Using the test function
+#' 
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
+#' tbl %>% test_tbl_match(tbl_compare = tbl_2)
+#' ```
 #' 
 #' @family validation functions
 #' @section Function ID:
-#' 2-32
+#' 2-33
 #' 
 #' @name tbl_match
 NULL
@@ -246,15 +254,17 @@ NULL
 #' @rdname tbl_match
 #' @import rlang
 #' @export
-tbl_match <- function(x,
-                      tbl_compare,
-                      preconditions = NULL,
-                      segments = NULL,
-                      actions = NULL,
-                      step_id = NULL,
-                      label = NULL,
-                      brief = NULL,
-                      active = TRUE) {
+tbl_match <- function(
+    x,
+    tbl_compare,
+    preconditions = NULL,
+    segments = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
   
   # Resolve segments into list
   segments_list <-
@@ -336,10 +346,12 @@ tbl_match <- function(x,
 #' @rdname tbl_match
 #' @import rlang
 #' @export
-expect_tbl_match <- function(object,
-                             tbl_compare,
-                             preconditions = NULL,
-                             threshold = 1) {
+expect_tbl_match <- function(
+    object,
+    tbl_compare,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   fn_name <- "expect_tbl_match"
   
@@ -389,10 +401,12 @@ expect_tbl_match <- function(object,
 #' @rdname tbl_match
 #' @import rlang
 #' @export
-test_tbl_match <- function(object,
-                           tbl_compare,
-                           preconditions = NULL,
-                           threshold = 1) {
+test_tbl_match <- function(
+    object,
+    tbl_compare,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%

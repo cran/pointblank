@@ -86,6 +86,28 @@ will result in a reporting table. This reporting can also be accessed with
 the \code{\link[=get_informant_report]{get_informant_report()}} function, where there are more reporting
 options.
 }
+\section{Supported Input Tables}{
+
+The types of data tables that are officially supported are:
+\itemize{
+\item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
+\item Spark DataFrames (\code{tbl_spark})
+\item the following database tables (\code{tbl_dbi}):
+\itemize{
+\item \emph{PostgreSQL} tables (using the \code{RPostgres::Postgres()} as driver)
+\item \emph{MySQL} tables (with \code{RMySQL::MySQL()})
+\item \emph{Microsoft SQL Server} tables (via \strong{odbc})
+\item \emph{BigQuery} tables (using \code{bigrquery::bigquery()})
+\item \emph{DuckDB} tables (through \code{duckdb::duckdb()})
+\item \emph{SQLite} (with \code{RSQLite::SQLite()})
+}
+}
+
+Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+\strong{pointblank}).
+}
+
 \section{YAML}{
 
 A \strong{pointblank} informant can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
@@ -93,17 +115,22 @@ resulting YAML can be used to regenerate an informant (with
 \code{\link[=yaml_read_informant]{yaml_read_informant()}}) or perform the 'incorporate' action using the target
 table (via \code{\link[=yaml_informant_incorporate]{yaml_informant_incorporate()}}). Here is an example of how a
 complex call of \code{create_informant()} is expressed in R code and in the
-corresponding YAML representation.\preformatted{# R statement
-create_informant(
+corresponding YAML representation.
+
+R statement:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{create_informant(
   tbl = ~ small_table,
   tbl_name = "small_table",
   label = "An example.",
   lang = "fr", 
   locale = "fr_CA"
 )
+}\if{html}{\out{</div>}}
 
-# YAML representation
-type: informant
+YAML representation:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{type: informant
 tbl: ~small_table
 tbl_name: small_table
 info_label: An example.
@@ -131,7 +158,7 @@ columns:
     _type: logical
   f:
     _type: character
-}
+}\if{html}{\out{</div>}}
 
 The generated YAML includes some top-level keys where \code{type} and \code{tbl} are
 mandatory, and, two metadata sections: \code{table} and \code{columns}. Keys that begin
@@ -158,9 +185,80 @@ through \code{\link[=x_read_disk]{x_read_disk()}}, it can be reused to access th
 may changed, hence the need to use an expression for this).
 }
 
-\section{Figures}{
+\section{Examples}{
 
-\if{html}{\figure{man_create_informant_1.png}{options: width=100\%}}
+
+Let's walk through how we can generate some useful information for a really
+small table. It's actually called \code{small_table} and we can find it as a
+dataset in this package.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 13 × 8
+##    date_time           date           a b             c      d e     f    
+##    <dttm>              <date>     <int> <chr>     <dbl>  <dbl> <lgl> <chr>
+##  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-345     3  3423. TRUE  high 
+##  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-163     8 10000. TRUE  low  
+##  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-938     3  2343. TRUE  high 
+##  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-903    NA  3892. FALSE mid  
+##  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-038     7   284. TRUE  low  
+##  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4  3291. TRUE  mid  
+##  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3   843. TRUE  high 
+##  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2  1036. FALSE low  
+##  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+## 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+## 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7   834. TRUE  low  
+## 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8   108. FALSE low  
+## 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA  2230. TRUE  high
+}\if{html}{\out{</div>}}
+
+Create a pointblank \code{informant} object with \code{create_informant()} and the
+\code{small_table} dataset.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- 
+  create_informant(
+    tbl = pointblank::small_table,
+    tbl_name = "small_table",
+    label = "`create_informant()` example."
+  )
+}\if{html}{\out{</div>}}
+
+This function creates some information without any extra help by profiling
+the supplied table object. It adds the \code{COLUMNS} section with stubs for each
+of the target table's columns. We can use the \code{\link[=info_columns]{info_columns()}} or
+\code{\link[=info_columns_from_tbl]{info_columns_from_tbl()}} to provide descriptions for each of the columns.
+The \code{informant} object can be printed to see the information report in the
+Viewer.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant
+}\if{html}{\out{</div>}}
+
+\if{html}{
+
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_informant_1.png" style="width:100\%;">
+}
+}
+
+If we want to make use of more report display options, we can alternatively
+use the \code{\link[=get_informant_report]{get_informant_report()}} function.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{report <- 
+  get_informant_report(
+    informant,
+    title = "Data Dictionary for `small_table`"
+  )
+  
+report
+}\if{html}{\out{</div>}}
+
+\if{html}{
+
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_informant_2.png" style="width:100\%;">
+}
+}
 }
 
 \section{Function ID}{
@@ -168,37 +266,6 @@ may changed, hence the need to use an expression for this).
 1-3
 }
 
-\examples{
-# Let's walk through how we can
-# generate some useful information for a
-# really small table; it's actually
-# called `small_table` and we can find
-# it as a dataset in this package
-small_table
-
-# Create a pointblank `informant`
-# object with `create_informant()`
-# and the `small_table` dataset
-informant <- 
-  create_informant(
-    tbl = pointblank::small_table,
-    tbl_name = "small_table",
-    label = "An example."
-  )
-
-# This function creates some information
-# without any extra help by profiling
-# the supplied table object; it adds
-# the sections: (1) 'table' and
-# (2) 'columns' and we can print the
-# object to see the information report
-
-# Alternatively, we can get the same report
-# by using `get_informant_report()`
-report <- get_informant_report(informant)
-class(report)
-
-}
 \seealso{
 Other Planning and Prep: 
 \code{\link{action_levels}()},

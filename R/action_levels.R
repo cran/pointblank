@@ -84,119 +84,174 @@
 #'   `list(warn = ~ warning("Too many failures."))`. A series of expressions for
 #'   each named state can be used by enclosing the set of statements with `{ }`.
 #' 
-#' @examples 
+#' @section Examples:
 #' 
-#' # For these examples, we will use the
-#' # included `small_table` dataset
+#' For these examples, we will use the included `small_table` dataset.
+#' 
+#' ```{r}
 #' small_table
+#' ```
 #' 
-#' # Create an `action_levels` object
-#' # with fractional values for the
-#' # `warn`, `stop`, and `notify` states
+#' Create an `action_levels` object with fractional values for the `warn`,
+#' `stop`, and `notify` states.
+#' 
+#' ```r
 #' al <- 
 #'   action_levels(
 #'     warn_at = 0.2,
 #'     stop_at = 0.8,
 #'     notify_at = 0.5
 #'   )
+#' ```
 #'   
-#' # A summary of settings for the `al`
-#' # object is shown by printing it
-#' al
+#' A summary of settings for the `al` object is shown by printing it.
 #' 
-#' # Create a pointblank agent and
-#' # apply the `al` object to `actions`;
-#' # add two validation steps and
-#' # interrogate the `small_table`
+#' Create a pointblank agent and apply the `al` object to `actions`. Add two
+#' validation steps and interrogate the `small_table`.
+#' 
+#' ```r
 #' agent_1 <-
 #'   create_agent(
 #'     tbl = small_table,
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
-#'     vars(a), value = 2
+#'     columns = vars(a), value = 2
 #'   ) %>%
 #'   col_vals_lt(
-#'     vars(d), value = 20000
+#'     columns = vars(d), value = 20000
 #'   ) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # The report from the agent will show
-#' # that the `warn` state has been entered
-#' # for the first validation step but not
-#' # the second one; we can confirm this
-#' # in the console by inspecting the
-#' # `warn` component in the agent's x-list
-#' x_list <- get_agent_x_list(agent_1)
+#' The report from the agent will show that the `warn` state has been entered
+#' for the first validation step but not the second one. We can confirm this in
+#' the console by inspecting the `warn` component in the agent's x-list.
+#' 
+#' ```r
+#' x_list <- get_agent_x_list(agent = agent_1)
+#' 
 #' x_list$warn
+#' ```
 #' 
-#' # Applying the `action_levels` object
-#' # to the agent means that all validation
-#' # steps will inherit these settings but
-#' # we can override this by applying
-#' # another such object to the validation
-#' # step instead (this time using the
-#' # `warn_on_fail()` shorthand)
+#' ```
+#' ## [1]  TRUE FALSE
+#' ```
+#' 
+#' Applying the `action_levels` object to the agent means that all validation
+#' steps will inherit these settings but we can override this by applying
+#' another such object to the validation step instead (this time using the
+#' `warn_on_fail()` shorthand).
+#' 
+#' ```r
 #' agent_2 <-
 #'   create_agent(
 #'     tbl = small_table,
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
-#'     vars(a), value = 2,
+#'     columns = vars(a), value = 2,
 #'     actions = warn_on_fail(warn_at = 0.5)
 #'   ) %>%
 #'   col_vals_lt(
-#'     vars(d), value = 20000
+#'     columns = vars(d), value = 20000
 #'   ) %>%
 #'   interrogate()
+#' ```
 #'
-#' # In this case, the first validation
-#' # step has a less stringent failure
-#' # threshold for the `warn` state and it's
-#' # high enough that the condition is not
-#' # entered; this can be confirmed in the
-#' # console through inspection of the
-#' # x-list `warn` component
-#' x_list <- get_agent_x_list(agent_2)
+#' In this case, the first validation step has a less stringent failure
+#' threshold for the `warn` state and it's high enough that the condition is not
+#' entered. This can be confirmed in the console through inspection of the
+#' x-list `warn` component.
+#' 
+#' ```r
+#' x_list <- get_agent_x_list(agent = agent_2)
+#' 
 #' x_list$warn
+#' ```
+#' 
+#' ```
+#' ## [1] FALSE FALSE
+#' ```
 #'
-#' if (interactive()) {
-#'
-#' # In the context of using validation
-#' # functions directly on data (i.e., no
-#' # involvement of an agent) we want to
-#' # trigger warnings and raise errors; the
-#' # following will yield a warning if
-#' # it is executed (returning the
-#' # `small_table` data)
+#' In the context of using validation functions directly on data (i.e., no
+#' involvement of an agent) we want to trigger warnings and raise errors. The
+#' following will yield a warning if it is executed (returning the `small_table`
+#' data).
+#' 
+#' ```r
 #' small_table %>%
 #'   col_vals_gt(
-#'     vars(a), value = 2,
+#'     columns = vars(a), value = 2,
 #'     actions = warn_on_fail(warn_at = 2)
 #'   )
+#' ```
 #' 
-#' # With the same pipeline, not supplying
-#' # anything for `actions` (it's `NULL` by
-#' # default) will have the same effect as
-#' # using `stop_on_fail(stop_at = 1)` 
+#' \preformatted{## # A tibble: 13 × 8
+#' ##    date_time           date           a b           c      d e    
+#' ##    <dttm>              <date>     <int> <chr>   <dbl>  <dbl> <lgl>
+#' ##  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-…     3  3423. TRUE 
+#' ##  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-…     8 10000. TRUE 
+#' ##  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-…     3  2343. TRUE 
+#' ##  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-…    NA  3892. FALSE
+#' ##  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-…     7   284. TRUE 
+#' ##  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-…     4  3291. TRUE 
+#' ##  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-…     3   843. TRUE 
+#' ##  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-…     2  1036. FALSE
+#' ##  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-…     9   838. FALSE
+#' ## 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-…     9   838. FALSE
+#' ## 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-…     7   834. TRUE 
+#' ## 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-…     8   108. FALSE
+#' ## 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-…    NA  2230. TRUE 
+#' ## # … with 1 more variable: f <chr>
+#' ## Warning message:
+#' ## Exceedance of failed test units where values in `a` should have been >
+#' ## `2`.
+#' ## The `col_vals_gt()` validation failed beyond the absolute threshold
+#' ## level (2).
+#' ## * failure level (4) >= failure threshold (2)}
+#' 
+#' 
+#' 
+#' With the same pipeline, not supplying anything for `actions` (it's `NULL` by
+#' default) will have the same effect as using `stop_on_fail(stop_at = 1)`.
+#' 
+#' ```r
 #' small_table %>%
-#'   col_vals_gt(vars(a), value = 2)
+#'   col_vals_gt(columns = vars(a), value = 2)
+#' ```
 #' 
+#' ```
+#' ## Error: Exceedance of failed test units where values in `a` should have
+#' ## been > `2`.
+#' ## The `col_vals_gt()` validation failed beyond the absolute threshold
+#' ## level (1).
+#' ## * failure level (4) >= failure threshold (1)
+#' ```
+#' 
+#' 
+#' Here's the equivalent set of statements:
+#' 
+#' ```r
 #' small_table %>%
 #'   col_vals_gt(
-#'     vars(a), value = 2,
+#'     columns = vars(a), value = 2,
 #'     actions = stop_on_fail(stop_at = 1)
 #'   )
+#' ```
 #' 
-#' # This is because the `stop_on_fail()`
-#' # call is auto-injected in the default
-#' # case (when operating on data) for your
-#' # convenience; behind the scenes a
-#' # 'secret agent' uses 'covert actions':
-#' # all so you can type less
+#' ```
+#' ## Error: Exceedance of failed test units where values in `a` should have
+#' ## been > `2`.
+#' ## The `col_vals_gt()` validation failed beyond the absolute threshold
+#' ## level (1).
+#' ## * failure level (4) >= failure threshold (1)
+#' ```
 #' 
-#' }
+#' 
+#' This is because the `stop_on_fail()` call is auto-injected in the default
+#' case (when operating on data) for your convenience. Behind the scenes a
+#' 'secret agent' uses 'covert actions': all so you can type less.
 #' 
 #' @family Planning and Prep
 #' @section Function ID:
@@ -207,10 +262,12 @@ NULL
 
 #' @rdname action_levels
 #' @export
-action_levels <- function(warn_at = NULL,
-                          stop_at = NULL,
-                          notify_at = NULL,
-                          fns = NULL) {
+action_levels <- function(
+    warn_at = NULL,
+    stop_at = NULL,
+    notify_at = NULL,
+    fns = NULL
+) {
   
   fns <- normalize_fns_list(fns = fns)
   

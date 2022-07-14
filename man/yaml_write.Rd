@@ -63,107 +63,308 @@ to read the target table when \code{\link[=interrogate]{interrogate()}} or \code
 This option can be set when using \code{\link[=create_agent]{create_agent()}}/\code{\link[=create_informant]{create_informant()}} or
 with \code{\link[=set_tbl]{set_tbl()}} (useful with an existing agent or informant object).
 }
-\section{Function ID}{
+\section{Examples}{
 
-11-1
-}
+\subsection{Writing an \code{agent} object to a YAML file}{
 
-\examples{
-if (interactive()) {
+Let's go through the process of developing an agent with a validation plan.
+We'll use the \code{small_table} dataset in the following examples, which will
+eventually offload the developed validation plan to a YAML file.
 
-# Let's go through the process of
-# developing an agent with a validation
-# plan (to be used for the data quality
-# analysis of the `small_table` dataset),
-# and then offloading that validation
-# plan to a pointblank YAML file
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table
+}\if{html}{\out{</div>}}
 
-# Creating an `action_levels` object is a
-# common workflow step when creating a
-# pointblank agent; we designate failure
-# thresholds to the `warn`, `stop`, and
-# `notify` states using `action_levels()`
-al <- 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 13 × 8
+##    date_time           date           a b             c      d e     f    
+##    <dttm>              <date>     <int> <chr>     <dbl>  <dbl> <lgl> <chr>
+##  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-345     3  3423. TRUE  high 
+##  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-163     8 10000. TRUE  low  
+##  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-938     3  2343. TRUE  high 
+##  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-903    NA  3892. FALSE mid  
+##  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-038     7   284. TRUE  low  
+##  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4  3291. TRUE  mid  
+##  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3   843. TRUE  high 
+##  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2  1036. FALSE low  
+##  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+## 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+## 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7   834. TRUE  low  
+## 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8   108. FALSE low  
+## 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA  2230. TRUE  high
+}\if{html}{\out{</div>}}
+
+Creating an \code{action_levels} object is a common workflow step when creating a
+\strong{pointblank} agent. We designate failure thresholds to the \code{warn}, \code{stop},
+and \code{notify} states using \code{\link[=action_levels]{action_levels()}}.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{al <- 
   action_levels(
     warn_at = 0.10,
     stop_at = 0.25,
     notify_at = 0.35
   )
+}\if{html}{\out{</div>}}
 
-# Now create a pointblank `agent` object
-# and give it the `al` object (which
-# serves as a default for all validation
-# steps which can be overridden); the
-# data will be referenced in `tbl`
-# (a requirement for writing to YAML)
-agent <- 
+Now let's create the \code{agent} and pass it the \code{al} object (which serves as a
+default for all validation steps which can be overridden). The data will be
+referenced in \code{tbl} with a leading \code{~} and this is a requirement for writing
+to YAML since the preparation of the target table must be self contained.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <- 
   create_agent(
     tbl = ~ small_table,
     tbl_name = "small_table",
     label = "A simple example with the `small_table`.",
     actions = al
   )
+}\if{html}{\out{</div>}}
 
-# Then, as with any `agent` object, we
-# can add steps to the validation plan by
-# using as many validation functions as we
-# want
-agent <-
+Then, as with any \code{agent} object, we can add steps to the validation plan by
+using as many validation functions as we want.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   agent \%>\% 
-  col_exists(vars(date, date_time)) \%>\%
+  col_exists(columns = vars(date, date_time)) \%>\%
   col_vals_regex(
-    vars(b), regex = "[0-9]-[a-z]{3}-[0-9]{3}"
+    columns = vars(b),
+    regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(vars(d), value = 100) \%>\%
-  col_vals_lte(vars(c), value = 5)
+  col_vals_gt(columns = vars(d), value = 100) \%>\%
+  col_vals_lte(columns = vars(c), value = 5)
+}\if{html}{\out{</div>}}
 
-# The agent can be written to a pointblank
-# YAML file with `yaml_write()`
-yaml_write(
-  agent,
-  filename = "agent-small_table.yml"
-)
+The agent can be written to a \strong{pointblank}-readable YAML file with the
+\code{yaml_write()} function. Here, we'll use the filename
+\code{"agent-small_table.yml"} and, after writing, the YAML file will be in the
+working directory:
 
-# The 'agent-small_table.yml' file is
-# available in the package through
-# `system.file()`
-yml_file <- 
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{yaml_write(agent, filename = "agent-small_table.yml")
+}\if{html}{\out{</div>}}
+
+We can view the YAML file in the console with the \code{\link[=yaml_agent_string]{yaml_agent_string()}}
+function.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{yaml_agent_string(filename = "agent-small_table.yml")
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{type: agent
+tbl: ~small_table
+tbl_name: small_table
+label: A simple example with the `small_table`.
+lang: en
+locale: en
+actions:
+  warn_fraction: 0.1
+  stop_fraction: 0.25
+  notify_fraction: 0.35
+steps:
+- col_exists:
+    columns: vars(date, date_time)
+- col_vals_regex:
+    columns: vars(b)
+    regex: '[0-9]-[a-z]\{3\}-[0-9]\{3\}'
+- rows_distinct:
+    columns: ~
+- col_vals_gt:
+    columns: vars(d)
+    value: 100.0
+- col_vals_lte:
+    columns: vars(c)
+    value: 5.0
+}\if{html}{\out{</div>}}
+
+Incidentally, we can also use \code{\link[=yaml_agent_string]{yaml_agent_string()}} to print YAML in the
+console when supplying an agent as the input. This can be useful for
+previewing YAML output just before writing it to disk with \code{yaml_write()}.
+}
+
+\subsection{Reading an \code{agent} object from a YAML file}{
+
+There's a YAML file available in the \strong{pointblank} package that's also
+called \code{"agent-small_table.yml"}. The path for it can be accessed through
+\code{system.file()}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{yml_file_path <- 
   system.file(
     "yaml", "agent-small_table.yml",
     package = "pointblank"
   )
+}\if{html}{\out{</div>}}
 
-# We can view the YAML file in the console
-# with the `yaml_agent_string()` function
-yaml_agent_string(filename = yml_file)
+The YAML file can be read as an agent with a pre-existing validation plan by
+using the \code{\link[=yaml_read_agent]{yaml_read_agent()}} function.
 
-# The YAML can also be printed in the console
-# by supplying the agent as the input
-yaml_agent_string(agent = agent)
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <- yaml_read_agent(filename = yml_file_path)
 
-# At some later time, the YAML file can
-# be read as a new agent with the
-# `yaml_read_agent()` function
-agent <- 
-  yaml_read_agent(filename = yml_file)
+agent
+}\if{html}{\out{</div>}}
 
-class(agent)
-
-# We can interrogate the data (which
-# is accessible through `tbl`)
-# with `interrogate()` and get an
-# agent with intel, or, we can
-# interrogate directly from the YAML
-# file with `yaml_agent_interrogate()`
-agent <- 
-  yaml_agent_interrogate(filename = yml_file)
-
-class(agent)
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_1.png" style="width:100\%;">
+}
 }
 
+This particular agent is using \code{~ tbl_source("small_table", "tbl_store.yml")}
+to source the table-prep from a YAML file that holds a table store (can be
+seen using \code{yaml_agent_string(agent = agent)}). Let's put that file in the
+working directory (the \strong{pointblank} package has the corresponding YAML
+file):
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{yml_tbl_store_path <-
+  system.file(
+    "yaml", "tbl_store.yml",
+    package = "pointblank"
+  )
+
+file.copy(from = yml_tbl_store_path, to = ".")
+}\if{html}{\out{</div>}}
+
+As can be seen from the validation report, no interrogation was yet
+performed. Saving an agent to YAML will remove any traces of interrogation
+data and serve as a plan for a new interrogation on the same target table. We
+can either follow this up with with \code{\link[=interrogate]{interrogate()}} and get an agent with
+intel, or, we can interrogate directly from the YAML file with
+\code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <- yaml_agent_interrogate(filename = yml_file_path)
+
+agent
+}\if{html}{\out{</div>}}
+
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_2.png" style="width:100\%;">
 }
+}
+}
+
+\subsection{Writing an \code{informant} object to a YAML file}{
+
+Let's walk through how we can generate some useful information for a really
+small table. We can create an \code{informant} object with \code{\link[=create_informant]{create_informant()}}
+and we'll again use the \code{small_table} dataset.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- 
+  create_informant(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "A simple example with the `small_table`."
+  )
+}\if{html}{\out{</div>}}
+
+Then, as with any \code{informant} object, we can add info text to the
+using as many \verb{info_*()} functions as we want.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- 
+  informant \%>\%
+  info_columns(
+    columns = vars(a),
+    info = "In the range of 1 to 10. (SIMPLE)"
+  ) \%>\%
+  info_columns(
+    columns = starts_with("date"),
+    info = "Time-based values (e.g., `Sys.time()`)."
+  ) \%>\%
+  info_columns(
+    columns = "date",
+    info = "The date part of `date_time`. (CALC)"
+  )
+}\if{html}{\out{</div>}}
+
+The informant can be written to a \strong{pointblank}-readable YAML file with the
+\code{yaml_write()} function. Here, we'll use the filename
+\code{"informant-small_table.yml"} and, after writing, the YAML file will be in
+the working directory:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{yaml_write(informant, filename = "informant-small_table.yml")
+}\if{html}{\out{</div>}}
+
+We can inspect the YAML file in the working directory and expect to see the
+following:
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{type: informant
+tbl: ~small_table
+tbl_name: small_table
+info_label: A simple example with the `small_table`.
+lang: en
+locale: en
+table:
+  name: small_table
+  _columns: 8
+  _rows: 13.0
+  _type: tbl_df
+columns:
+  date_time:
+  _type: POSIXct, POSIXt
+info: Time-based values (e.g., `Sys.time()`).
+date:
+  _type: Date
+  info: Time-based values (e.g., `Sys.time()`). The date part of `date_time`. (CALC)
+a:
+  _type: integer
+  info: In the range of 1 to 10. (SIMPLE)
+b:
+  _type: character
+c:
+  _type: numeric
+d:
+  _type: numeric
+e:
+  _type: logical
+f:
+  _type: character
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Reading an \code{informant} object from a YAML file}{
+
+There's a YAML file available in the \strong{pointblank} package that's also
+called \code{"informant-small_table.yml"}. The path for it can be accessed through
+\code{system.file()}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{yml_file_path <- 
+  system.file(
+    "yaml", "informant-small_table.yml",
+    package = "pointblank"
+  )
+}\if{html}{\out{</div>}}
+
+The YAML file can be read as an informant by using the
+\code{\link[=yaml_read_informant]{yaml_read_informant()}} function.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- yaml_read_informant(filename = yml_file_path)
+
+informant
+}\if{html}{\out{</div>}}
+
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_3.png" style="width:100\%;">
+}
+}
+
+As can be seen from the information report, the available table metadata was
+restored and reported. If you expect metadata to change with time, it might
+be beneficial to use \code{\link[=incorporate]{incorporate()}} to query the target table. Or, we can
+perform this querying directly from the YAML file with
+\code{\link[=yaml_informant_incorporate]{yaml_informant_incorporate()}}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- yaml_informant_incorporate(filename = yml_file_path)
+}\if{html}{\out{</div>}}
+
+There will be no apparent difference in this particular case since
+\code{small_data} is a static table with no alterations over time. However,
+using \code{\link[=yaml_informant_incorporate]{yaml_informant_incorporate()}} is good practice since this refreshing
+of data will be important with real-world datasets.
+}
+}
+
+\section{Function ID}{
+
+11-1
+}
+
 \seealso{
 Other pointblank YAML: 
 \code{\link{yaml_agent_interrogate}()},

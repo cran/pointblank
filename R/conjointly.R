@@ -130,27 +130,31 @@
 #' validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   conjointly(
-#'     ~ col_vals_lt(., vars(a), 8),
-#'     ~ col_vals_gt(., vars(c), vars(a)),
-#'     ~ col_vals_not_null(., vars(b)),
+#'     ~ col_vals_lt(., columns = vars(a), value = 8),
+#'     ~ col_vals_gt(., columns = vars(c), value = vars(a)),
+#'     ~ col_vals_not_null(., columns = vars(b)),
 #'     preconditions = ~ . %>% dplyr::filter(a < 10),
 #'     segments = b ~ c("group_1", "group_2"),
 #'     actions = action_levels(warn_at = 0.1, stop_at = 0.2), 
 #'     label = "The `conjointly()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - conjointly:
 #'     fns:
-#'     - ~col_vals_lt(., vars(a), 8)
-#'     - ~col_vals_gt(., vars(c), vars(a))
-#'     - ~col_vals_not_null(., vars(b))
+#'     - ~col_vals_lt(., columns = vars(a), value = 8)
+#'     - ~col_vals_gt(., columns = vars(c), value = vars(a))
+#'     - ~col_vals_not_null(., columns = vars(b))
 #'     preconditions: ~. %>% dplyr::filter(a < 10)
 #'     segments: b ~ c("group_1", "group_2")
 #'     actions:
@@ -182,12 +186,13 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #'
-#' @examples
-#' # For all examples here, we'll use
-#' # a simple table with three numeric
-#' # columns (`a`, `b`, and `c`); this is
-#' # a very basic table but it'll be more
-#' # useful when explaining things later
+#' @section Examples:
+#' 
+#' For all examples here, we'll use a simple table with three numeric columns
+#' (`a`, `b`, and `c`). This is a very basic table but it'll be more useful when
+#' explaining things later.
+#' 
+#' ```{r}
 #' tbl <-
 #'   dplyr::tibble(
 #'     a = c(5, 2, 6),
@@ -196,90 +201,89 @@
 #'   )
 #'   
 #' tbl
+#' ```
 #'   
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()`
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
 #' 
-#' # Validate a number of things on a
-#' # row-by-row basis using validation
-#' # functions of the `col_vals*` type
-#' # (all have the same number of test
-#' # units): (1) values in `a` are less
-#' # than `8`, (2) values in `c` are
-#' # greater than the adjacent values in
-#' # `a`, and (3) there aren't any NA
-#' # values in `b`
+#' Validate a number of things on a row-by-row basis using validation functions
+#' of the `col_vals*` type (all have the same number of test units): (1) values
+#' in `a` are less than `8`, (2) values in `c` are greater than the adjacent
+#' values in `a`, and (3) there aren't any NA values in `b`. We'll determine if
+#' this validation has any failing test units (there are 3 test units, one for
+#' each row).
+#' 
+#' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
 #'   conjointly(
-#'     ~ col_vals_lt(., vars(a), value = 8),
-#'     ~ col_vals_gt(., vars(c), value = vars(a)),
-#'     ~ col_vals_not_null(., vars(b))
+#'     ~ col_vals_lt(., columns = vars(a), value = 8),
+#'     ~ col_vals_gt(., columns = vars(c), value = vars(a)),
+#'     ~ col_vals_not_null(., columns = vars(b))
 #'     ) %>%
 #'   interrogate()
-#'   
-#' # Determine if this validation
-#' # had no failing test units (there
-#' # are 3 test units, one for each row)
-#' all_passed(agent)
+#' ```
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # What's going on? Think of there being
-#' # three parallel validations, each
-#' # producing a column of `TRUE` or `FALSE`
-#' # values (`pass` or `fail`) and line them
-#' # up side-by-side, any rows with any
-#' # `FALSE` values results in a conjoint
-#' # `fail` test unit
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_conjointly_1.png")`
+#' }
+#' }
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' What's going on? Think of there being three parallel validations, each
+#' producing a column of `TRUE` or `FALSE` values (`pass` or `fail`) and line
+#' them up side-by-side, any rows with any `FALSE` values results in a conjoint
+#' `fail` test unit.
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
+#' ## B: Using the validation function directly on the data (no `agent`)
+#' 
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
 #' tbl %>%
 #'   conjointly(
-#'     ~ col_vals_lt(., vars(a), value = 8),
-#'     ~ col_vals_gt(., vars(c), value = vars(a)),
-#'     ~ col_vals_not_null(., vars(b))
+#'     ~ col_vals_lt(., columns = vars(a), value = 8),
+#'     ~ col_vals_gt(., columns = vars(c), value = vars(a)),
+#'     ~ col_vals_not_null(., columns = vars(b))
 #'   )
+#' ```
 #'
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
+#' 
+#' ```r
 #' expect_conjointly(
 #'   tbl,
-#'   ~ col_vals_lt(., vars(a), value = 8),
-#'   ~ col_vals_gt(., vars(c), value = vars(a)),
-#'   ~ col_vals_not_null(., vars(b))
+#'   ~ col_vals_lt(., columns = vars(a), value = 8),
+#'   ~ col_vals_gt(., columns = vars(c), value = vars(a)),
+#'   ~ col_vals_not_null(., columns = vars(b))
 #' )
+#' ```
 #' 
-#' # D: Using the test function
+#' ## D: Using the test function
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
 #' tbl %>%
 #'   test_conjointly(
-#'     ~ col_vals_lt(., vars(a), value = 8),
-#'     ~ col_vals_gt(., vars(c), value = vars(a)),
-#'     ~ col_vals_not_null(., vars(b))
+#'     ~ col_vals_lt(., columns = vars(a), value = 8),
+#'     ~ col_vals_gt(., columns = vars(c), value = vars(a)),
+#'     ~ col_vals_not_null(., columns = vars(b))
 #'   )
-#'
+#' ```
+#' 
 #' @family validation functions
 #' @section Function ID:
-#' 2-33
+#' 2-34
 #'
 #' @name conjointly
 NULL
@@ -287,16 +291,18 @@ NULL
 #' @rdname conjointly
 #' @import rlang
 #' @export
-conjointly <- function(x,
-                       ...,
-                       .list = list2(...),
-                       preconditions = NULL,
-                       segments = NULL,
-                       actions = NULL,
-                       step_id = NULL,
-                       label = NULL,
-                       brief = NULL,
-                       active = TRUE) {
+conjointly <- function(
+    x,
+    ...,
+    .list = list2(...),
+    preconditions = NULL,
+    segments = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
 
   # Obtain all of the group's elements
   list_elements <- .list
@@ -396,11 +402,13 @@ conjointly <- function(x,
 #' @rdname conjointly
 #' @import rlang
 #' @export
-expect_conjointly <- function(object,
-                              ...,
-                              .list = list2(...),
-                              preconditions = NULL,
-                              threshold = 1) {
+expect_conjointly <- function(
+    object,
+    ...,
+    .list = list2(...),
+    preconditions = NULL,
+    threshold = 1
+) {
   
   fn_name <- "expect_conjointly"
   
@@ -447,11 +455,13 @@ expect_conjointly <- function(object,
 #' @rdname conjointly
 #' @import rlang
 #' @export
-test_conjointly <- function(object,
-                            ...,
-                            .list = list2(...),
-                            preconditions = NULL,
-                            threshold = 1) {
+test_conjointly <- function(
+    object,
+    ...,
+    .list = list2(...),
+    preconditions = NULL,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%

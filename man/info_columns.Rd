@@ -90,7 +90,9 @@ columns is represented in YAML works like this: \emph{info text} goes into
 subsections of YAML keys named for the columns, which are themselves part of
 the top-level \code{columns} key. Here is an example of how several calls of
 \code{info_columns()} are expressed in R code and how the result corresponds to
-the YAML representation.\preformatted{# R statement
+the YAML representation.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{# R statement
 informant \%>\% 
   info_columns(
     columns = "date_time",
@@ -120,7 +122,7 @@ columns:
   item_count:
     _type: integer
     info: '*info text* 3. Statistics: \{snippet_1\}.'
-}
+}\if{html}{\out{</div>}}
 
 Subsections represented as column names are automatically generated when
 creating an informant. Within these, there can be multiple subsections used
@@ -139,39 +141,33 @@ done when using the \code{\link[=incorporate]{incorporate()}} function. Thus, th
 maintained in the YAML representation and is never written in processed form.
 }
 
-\section{Figures}{
+\section{Examples}{
 
-\if{html}{\figure{man_info_columns_1.png}{options: width=100\%}}
-}
 
-\section{Function ID}{
+Create a pointblank \code{informant} object with \code{\link[=create_informant]{create_informant()}}. We can
+specify a \code{tbl} with the \code{~} followed by a statement that gets the
+\code{small_table} dataset.
 
-3-2
-}
-
-\examples{
-# Create a pointblank `informant`
-# object with `create_informant()`;
-# we can specify a `tbl` with the
-# `~` followed by a statement that
-# gets the `small_table` dataset
-informant <- 
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- 
   create_informant(
     tbl = ~ small_table,
     tbl_name = "small_table",
     label = "An example."
   )
+}\if{html}{\out{</div>}}
 
-# We can add *info text* to describe
-# the columns in the table with multiple
-# `info_columns()` calls; the *info text*
-# calls are additive to existing content
-# in subsections
-informant <-
+We can add \emph{info text} to describe the table with the various \verb{info_*()}
+functions. In this example, we'll use \code{info_columns()} multiple times to
+describe some of the columns in the \code{small_table} dataset. Note here that
+\emph{info text} calls are additive to the existing content inside of the
+various subsections (i.e., the text will be appended and won't overwrite
+existing if it lands in the same area).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <-
   informant \%>\%
   info_columns(
     columns = vars(a),
-    info = "In the range of 1 to 10. (SIMPLE)"
+    info = "In the range of 1 to 10. ((SIMPLE))"
   ) \%>\%
   info_columns(
     columns = starts_with("date"),
@@ -179,34 +175,28 @@ informant <-
   ) \%>\%
   info_columns(
     columns = "date",
-    info = "The date part of `date_time`. (CALC)"
+    info = "The date part of `date_time`. ((CALC))"
   )
+}\if{html}{\out{</div>}}
 
-# Upon printing the `informant` object, we see
-# the additions made to the 'Columns' section
+Upon printing the \code{informant} object, we see the additions made to the
+'Columns' section.
 
-if (interactive()) {
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{informant
+}\if{html}{\out{</div>}}
 
-# The `informant` object can be written to
-# a YAML file with the `yaml_write()`
-# function; then, information can
-# be directly edited or modified
-yaml_write(
-  informant = informant,
-  filename = "informant.yml"
-)
-
-# The YAML file can then be read back
-# into an informant object with the
-# `yaml_read_informant()` function
-informant <-
-  yaml_read_informant(
-    filename = "informant.yml"
-  )
-
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_1.png" style="width:100\%;">
+}
+}
 }
 
+\section{Function ID}{
+
+3-2
 }
+
 \seealso{
 Other Information Functions: 
 \code{\link{info_columns_from_tbl}()},

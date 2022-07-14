@@ -91,50 +91,65 @@ version of \code{report_object}, provided as a length-one character vector; The
 HTML has inlined styles, making it more suitable for email message bodies
 }
 }
-\section{Function ID}{
+\section{Examples}{
 
-8-1
-}
 
-\examples{
-# Create a simple data frame with
-# a column of numerical values
-tbl <- dplyr::tibble(a = c(5, 7, 8, 5))
+Create a simple data frame with a column of numerical values.
 
-# Create an `action_levels()` list
-# with fractional values for the
-# `warn`, `stop`, and `notify` states
-al <-
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <- dplyr::tibble(a = c(5, 7, 8, 5))
+
+tbl
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 1
+##       a
+##   <dbl>
+## 1     5
+## 2     7
+## 3     8
+## 4     5
+}\if{html}{\out{</div>}}
+
+Create an \code{action_levels()} list with fractional values for the \code{warn},
+\code{stop}, and \code{notify} states.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{al <-
   action_levels(
     warn_at = 0.2,
     stop_at = 0.8,
     notify_at = 0.345
   )
+}\if{html}{\out{</div>}}
 
-# Create an agent (giving it the
-# `tbl` and the `al` objects),
-# supply two validation step
-# functions, then interrogate
-agent <-
+Create an agent (giving it the \code{tbl} and the \code{al} objects), supply two
+validation step functions, then interrogate.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   create_agent(
     tbl = tbl,
     actions = al
   ) \%>\%
-  col_vals_gt(vars(a), value = 7) \%>\%
-  col_is_numeric(vars(a)) \%>\%
+  col_vals_gt(columns = vars(a), value = 7) \%>\%
+  col_is_numeric(columns = vars(a)) \%>\%
   interrogate()
-  
-# Get the agent x-list
-x <- get_agent_x_list(agent)
+}\if{html}{\out{</div>}}
 
-# Print the x-list object `x`
-x
+Get the \code{f_passed} component of the agent x-list.
 
-# Get the `f_passed` component
-# of the x-list
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{x <- get_agent_x_list(agent)
+
 x$f_passed
+}\if{html}{\out{</div>}}
 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{#> [1] 0.25 1.00
+}\if{html}{\out{</div>}}
 }
+
+\section{Function ID}{
+
+8-1
+}
+
 \seealso{
 Other Post-interrogation: 
 \code{\link{all_passed}()},

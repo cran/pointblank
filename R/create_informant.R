@@ -50,6 +50,23 @@
 #' the [get_informant_report()] function, where there are more reporting
 #' options.
 #' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
+#' 
 #' @section YAML: 
 #' A **pointblank** informant can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an informant (with
@@ -58,8 +75,9 @@
 #' complex call of `create_informant()` is expressed in R code and in the
 #' corresponding YAML representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' create_informant(
 #'   tbl = ~ small_table,
 #'   tbl_name = "small_table",
@@ -67,8 +85,11 @@
 #'   lang = "fr", 
 #'   locale = "fr_CA"
 #' )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' type: informant
 #' tbl: ~small_table
 #' tbl_name: small_table
@@ -154,51 +175,80 @@
 #'   
 #' @return A `ptblank_informant` object.
 #' 
-#' @examples 
-#' # Let's walk through how we can
-#' # generate some useful information for a
-#' # really small table; it's actually
-#' # called `small_table` and we can find
-#' # it as a dataset in this package
-#' small_table
+#' @section Examples:
 #' 
-#' # Create a pointblank `informant`
-#' # object with `create_informant()`
-#' # and the `small_table` dataset
+#' Let's walk through how we can generate some useful information for a really
+#' small table. It's actually called `small_table` and we can find it as a
+#' dataset in this package.
+#' 
+#' ```{r}
+#' small_table
+#' ```
+#' 
+#' Create a pointblank `informant` object with `create_informant()` and the
+#' `small_table` dataset.
+#' 
+#' ```r
 #' informant <- 
 #'   create_informant(
 #'     tbl = pointblank::small_table,
 #'     tbl_name = "small_table",
-#'     label = "An example."
+#'     label = "`create_informant()` example."
 #'   )
+#' ```
 #' 
-#' # This function creates some information
-#' # without any extra help by profiling
-#' # the supplied table object; it adds
-#' # the sections: (1) 'table' and
-#' # (2) 'columns' and we can print the
-#' # object to see the information report
+#' This function creates some information without any extra help by profiling
+#' the supplied table object. It adds the `COLUMNS` section with stubs for each
+#' of the target table's columns. We can use the [info_columns()] or
+#' [info_columns_from_tbl()] to provide descriptions for each of the columns.
+#' The `informant` object can be printed to see the information report in the
+#' Viewer.
 #' 
-#' # Alternatively, we can get the same report
-#' # by using `get_informant_report()`
-#' report <- get_informant_report(informant)
-#' class(report)
+#' ```r
+#' informant
+#' ```
 #' 
-#' @section Figures:
-#' \if{html}{\figure{man_create_informant_1.png}{options: width=100\%}}
+#' \if{html}{
+#' 
+#' \out{
+#' `r pb_get_image_tag(file = "man_create_informant_1.png")`
+#' }
+#' }
+#' 
+#' If we want to make use of more report display options, we can alternatively
+#' use the [get_informant_report()] function.
+#' 
+#' ```r
+#' report <- 
+#'   get_informant_report(
+#'     informant,
+#'     title = "Data Dictionary for `small_table`"
+#'   )
+#'   
+#' report
+#' ```
+#' 
+#' \if{html}{
+#' 
+#' \out{
+#' `r pb_get_image_tag(file = "man_create_informant_2.png")`
+#' }
+#' }
 #' 
 #' @family Planning and Prep
 #' @section Function ID:
 #' 1-3
 #' 
 #' @export
-create_informant <- function(tbl = NULL,
-                             tbl_name = NULL,
-                             label = NULL,
-                             agent = NULL,
-                             lang = NULL,
-                             locale = NULL,
-                             read_fn = NULL) {
+create_informant <- function(
+    tbl = NULL,
+    tbl_name = NULL,
+    label = NULL,
+    agent = NULL,
+    lang = NULL,
+    locale = NULL,
+    read_fn = NULL
+) {
   
   # If nothing is provided for either `tbl`, `read_fn`, or `agent`,
   # this function needs to be stopped

@@ -147,65 +147,127 @@
 #' @return A `ptblank_agent_report` object if `display_table = TRUE` or a tibble
 #'   if `display_table = FALSE`.
 #' 
-#' @examples
-#' # Create a simple table with a
-#' # column of numerical values
-#' tbl <- 
-#'   dplyr::tibble(a = c(5, 7, 8, 5))
+#' @section Examples:
 #' 
-#' # Validate that values in column
-#' # `a` are always greater than 4
+#' For the example here, we'll use a simple table with a single numerical column
+#' `a`.
+#' 
+#' ```{r}
+#' tbl <- dplyr::tibble(a = c(5, 7, 8, 5))
+#' 
+#' tbl
+#' ```
+#' 
+#' Let's create an *agent* and validate that values in column `a` are always
+#' greater than `4`.
+#' 
+#' ```r
 #' agent <-
-#'   create_agent(tbl = tbl) %>%
-#'   col_vals_gt(vars(a), value = 4) %>%
+#'   create_agent(
+#'     tbl = tbl,
+#'     tbl_name = "small_table",
+#'     label = "An example."
+#'   ) %>%
+#'   col_vals_gt(columns = vars(a), value = 4) %>%
 #'   interrogate()
+#' ```
 #' 
-#' # Get a tibble-based report from the
-#' # agent by using `get_agent_report()`
-#' # with `display_table = FALSE`
-#' agent %>%
-#'   get_agent_report(display_table = FALSE)
-#'   
-#' # View a the report by printing the
-#' # `agent` object anytime, but, return a
-#' # gt table object by using this with
-#' # `display_table = TRUE` (the default)
+#' We can get a tibble-based report from the agent by using `get_agent_report()`
+#' with `display_table = FALSE`.
+#' 
+#' ```r
+#' agent %>% get_agent_report(display_table = FALSE)
+#' ```
+#' 
+#' \preformatted{## # A tibble: 1 × 14
+#' ##       i type    columns values precon active eval  units n_pass
+#' ##   <int> <chr>   <chr>   <chr>  <chr>  <lgl>  <chr> <dbl>  <dbl>
+#' ## 1     1 col_va… a       4      NA     TRUE   OK        4      4
+#' ## # … with 5 more variables: f_pass <dbl>, W <lgl>, S <lgl>,
+#' ## #   N <lgl>, extract <int>}
+#' 
+#' 
+#'
+#' The full-featured display-table-based report can be viewed by printing the
+#' `agent` object, but, we can get a `"ptblank_agent_report"` object returned to
+#' us when using `display_table = TRUE` (the default for `get_agent_report`).
+#' 
+#' ```r
 #' report <- get_agent_report(agent)
-#' class(report)
 #' 
-#' # What can you do with the report?
-#' # Print it from an R Markdown code,
-#' # use it in an email, put it in a
-#' # webpage, or further modify it with
-#' # the **gt** package
+#' report
+#' ```
 #' 
-#' # The agent report as a **gt** display
-#' # table comes in two sizes: "standard"
-#' # (the default) and "small"
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_get_agent_report_1.png")`
+#' }
+#' }
+#' 
+#' What can you do with the `report` object? Print it at will wherever, and, it
+#' can serve as an input to the [export_report()] function.
+#' 
+#' However, the better reason to use `get_agent_report()` over just printing the
+#' agent for display-table purposes is to make use of the different display
+#' options.
+#' 
+#' The agent report as a **gt** display table comes in two sizes: `"standard"`
+#' (the default, 875px wide) and `"small"` (575px wide). Let's take a look at
+#' the smaller-sized version of the report.
+#' 
+#' ```r
 #' small_report <- 
 #'   get_agent_report(
 #'     agent = agent,
 #'     size = "small"
 #'   )
+#'   
+#' small_report
+#' ```
 #' 
-#' class(small_report)
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_get_agent_report_2.png")`
+#' }
+#' }
 #' 
-#' # The standard report is 875px wide
-#' # the small one is 575px wide
+#' We can use our own title by supplying it to the `title` argument, or, use
+#' a special keyword like `":tbl_name:"` to get the table name (set in the
+#' [create_agent()] call) as the title.
+#' 
+#' ```r
+#' report_title <- get_agent_report(agent, title = ":tbl_name:")
+#' 
+#' report_title
+#' ```
+#' 
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_get_agent_report_3.png")`
+#' }
+#' }
+#' 
+#' There are more options! You can change the language of the display table with
+#' the `lang` argument (this overrides the language set in [create_agent()]),
+#' validation steps can be rearranged using the `arrange_by` argument, and we
+#' can also apply some filtering with the `keep` argument in
+#' `get_agent_report()`.
 #' 
 #' @family Interrogate and Report
 #' @section Function ID:
 #' 6-2
 #' 
 #' @export
-get_agent_report <- function(agent,
-                             arrange_by = c("i", "severity"),
-                             keep = c("all", "fail_states"),
-                             display_table = TRUE,
-                             size = "standard",
-                             title = ":default:",
-                             lang = NULL,
-                             locale = NULL) {
+get_agent_report <- function(
+    agent,
+    arrange_by = c("i", "severity"),
+    keep = c("all", "fail_states"),
+    display_table = TRUE,
+    size = "standard",
+    title = ":default:",
+    lang = NULL,
+    locale = NULL
+) {
   
   arrange_by <- match.arg(arrange_by)
   keep <- match.arg(keep)
@@ -855,7 +917,20 @@ get_agent_report <- function(agent,
           }
         }
         
-        if (assertion_str %in% c("row_count_match", "tbl_match")) {
+        if (assertion_str %in% c("row_count_match", "col_count_match")) {
+          
+          if (!is.numeric(values_i)) {
+            
+            return(
+              paste0(
+                "<div><p style=\"margin-top: 0px; margin-bottom: 0px; ",
+                "font-size: 0.75rem;\">EXTERNAL TABLE</p></div>"
+              )
+            )
+          }
+        }
+        
+        if (assertion_str == "tbl_match") {
           
           return(
             paste0(
@@ -1522,8 +1597,8 @@ get_agent_report <- function(agent,
         "eval_sym", "W", "S", "N", "extract"
       )
     ) %>%
-    gt::fmt_missing(columns = c("columns", "values", "units", "extract")) %>%
-    gt::fmt_missing(columns = "status_color", missing_text = "") %>%
+    gt_missing(columns = c("columns", "values", "units", "extract")) %>%
+    gt_missing(columns = "status_color", missing_text = "") %>%
     gt::cols_hide(columns = c("W_val", "S_val", "N_val", "active", "eval")) %>%
     gt::text_transform(
       locations = gt::cells_body(columns = "units"),
@@ -1856,10 +1931,12 @@ get_default_title_text <- function(report_type,
   title_text
 }
 
-process_title_text <- function(title,
-                               tbl_name,
-                               report_type,
-                               lang) {
+process_title_text <- function(
+    title,
+    tbl_name,
+    report_type,
+    lang
+) {
   
   if (report_type == "multiagent:wide") {
     if (title == ":tbl_name:") {
@@ -1892,10 +1969,12 @@ process_title_text <- function(title,
   title_text
 }
 
-create_table_time_html <- function(time_start,
-                                   time_end,
-                                   size = "standard",
-                                   locale = NULL) {
+create_table_time_html <- function(
+    time_start,
+    time_end,
+    size = "standard",
+    locale = NULL
+) {
   
   if (length(time_start) < 1) {
     return("")
@@ -1911,15 +1990,15 @@ create_table_time_html <- function(time_start,
         style = htmltools::css(
           `background-color` = "#FFF",
           color = "#444",
-          padding = if (size == "standard") "0.5em 0.5em" else "",
+          padding = if (size != "small") "0.5em 0.5em" else "",
           position = "inherit",
           `text-transform` = "uppercase",
-          `margin-left` = if (size == "standard") "10px" else "",
-          border = if (size == "standard") "solid 1px #999999" else "",
+          `margin-left` = if (size != "small") "10px" else "",
+          border = if (size != "small") "solid 1px #999999" else "",
           `font-variant-numeric` = "tabular-nums",
           `border-radius` = "0",
           padding = "2px 10px 2px 10px",
-          padding = if (size == "standard") {
+          padding = if (size != "small") {
             "2px 10px 2px 10px" 
           } else {
             "2px 10px 2px 5px"
@@ -1932,10 +2011,10 @@ create_table_time_html <- function(time_start,
         style = htmltools::css(
           `background-color` = "#FFF",
           color = "#444",
-          padding = if (size == "standard") "0.5em 0.5em" else "",
+          padding = if (size != "small") "0.5em 0.5em" else "",
           position = "inherit",
           margin = "5px 1px 5px 0",
-          border = if (size == "standard") "solid 1px #999999" else "",
+          border = if (size != "small") "solid 1px #999999" else "",
           `border-left` = if (size == "small") "none" else "",
           `font-variant-numeric` = "tabular-nums",
           `border-radius` = "0",
@@ -1947,11 +2026,11 @@ create_table_time_html <- function(time_start,
         style = htmltools::css(
           `background-color` = "#FFF",
           color = "#444",
-          padding = if (size == "standard") "0.5em 0.5em" else "",
+          padding = if (size != "small") "0.5em 0.5em" else "",
           position = "inherit",
           `text-transform` = "uppercase",
           `margin` = "5px 1px 5px -1px",
-          border = if (size == "standard") "solid 1px #999999" else "",
+          border = if (size != "small") "solid 1px #999999" else "",
           `font-variant-numeric` = "tabular-nums",
           `border-left` = if (size == "small") "solid 1px #333" else "",
           `border-radius` = "0",
@@ -1963,8 +2042,10 @@ create_table_time_html <- function(time_start,
   )
 }
 
-print_time_duration_report <- function(time_diff_s,
-                                       locale = NULL) {
+print_time_duration_report <- function(
+    time_diff_s,
+    locale = NULL
+) {
   
   if (time_diff_s < 1) {
     "< 1 s"
@@ -1999,7 +2080,10 @@ create_agent_label_html <- function(agent) {
   )
 }
 
-create_table_type_html <- function(tbl_src, tbl_name) {
+create_table_type_html <- function(
+    tbl_src,
+    tbl_name
+) {
 
   if (is.null(tbl_src)) {
     
@@ -2016,6 +2100,7 @@ create_table_type_html <- function(tbl_src, tbl_name) {
         duckdb = c("#000000", "#FFFFFF", "DuckDB"),
         mysql = c("#EBAD40", "#222222", "MySQL"),
         postgres = c("#3E638B", "#FFFFFF", "PostgreSQL"),
+        bigquery = c("#5283EC", "#FFFFFF", "BigQuery"),
         tbl_spark = c("#E66F21", "#FFFFFF", "Spark DataFrame"),
         Arrow = c("#353A3F", "#FFFFFF", "Apache Arrow"),
         c("#E2E2E2", "#222222", tbl_src)
@@ -2075,7 +2160,10 @@ create_table_type_html <- function(tbl_src, tbl_name) {
   }
 }
 
-make_action_levels_html <- function(agent, locale) {
+make_action_levels_html <- function(
+    agent,
+    locale
+) {
   
   actions <- agent$actions
   
@@ -2195,17 +2283,19 @@ make_action_levels_html <- function(agent, locale) {
   )
 }
 
-make_boxed_text_html <- function(x,
-                                 size = "standard",
-                                 color = "#333333",
-                                 background = "transparent",
-                                 font_size = "15px",
-                                 padding = "5px",
-                                 tt_text = NULL,
-                                 tt_position = "left",
-                                 tt_text_size = NULL,
-                                 border_radius = NULL,
-                                 v_align = "middle") {
+make_boxed_text_html <- function(
+    x,
+    size = "standard",
+    color = "#333333",
+    background = "transparent",
+    font_size = "15px",
+    padding = "5px",
+    tt_text = NULL,
+    tt_position = "left",
+    tt_text_size = NULL,
+    border_radius = NULL,
+    v_align = "middle"
+) {
   
   if (!is.null(tt_position) && size == "standard") {
     text_type <- "aria-label"
@@ -2273,10 +2363,12 @@ initialize_footnotes_tbl <- function() {
 }
 
 # Function for adding a footnote to the `footnotes_tbl`
-store_footnote <- function(footnotes_tbl,
-                           note,
-                           col_idx,
-                           row_idx) {
+store_footnote <- function(
+    footnotes_tbl,
+    note,
+    col_idx,
+    row_idx
+) {
   
   dplyr::bind_rows(
     footnotes_tbl,

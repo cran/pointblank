@@ -38,9 +38,108 @@ by using the \code{\link[=get_multiagent_report]{get_multiagent_report()}} funct
 the interrogation time and it automatically recognizes which validation steps
 are equivalent across interrogations.
 }
-\section{Figures}{
+\section{Examples}{
 
-\if{html}{\figure{man_create_multiagent_1.png}{options: width=100\%}}
+
+For the example below, we'll use two different, yet simple tables.
+
+First, \code{tbl_1}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl_1 <-
+  dplyr::tibble(
+    a = c(5, 5, 5, 5, 5, 5),
+    b = c(1, 1, 1, 2, 2, 2),
+    c = c(1, 1, 1, 2, 3, 4),
+    d = LETTERS[a],
+    e = LETTERS[b],
+    f = LETTERS[c]
+  )
+  
+tbl_1
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 6
+##       a     b     c d     e     f    
+##   <dbl> <dbl> <dbl> <chr> <chr> <chr>
+## 1     5     1     1 E     A     A    
+## 2     5     1     1 E     A     A    
+## 3     5     1     1 E     A     A    
+## 4     5     2     2 E     B     B    
+## 5     5     2     3 E     B     C    
+## 6     5     2     4 E     B     D
+}\if{html}{\out{</div>}}
+
+And next, \code{tbl_2}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl_2 <-
+  dplyr::tibble(
+    a = c(5, 7, 6, 5, 8, 7),
+    b = LETTERS[1:6]
+  )
+
+tbl_2
+}\if{html}{\out{</div>}}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 2
+##       a b    
+##   <dbl> <chr>
+## 1     5 A    
+## 2     7 B    
+## 3     6 C    
+## 4     5 D    
+## 5     8 E    
+## 6     7 F
+}\if{html}{\out{</div>}}
+
+Next, we'll create two different agents, each interrogating a different
+table.
+
+First up, is \code{agent_1}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent_1 <-
+  create_agent(
+    tbl = tbl_1,
+    tbl_name = "tbl_1",
+    label = "Example table 1."
+  ) \%>\%
+  col_vals_gt(columns = vars(a), value = 4) \%>\%
+  interrogate()
+}\if{html}{\out{</div>}}
+
+Then, \code{agent_2}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{agent_2 <-
+  create_agent(
+    tbl = tbl_2,
+    tbl_name = "tbl_2",
+    label = "Example table 2."
+  ) \%>\%
+  col_is_character(columns = vars(b)) \%>\%
+  interrogate()
+}\if{html}{\out{</div>}}
+
+Now, we'll combine the two agents into a \emph{multiagent} with the
+\code{create_multiagent()} function. Printing the \code{"ptblank_multiagent"} object
+displays the multiagent report with its default options (i.e., a 'long'
+report view).
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{multiagent <- create_multiagent(agent_1, agent_2)
+  
+multiagent
+}\if{html}{\out{</div>}}
+
+\if{html}{
+\out{
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_multiagent_1.png" style="width:100\%;">
+}
+}
+
+To take advantage of more display options, we could use the
+\code{\link[=get_multiagent_report]{get_multiagent_report()}} function. The added functionality there allows for
+a 'wide' view of the data (useful for monitoring validations of the same
+table over repeated interrogations), the ability to modify the title of the
+multiagent report, and a means to export the report to HTML (via
+\code{\link[=export_report]{export_report()}}).
 }
 
 \section{Function ID}{
@@ -48,124 +147,6 @@ are equivalent across interrogations.
 10-1
 }
 
-\examples{
-if (interactive()) {
-
-# Let's walk through several theoretical
-# data quality analyses of an extremely
-# small table; that table is called
-# `small_table` and we can find it as a
-# dataset in this package
-small_table
-
-# To set failure limits and signal
-# conditions, we designate proportional
-# failure thresholds to the `warn`, `stop`,
-# and `notify` states using `action_levels()`
-al <- 
-  action_levels(
-    warn_at = 0.05,
-    stop_at = 0.10,
-    notify_at = 0.20
-  )
-
-# We will create four different agents
-# and have slightly different validation
-# steps in each of them; in the first,
-# `agent_1`, eight different validation
-# steps are created and the agent will
-# interrogate the `small_table`
-agent_1 <-
-  create_agent(
-    tbl = small_table,
-    label = "An example.",
-    actions = al
-  ) \%>\%
-  col_vals_gt(
-    vars(date_time),
-    value = vars(date),
-    na_pass = TRUE
-  ) \%>\%
-  col_vals_gt(
-    vars(b), 
-    value = vars(g),
-    na_pass = TRUE
-  ) \%>\%
-  rows_distinct() \%>\%
-  col_vals_equal(
-    vars(d), 
-    value = vars(d),
-    na_pass = TRUE
-  ) \%>\%
-  col_vals_between(
-    vars(c), 
-    left = vars(a), right = vars(d)
-  ) \%>\%
-  col_vals_not_between(
-    vars(c),
-    left = 10, right = 20,
-    na_pass = TRUE
-  ) \%>\%
-  rows_distinct(vars(d, e, f)) \%>\%
-  col_is_integer(vars(a)) \%>\%
-  interrogate()
-
-# The second agent, `agent_2`, retains
-# all of the steps of `agent_1` and adds
-# two more (the last of which is inactive)
-agent_2 <- 
-  agent_1 \%>\%
-  col_exists(vars(date, date_time)) \%>\%
-  col_vals_regex(
-    vars(b), 
-    regex = "[0-9]-[a-z]{3}-[0-9]{3}",
-    active = FALSE
-  ) \%>\%
-  interrogate()
-
-# The third agent, `agent_3`, adds a single
-# validation step, removes the fifth one,
-# and deactivates the first
-agent_3 <- 
-  agent_2 \%>\%
-  col_vals_in_set(
-    vars(f),
-    set = c("low", "mid", "high")
-  ) \%>\%
-  remove_steps(i = 5) \%>\%
-  deactivate_steps(i = 1) \%>\%
-  interrogate()
-
-# The fourth and final agent, `agent_4`,
-# reactivates steps 1 and 10, and removes
-# the sixth step
-agent_4 <-
-  agent_3 \%>\%
-  activate_steps(i = 1) \%>\%
-  activate_steps(i = 10) \%>\%
-  remove_steps(i = 6) \%>\%
-  interrogate()
-
-# While all the agents are slightly
-# different from each other, we can still
-# get a combined report of them by
-# creating a 'multiagent'
-multiagent <-
-  create_multiagent(
-    agent_1, agent_2, agent_3, agent_4
-  )
-
-# Calling `multiagent` in the console
-# prints the multiagent report; but we
-# can get a `gt_tbl` object with the
-# `get_multiagent_report()` function
-report <- get_multiagent_report(multiagent)
-
-class(report)
-
-}
-
-}
 \seealso{
 Other The multiagent: 
 \code{\link{get_multiagent_report}()},

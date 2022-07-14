@@ -80,8 +80,9 @@
 #' validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   specially(
 #'     fn = function(x) { ... },
@@ -90,8 +91,10 @@
 #'     label = "The `specially()` step.",
 #'     active = FALSE
 #'   )
+#' ```
+#' YAML representation:
 #' 
-#' # YAML representation
+#' ```yaml
 #' steps:
 #' - specially:
 #'     fn: function(x) { ... }
@@ -122,12 +125,13 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #'   
-#' @examples
-#' # For all examples here, we'll use
-#' # a simple table with three numeric
-#' # columns (`a`, `b`, and `c`); this is
-#' # a very basic table but it'll be more
-#' # useful when explaining things later
+#' @section Examples:
+#' 
+#' For all examples here, we'll use a simple table with three numeric columns
+#' (`a`, `b`, and `c`). This is a very basic table but it'll be more useful when
+#' explaining things later.
+#' 
+#' ```{r}
 #' tbl <-
 #'   dplyr::tibble(
 #'     a = c(5, 2, 6),
@@ -136,128 +140,132 @@
 #'   )
 #'   
 #' tbl
+#' ```
 #'   
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()`
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
 #' 
-#' # Validate that the target table has
-#' # exactly three rows; this single
-#' # validation with `specially()` has
-#' # 1 test unit since the function
-#' # executed on `x` (the target table)
-#' # results in a logical vector with a
-#' # length of 1
+#' Validate that the target table has exactly three rows. This single validation
+#' with `specially()` has 1 test unit since the function executed on `x` (the
+#' target table) results in a logical vector with a length of 1. We'll determine
+#' if this validation has any failing test units (there is 1 test unit).
+#' 
+#' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'     specially(
-#'       fn = function(x) nrow(x) == 3
-#'     ) %>%
-#'     interrogate()
-#'   
-#' # Determine if this validation
-#' # had no failing test units (there
-#' # is 1 test unit)
-#' all_passed(agent)
+#'   specially(fn = function(x) nrow(x) == 3) %>%
+#'   interrogate()
+#' ```
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_specially_1.png")`
+#' }
+#' }
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
-#' tbl %>%
-#'   specially(
-#'       fn = function(x) nrow(x) == 3
-#'    )
+#' ## B: Using the validation function directly on the data (no `agent`)
+#' 
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
+#' tbl %>% specially(fn = function(x) nrow(x) == 3)
+#' ```
 #'
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
-#' expect_specially(
-#'   tbl,
-#'   fn = function(x) nrow(x) == 3
-#' )
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
 #' 
-#' # D: Using the test function
+#' ```r
+#' expect_specially(tbl, fn = function(x) nrow(x) == 3)
+#' ```
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
-#' tbl %>%
+#' ## D: Using the test function
+#' 
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
+#' tbl %>% test_specially(fn = function(x) nrow(x) == 3)
+#' ```
+#' 
+#' ## Variations
+#'
+#' We can do more complex things with `specially()` and its variants.
+#' 
+#' Check the class of the target table.
+#' 
+#' ```{r}
+#' tbl %>% 
 #'   test_specially(
-#'     fn = function(x) nrow(x) == 3
+#'     fn = function(x) {
+#'       inherits(x, "data.frame")
+#'     }
 #'   )
+#' ```
 #' 
-#' # Variations
-#'
-#' # We can do more complex things with
-#' # `specially()` and its variants
+#' Check that the number of rows in the target table is less than `small_table`.
 #' 
-# Check the class of the target table
-#' tbl %>% test_specially(
-#'   fn = function(x) {
-#'     inherits(x, "data.frame")
-#'   }
-#' )
+#' ```{r}
+#' tbl %>% 
+#'   test_specially(
+#'     fn = function(x) {
+#'       nrow(x) < nrow(small_table)
+#'     }
+#'   )
+#' ```
 #' 
-#' # Check that the number of rows in the
-#' # target table is less than `small_table`
-#' tbl %>% test_specially(
-#'   fn = function(x) {
-#'     nrow(x) < nrow(small_table)
-#'   }
-#' )
+#' Check that all numbers across all numeric column are less than `10`.
 #' 
-#' # Check that all numbers across all
-#' # numeric column are less than `10` 
-#' tbl %>% test_specially(
-#'   fn = function(x) {
-#'     (x %>% 
-#'        dplyr::select(where(is.numeric)) %>%
-#'        unlist()
-#'     ) < 10
-#'   }
-#' )
+#' ```{r}
+#' tbl %>% 
+#'   test_specially(
+#'     fn = function(x) {
+#'       (x %>% 
+#'          dplyr::select(where(is.numeric)) %>%
+#'          unlist()
+#'       ) < 10
+#'     }
+#'   )
+#' ```
 #' 
-#' # Check that all values in column
-#' # `c` are greater than b and greater
-#' # than `a` (in each row) and always
-#' # less than 10; this creates a table
-#' # with the new column `d` which is
-#' # a logical column (that is used as
-#' # the evaluation of test units)
-#' tbl %>% test_specially(
-#'   fn = function(x) {
-#'     x %>%
-#'       dplyr::mutate(
-#'         d = c > b & c > a & c < 10
-#'       )
-#'   }
-#' )
+#' Check that all values in column `c` are greater than b and greater than `a`
+#' (in each row) and always less than `10`. This creates a table with the new
+#' column `d` which is a logical column (that is used as the evaluation of test
+#' units).
 #' 
-#' # Check that the `game_revenue`
-#' # table (which is not the target
-#' # table) has exactly 2000 rows 
-#' tbl %>% test_specially(
-#'   fn = function(x) {
-#'     nrow(game_revenue) == 2000
-#'   }
-#' )
+#' ```{r}
+#' tbl %>% 
+#'   test_specially(
+#'     fn = function(x) {
+#'       x %>%
+#'         dplyr::mutate(
+#'           d = c > b & c > a & c < 10
+#'         )
+#'     }
+#'   )
+#' ```
+#' 
+#' Check that the `game_revenue` table (which is not the target table) has
+#' exactly 2000 rows.
+#' 
+#' ```{r}
+#' tbl %>% 
+#'   test_specially(
+#'     fn = function(x) {
+#'       nrow(game_revenue) == 2000
+#'     }
+#'   )
+#' ```
 #'
 #' @family validation functions
 #' @section Function ID:
-#' 2-35
+#' 2-36
 #' 
 #' @name specially
 NULL
@@ -266,14 +274,16 @@ NULL
 #' @import rlang
 #' 
 #' @export
-specially <- function(x,
-                      fn,
-                      preconditions = NULL,
-                      actions = NULL,
-                      step_id = NULL,
-                      label = NULL,
-                      brief = NULL,
-                      active = TRUE) {
+specially <- function(
+    x,
+    fn,
+    preconditions = NULL,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
   
   segments <- NULL
   
@@ -357,10 +367,12 @@ specially <- function(x,
 #' @rdname specially
 #' @import rlang
 #' @export
-expect_specially <- function(object,
-                             fn,
-                             preconditions = NULL,
-                             threshold = 1) {
+expect_specially <- function(
+    object,
+    fn,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   fn_name <- "expect_specially"
   
@@ -405,10 +417,12 @@ expect_specially <- function(object,
 #' @rdname specially
 #' @import rlang
 #' @export
-test_specially <- function(object,
-                           fn,
-                           preconditions = NULL,
-                           threshold = 1) {
+test_specially <- function(
+    object,
+    fn,
+    preconditions = NULL,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%

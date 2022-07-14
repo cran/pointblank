@@ -27,11 +27,26 @@
 #' only requirement is a specification of the column names. The validation
 #' function can be used directly on a data table or with an *agent* object
 #' (technically, a `ptblank_agent` object) whereas the expectation and test
-#' functions can only be used with a data table. The types of data tables that
-#' can be used include data frames, tibbles, database tables (`tbl_dbi`), and
-#' Spark DataFrames (`tbl_spark`). Each validation step or expectation will
-#' operate over a single test unit, which is whether the column is an
-#' logical-type column or not.
+#' functions can only be used with a data table. Each validation step or
+#' expectation will operate over a single test unit, which is whether the column
+#' is an logical-type column or not.
+#' 
+#' @section Supported Input Tables:
+#' The types of data tables that are officially supported are:
+#' 
+#'  - data frames (`data.frame`) and tibbles (`tbl_df`)
+#'  - Spark DataFrames (`tbl_spark`)
+#'  - the following database tables (`tbl_dbi`):
+#'    - *PostgreSQL* tables (using the `RPostgres::Postgres()` as driver)
+#'    - *MySQL* tables (with `RMySQL::MySQL()`)
+#'    - *Microsoft SQL Server* tables (via **odbc**)
+#'    - *BigQuery* tables (using `bigrquery::bigquery()`)
+#'    - *DuckDB* tables (through `duckdb::duckdb()`)
+#'    - *SQLite* (with `RSQLite::SQLite()`)
+#'    
+#' Other database tables may work to varying degrees but they haven't been
+#' formally tested (so be mindful of this when using unsupported backends with
+#' **pointblank**).
 #'
 #' @section Column Names:
 #' If providing multiple column names, the result will be an expansion of
@@ -71,17 +86,21 @@
 #' validation step is expressed in R code and in the corresponding YAML
 #' representation.
 #' 
-#' ```
-#' # R statement
+#' R statement:
+#' 
+#' ```r
 #' agent %>% 
 #'   col_is_logical(
-#'     vars(a),
+#'     columns = vars(a),
 #'     actions = action_levels(warn_at = 0.1, stop_at = 0.2),
 #'     label = "The `col_is_logical()` step.",
 #'     active = FALSE
 #'   )
+#' ```
 #' 
-#' # YAML representation
+#' YAML representation:
+#' 
+#' ```yaml
 #' steps:
 #' - col_is_logical:
 #'     columns: vars(a)
@@ -108,62 +127,66 @@
 #'   called primarily for its potential side-effects (e.g., signaling failure).
 #'   The test function returns a logical value.
 #'   
-#' @examples
-#' # The `small_table` dataset in the
-#' # package has an `e` column which has
-#' # logical values; the following examples
-#' # will validate that that column is of
-#' # the `logical` class
+#' @section Examples:
 #' 
-#' # A: Using an `agent` with validation
-#' #    functions and then `interrogate()`
+#' The `small_table` dataset in the package has an `e` column which has logical
+#' values. The following examples will validate that that column is of the
+#' `logical` class.
 #' 
-#' # Validate that the column `e` has the
-#' # `logical` class
+#' ```{r}
+#' small_table
+#' ```
+#' 
+#' ## A: Using an `agent` with validation functions and then `interrogate()`
+#' 
+#' Validate that the column `e` has the `logical` class.
+#' 
+#' ```r
 #' agent <-
-#'   create_agent(small_table) %>%
-#'   col_is_logical(vars(e)) %>%
+#'   create_agent(tbl = small_table) %>%
+#'   col_is_logical(columns = vars(e)) %>%
 #'   interrogate()
-#'   
-#' # Determine if this validation
-#' # had no failing test units (1)
-#' all_passed(agent)
+#' ```
 #' 
-#' # Calling `agent` in the console
-#' # prints the agent's report; but we
-#' # can get a `gt_tbl` object directly
-#' # with `get_agent_report(agent)`
+#' Printing the `agent` in the console shows the validation report in the
+#' Viewer. Here is an excerpt of validation report, showing the single entry
+#' that corresponds to the validation step demonstrated here.
 #' 
-#' # B: Using the validation function
-#' #    directly on the data (no `agent`)
+#' \if{html}{
+#' \out{
+#' `r pb_get_image_tag(file = "man_col_is_logical_1.png")`
+#' }
+#' }
 #' 
-#' # This way of using validation functions
-#' # acts as a data filter: data is passed
-#' # through but should `stop()` if there
-#' # is a single test unit failing; the
-#' # behavior of side effects can be
-#' # customized with the `actions` option
+#' ## B: Using the validation function directly on the data (no `agent`)
+#' 
+#' This way of using validation functions acts as a data filter. Data is passed
+#' through but should `stop()` if there is a single test unit failing. The
+#' behavior of side effects can be customized with the `actions` option.
+#' 
+#' ```{r}
 #' small_table %>%
-#'   col_is_logical(vars(e)) %>%
+#'   col_is_logical(columns = vars(e)) %>%
 #'   dplyr::slice(1:5)
+#' ```
 #' 
-#' # C: Using the expectation function
+#' ## C: Using the expectation function
 #' 
-#' # With the `expect_*()` form, we would
-#' # typically perform one validation at a
-#' # time; this is primarily used in
-#' # testthat tests
-#' expect_col_is_logical(
-#'   small_table, vars(e)
-#' )
+#' With the `expect_*()` form, we would typically perform one validation at a
+#' time. This is primarily used in **testthat** tests.
 #' 
-#' # D: Using the test function
+#' ```r
+#' expect_col_is_logical(small_table, columns = vars(e))
+#' ```
 #' 
-#' # With the `test_*()` form, we should
-#' # get a single logical value returned
-#' # to us
-#' small_table %>%
-#'   test_col_is_logical(vars(e))
+#' ## D: Using the test function
+#' 
+#' With the `test_*()` form, we should get a single logical value returned to
+#' us.
+#' 
+#' ```{r}
+#' small_table %>% test_col_is_logical(columns = vars(e))
+#' ```
 #' 
 #' @family validation functions
 #' @section Function ID:
@@ -175,13 +198,15 @@ NULL
 #' @rdname col_is_logical
 #' @import rlang
 #' @export
-col_is_logical <- function(x,
-                           columns,
-                           actions = NULL,
-                           step_id = NULL,
-                           label = NULL,
-                           brief = NULL,
-                           active = TRUE) {
+col_is_logical <- function(
+    x,
+    columns,
+    actions = NULL,
+    step_id = NULL,
+    label = NULL,
+    brief = NULL,
+    active = TRUE
+) {
   
   preconditions <- NULL
   values <- NULL
@@ -258,9 +283,11 @@ col_is_logical <- function(x,
 #' @rdname col_is_logical
 #' @import rlang
 #' @export
-expect_col_is_logical <- function(object,
-                                  columns,
-                                  threshold = 1) {
+expect_col_is_logical <- function(
+    object,
+    columns,
+    threshold = 1
+) {
   
   fn_name <- "expect_col_is_logical"
   
@@ -331,9 +358,11 @@ expect_col_is_logical <- function(object,
 #' @rdname col_is_logical
 #' @import rlang
 #' @export
-test_col_is_logical <- function(object,
-                                columns,
-                                threshold = 1) {
+test_col_is_logical <- function(
+    object,
+    columns,
+    threshold = 1
+) {
   
   vs <- 
     create_agent(tbl = object, label = "::QUIET::") %>%
