@@ -212,17 +212,15 @@ and a integer column (\code{b}).
   )
 
 tbl
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 2
-##   a         b
-##   <chr> <int>
-## 1 a         2
-## 2 b         3
-## 3 c         4
-## 4 d         5
-## 5 e         6
-## 6 f         7
+#> # A tibble: 6 x 2
+#>   a         b
+#>   <chr> <int>
+#> 1 a         2
+#> 2 b         3
+#> 3 c         4
+#> 4 d         5
+#> 5 e         6
+#> 6 f         7
 }\if{html}{\out{</div>}}
 \subsection{A: Using an \code{agent} with validation functions and then \code{interrogate()}}{
 
@@ -240,7 +238,7 @@ that corresponds to the validation step demonstrated here.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_is_integer_1.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_is_integer_1.png" alt="This image was generated from the first code example in the `col_is_integer()` help file." style="width:100\%;">
 }
 }
 }
@@ -252,17 +250,15 @@ through but should \code{stop()} if there is a single test unit failing. The
 behavior of side effects can be customized with the \code{actions} option.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% col_is_integer(columns = vars(b))
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 2
-##   a         b
-##   <chr> <int>
-## 1 a         2
-## 2 b         3
-## 3 c         4
-## 4 d         5
-## 5 e         6
-## 6 f         7
+#> # A tibble: 6 x 2
+#>   a         b
+#>   <chr> <int>
+#> 1 a         2
+#> 2 b         3
+#> 3 c         4
+#> 4 d         5
+#> 5 e         6
+#> 6 f         7
 }\if{html}{\out{</div>}}
 }
 
@@ -281,9 +277,7 @@ With the \verb{test_*()} form, we should get a single logical value returned to
 us.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% test_col_is_integer(columns = vars(b))
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+#> [1] TRUE
 }\if{html}{\out{</div>}}
 }
 }

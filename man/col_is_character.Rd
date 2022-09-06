@@ -212,17 +212,15 @@ and a character column (\code{b}).
   )
 
 tbl
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 6 × 2
-##       a b    
-##   <dbl> <chr>
-## 1     5 A    
-## 2     7 B    
-## 3     6 C    
-## 4     5 D    
-## 5     8 E    
-## 6     7 F
+#> # A tibble: 6 x 2
+#>       a b    
+#>   <dbl> <chr>
+#> 1     5 A    
+#> 2     7 B    
+#> 3     6 C    
+#> 4     5 D    
+#> 5     8 E    
+#> 6     7 F
 }\if{html}{\out{</div>}}
 
 We'll use this table with the different function variants.
@@ -242,7 +240,7 @@ that corresponds to the validation step demonstrated here.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_is_character_1.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_is_character_1.png" alt="This image was generated from the first code example in the `col_is_character()` help file." style="width:100\%;">
 }
 }
 }
@@ -256,16 +254,14 @@ behavior of side effects can be customized with the \code{actions} option.
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% 
   col_is_character(columns = vars(b)) \%>\%
   dplyr::slice(1:5)
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 5 × 2
-##       a b    
-##   <dbl> <chr>
-## 1     5 A    
-## 2     7 B    
-## 3     6 C    
-## 4     5 D    
-## 5     8 E
+#> # A tibble: 5 x 2
+#>       a b    
+#>   <dbl> <chr>
+#> 1     5 A    
+#> 2     7 B    
+#> 3     6 C    
+#> 4     5 D    
+#> 5     8 E
 }\if{html}{\out{</div>}}
 }
 
@@ -284,9 +280,7 @@ With the \verb{test_*()} form, we should get a single logical value returned to
 us.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl \%>\% test_col_is_character(columns = vars(b))
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## [1] TRUE
+#> [1] TRUE
 }\if{html}{\out{</div>}}
 }
 }

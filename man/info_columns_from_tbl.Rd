@@ -58,22 +58,20 @@ table by using \code{\link[=info_columns]{info_columns()}} or information in ano
 metadata for \code{game_revenue}.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{game_revenue_info
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 11 × 2
-##    column           info                                                        
-##    <chr>            <chr>                                                       
-##  1 player_id        A `character` column with unique identifiers for each user/…
-##  2 session_id       A `character` column that contains unique identifiers for e…
-##  3 session_start    A date-time column that indicates when the session (contain…
-##  4 time             A date-time column that indicates exactly when the player p…
-##  5 item_type        A `character` column that provides the class of the item pu…
-##  6 item_name        A `character` column that provides the name of the item pur…
-##  7 item_revenue     A `numeric` column with the revenue amounts per item purcha…
-##  8 session_duration A `numeric` column that states the length of the session (i…
-##  9 start_day        A `Date` column that provides the date of first login for t…
-## 10 acquisition      A `character` column that provides the method of acquisitio…
-## 11 country          A `character` column that provides the probable country of …
+#> # A tibble: 11 x 2
+#>    column           info                                                        
+#>    <chr>            <chr>                                                       
+#>  1 player_id        A `character` column with unique identifiers for each user/~
+#>  2 session_id       A `character` column that contains unique identifiers for e~
+#>  3 session_start    A date-time column that indicates when the session (contain~
+#>  4 time             A date-time column that indicates exactly when the player p~
+#>  5 item_type        A `character` column that provides the class of the item pu~
+#>  6 item_name        A `character` column that provides the name of the item pur~
+#>  7 item_revenue     A `numeric` column with the revenue amounts per item purcha~
+#>  8 session_duration A `numeric` column that states the length of the session (i~
+#>  9 start_day        A `Date` column that provides the date of first login for t~
+#> 10 acquisition      A `character` column that provides the method of acquisitio~
+#> 11 country          A `character` column that provides the probable country of ~
 }\if{html}{\out{</div>}}
 
 The \code{info_columns_from_tbl()} function takes a table object where the first
@@ -93,7 +91,7 @@ call.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_from_tbl_1.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_from_tbl_1.png" alt="This image was generated from the first code example in the `info_columns_from_tbl()` help file." style="width:100\%;">
 }
 }
 
@@ -124,7 +122,7 @@ informant
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_from_tbl_2.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_from_tbl_2.png" alt="This image was generated from the second code example in the `info_columns_from_tbl()` help file." style="width:100\%;">
 }
 }
 }

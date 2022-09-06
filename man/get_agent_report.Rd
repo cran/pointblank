@@ -161,15 +161,13 @@ For the example here, we'll use a simple table with a single numerical column
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tbl <- dplyr::tibble(a = c(5, 7, 8, 5))
 
 tbl
-}\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{## # A tibble: 4 × 1
-##       a
-##   <dbl>
-## 1     5
-## 2     7
-## 3     8
-## 4     5
+#> # A tibble: 4 x 1
+#>       a
+#>   <dbl>
+#> 1     5
+#> 2     7
+#> 3     8
+#> 4     5
 }\if{html}{\out{</div>}}
 
 Let's create an \emph{agent} and validate that values in column \code{a} are always
@@ -211,7 +209,7 @@ report
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_1.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_1.png" alt="This image was generated from the first code example in the `get_agent_report()` help file." style="width:100\%;">
 }
 }
 
@@ -237,7 +235,7 @@ small_report
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_2.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_2.png" alt="This image was generated from the second code example in the `get_agent_report()` help file." style="width:100\%;">
 }
 }
 
@@ -252,7 +250,7 @@ report_title
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_3.png" style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_3.png" alt="This image was generated from the third code example in the `get_agent_report()` help file." style="width:100\%;">
 }
 }
 
