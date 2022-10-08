@@ -1,7 +1,7 @@
-fb76973ce194e7b86ed18ffedccf234b *DESCRIPTION
+1e0d5da7dd5daf34a118c08cb93b3c15 *DESCRIPTION
 d5d858db7d7dee0532e7fe306c25e18d *LICENSE
 ee1e436b7cc134e0098b8214d7477dc4 *NAMESPACE
-78fff11edb89b6aaa56244713a2303be *NEWS.md
+b73353f3dfb6f44d51cbdce2514d7d8c *NEWS.md
 68885a8544556e0238798f879ab7fbbb *R/action_levels.R
 6de59c1192180f2bdba8af07914d2a6b *R/all_passed.R
 c8064eaf96a78c92e3274e4203de256e *R/col_count_match.R
@@ -36,7 +36,7 @@ b44666077f0d95a2558f1acdb66785e2 *R/col_vals_null.R
 de389d03d884b478eac17a695b0f70a0 *R/column_roles.R
 57ca2f2e92d948f52aefa7d0b6636179 *R/conjointly.R
 cd7ce0ec932861b937f75440701bed49 *R/create_agent.R
-15bfab9eb3e659cf1383a9bea01ccbc0 *R/create_informant.R
+e52f3d9a1019779e8bf649da27415b83 *R/create_informant.R
 f4461aff1a41166762b89038881fe39b *R/create_multiagent.R
 d988158c84dd7239a77e996045a9f411 *R/datasets.R
 68f1aeb6db623c19acd2b65b8992d898 *R/draft_validation.R
@@ -45,7 +45,7 @@ bf24d5636bd04c57b970ad142717cc72 *R/file_naming.R
 8169dab8455621a317ba2e9235c950f7 *R/get_agent_report.R
 c53d004ad1ef9620f763a524e6c3ac7c *R/get_agent_x_list.R
 88c5e84b4ff080078df45568a8845def *R/get_data_extracts.R
-233015d05f3b0159fa04e5a4a9a6ca73 *R/get_informant_report.R
+b8ee8718554de453f7a47635b60deac4 *R/get_informant_report.R
 f55cfeaab828c47c66ad49e08e61011f *R/get_multiagent_report.R
 a64575991f78cb77c1b22051d9dd81d0 *R/get_sundered_data.R
 c7378cfc6555ab0a17446723fd5a214e *R/has_columns.R
@@ -63,7 +63,7 @@ a52e7cbc92f4e491d9b3da693e097b35 *R/regex.R
 6d5b3688086c0749ee71df4ef8b7fcd2 *R/row_count_match.R
 a0c2e794ef8034eba17d0dc7a25f5b09 *R/rows_complete.R
 40ab9e59c94d8d7487cf7610f8a21120 *R/rows_distinct.R
-641bc9e7523871900285918629ea8711 *R/scan_data.R
+45727f50a95e83993dffb0902176c7e0 *R/scan_data.R
 583417ecf44325879fc61520f0143488 *R/serially.R
 ba04329021d8efd2027aa4e8fdd1d315 *R/specially.R
 ec3347787685a1397eec989fdd5275da *R/steps_and_briefs.R
@@ -77,7 +77,7 @@ d1a71531d51f9ab088550b0379676b78 *R/tbl_store.R
 7d0148ae3e11f8b4af82346d62c732a5 *R/utils-profiling.R
 1f56585807507c388b2882d0ce8b0364 *R/utils-specifications.R
 40a88fd54a20c230d5de1f90be43dfa0 *R/utils-translations.R
-227281f5d9ae74c497b442fe14ff7aba *R/utils.R
+d119d3fbc44e05cfe1da5828f1131286 *R/utils.R
 1b24f4959972daf504b72e25439570dd *R/validate_rmd.R
 5f925ec7eda3cde1a312e68fd68bbffd *R/write_testthat_file.R
 88fa083fd5efc7083a24effee03dc869 *R/yaml_exec.R
