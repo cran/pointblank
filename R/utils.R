@@ -797,10 +797,10 @@ get_tbl_information_dbi <- function(tbl) {
     tbl_src <- "mssql"
     # nocov end
     
-  } else if (grepl("sql server|sqlserver", tbl_src_details)) {
+  } else if (grepl("duckdb", tbl_src_details)) {
     
     # nocov start
-    tbl_src <- "mssql"
+    tbl_src <- "duckdb"
     # nocov end
       
   } else if (grepl("bq_|bigquery", tbl_src_details)) {
