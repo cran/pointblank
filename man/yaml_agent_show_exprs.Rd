@@ -7,10 +7,17 @@
 yaml_agent_show_exprs(filename, path = NULL)
 }
 \arguments{
-\item{filename}{The name of the YAML file that contains fields related to an
-\emph{agent}.}
+\item{filename}{\emph{File name}
 
-\item{path}{An optional path to the YAML file (combined with \code{filename}).}
+\verb{scalar<character>} // \strong{required}
+
+The name of the YAML file that contains fields related to an \emph{agent}.}
+
+\item{path}{#' @param path \emph{File path}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional path to the YAML file (combined with \code{filename}).}
 }
 \description{
 The \code{yaml_agent_show_exprs()} function follows the specifications of a
@@ -39,14 +46,14 @@ retrieval of the target table.
       notify_at = 0.35
     )
   ) \%>\%
-  col_exists(columns = vars(date, date_time)) \%>\%
+  col_exists(columns = c(date, date_time)) \%>\%
   col_vals_regex(
-    columns = vars(b),
+    columns = b,
     regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(columns = vars(d), value = 100) \%>\%
-  col_vals_lte(columns = vars(c), value = 5)
+  col_vals_gt(columns = d, value = 100) \%>\%
+  col_vals_lte(columns = c, value = 5)
 }\if{html}{\out{</div>}}
 
 The agent can be written to a \strong{pointblank} YAML file with \code{\link[=yaml_write]{yaml_write()}}.
@@ -67,7 +74,7 @@ agent
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_agent_show_exprs_1.png" alt="This image was generated from the first code example in the `yaml_agent_show_exprs()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_agent_show_exprs_1.png" alt="This image was generated from the first code example in the `yaml_agent_show_exprs()` help file." style="width:100\%;">
 }
 }
 
@@ -88,19 +95,19 @@ we can use \code{yaml_agent_show_exprs()}.
   label = "A simple example with the `small_table`."
 ) \%>\%
   col_exists(
-    columns = vars(date, date_time)
+    columns = c(date, date_time)
   ) \%>\%
   col_vals_regex(
-    columns = vars(b),
+    columns = b,
     regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
   ) \%>\%
   rows_distinct() \%>\%
   col_vals_gt(
-    columns = vars(d),
+    columns = d,
     value = 100
   ) \%>\%
   col_vals_lte(
-    columns = vars(c),
+    columns = c,
     value = 5
   ) 
 }\if{html}{\out{</div>}}

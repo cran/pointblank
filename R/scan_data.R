@@ -1,20 +1,22 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 # nocov start
@@ -22,6 +24,7 @@
 #' Thoroughly scan a table to better understand it
 #'
 #' @description
+#' 
 #' Generate an HTML report that scours the input table data. Before calling up
 #' an *agent* to validate the data, it's a good idea to understand the data with
 #' some level of precision. Make this the initial step of a well-balanced 
@@ -46,31 +49,59 @@
 #' Markdown HTML output or in Shiny applications. If you need the output HTML,
 #' it's to export that to a file with the [export_report()] function.
 #' 
-#' @param tbl The input table. This can be a data frame, tibble, a `tbl_dbi`
-#'   object, or a `tbl_spark` object.
-#' @param sections The sections to include in the finalized `Table Scan` report.
-#'   A string with key characters representing section names is required here.
-#'   The default string is `"OVICMS"` wherein each letter stands for the
-#'   following sections in their default order: `"O"`: `"overview"`; `"V"`:
-#'   `"variables"`; `"I"`: `"interactions"`; `"C"`: `"correlations"`; `"M"`:
-#'   `"missing"`; and `"S"`: `"sample"`. This string can be comprised of less
-#'   characters and the order can be changed to suit the desired layout of the
-#'   report. For `tbl_dbi` and `tbl_spark` objects supplied to `tbl`, the
-#'   `"interactions"` and `"correlations"` sections are currently excluded.
-#' @param navbar Should there be a navigation bar anchored to the top of the
-#'   report page? By default this is `TRUE`.
-#' @param width An optional fixed width (in pixels) for the HTML report. By
-#'   default, no fixed width is applied.
-#' @param lang The language to use for label text in the report. By default,
-#'   `NULL` will create English (`"en"`) text. Other options include French
-#'   (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish (`"es"`), Portuguese
-#'   (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`),  Russian (`"ru"`), Polish
-#'   (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch (`"nl"`).
-#' @param locale An optional locale ID to use for formatting values in the
-#'   report according the locale's rules. Examples include `"en_US"` for English
-#'   (United States) and `"fr_FR"` for French (France); more simply, this can be
-#'   a language identifier without a country designation, like `"es"` for
-#'   Spanish (Spain, same as `"es_ES"`).
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   The input table. This can be a data frame, tibble, a `tbl_dbi` object, or a
+#'   `tbl_spark` object.
+#'   
+#' @param sections *Sections to include*
+#' 
+#'   `scalar<character>` // *default:* `"OVICMS"`
+#' 
+#'   The sections to include in the finalized `Table Scan` report. A string with
+#'   key characters representing section names is required here. The default
+#'   string is `"OVICMS"` wherein each letter stands for the following sections
+#'   in their default order: `"O"`: `"overview"`; `"V"`: `"variables"`; `"I"`:
+#'   `"interactions"`; `"C"`: `"correlations"`; `"M"`: `"missing"`; and `"S"`:
+#'   `"sample"`. This string can be comprised of less characters and the order
+#'   can be changed to suit the desired layout of the report. For `tbl_dbi` and
+#'   `tbl_spark` objects supplied to `tbl`, the `"interactions"` and
+#'   `"correlations"` sections are currently excluded.
+#'   
+#' @param navbar *Include navigation in HTML report*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   Should there be a navigation bar anchored to the top of the report page?
+#'   
+#' @param width *Width option for HTML report*
+#' 
+#'   `scalar<integer>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional fixed width (in pixels) for the HTML report. By default, no
+#'   fixed width is applied.
+#'   
+#' @param lang *Reporting language*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The language to use for label text in the report. By default, `NULL` will
+#'   create English (`"en"`) text. Other options include French (`"fr"`), German
+#'   (`"de"`), Italian (`"it"`), Spanish (`"es"`), Portuguese (`"pt"`), Turkish
+#'   (`"tr"`), Chinese (`"zh"`),  Russian (`"ru"`), Polish (`"pl"`), Danish
+#'   (`"da"`), Swedish (`"sv"`), and Dutch (`"nl"`).
+#'   
+#' @param locale *Locale for value formatting within reports*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional locale ID to use for formatting values in the report according
+#'   the locale's rules. Examples include `"en_US"` for English (United States)
+#'   and `"fr_FR"` for French (France); more simply, this can be a language
+#'   identifier without a country designation, like `"es"` for Spanish (Spain,
+#'   same as `"es_ES"`).
 #' 
 #' @return A `ptblank_tbl_scan` object.
 #' 
@@ -1010,7 +1041,7 @@ probe_columns_numeric <- function(
     locale
 ) {
   
-  data_column <- dplyr::select(data, {{ column }})
+  data_column <- dplyr::select(data, tidyselect::any_of(column))
   
   column_description_gt <- 
     get_column_description_gt(
@@ -1102,7 +1133,7 @@ probe_columns_character <- function(
     locale
 ) {
   
-  data_column <- data %>% dplyr::select({{ column }})
+  data_column <- data %>% dplyr::select(tidyselect::any_of(column))
   
   column_description_gt <- 
     get_column_description_gt(
@@ -1153,7 +1184,7 @@ probe_columns_logical <- function(
     locale
 ) {
   
-  data_column <- data %>% dplyr::select({{ column }})
+  data_column <- data %>% dplyr::select(tidyselect::any_of(column))
   
   column_description_gt <- 
     get_column_description_gt(
@@ -1180,7 +1211,7 @@ probe_columns_factor <- function(
     locale
 ) {
   
-  data_column <- data %>% dplyr::select({{ column }})
+  data_column <- data %>% dplyr::select(tidyselect::any_of(column))
   
   column_description_gt <- 
     get_column_description_gt(
@@ -1207,7 +1238,7 @@ probe_columns_date <- function(
     locale
 ) {
   
-  data_column <- data %>% dplyr::select({{ column }})
+  data_column <- data %>% dplyr::select(tidyselect::any_of(column))
   
   column_description_gt <- 
     get_column_description_gt(
@@ -1234,7 +1265,7 @@ probe_columns_posix <- function(
     locale
 ) {
   
-  data_column <- data %>% dplyr::select({{ column }})
+  data_column <- data %>% dplyr::select(tidyselect::any_of(column))
   
   column_description_gt <- 
     get_column_description_gt(
@@ -1259,7 +1290,7 @@ probe_columns_other <- function(
     n_rows
 ) {
   
-  data_column <- data %>% dplyr::select({{ column }})
+  data_column <- data %>% dplyr::select(tidyselect::any_of(column))
   
   column_classes <- paste(class(data_column), collapse = ", ")
   

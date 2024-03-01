@@ -15,42 +15,69 @@ create_informant(
 )
 }
 \arguments{
-\item{tbl}{The input table. This can be a data frame, a tibble, a \code{tbl_dbi}
-object, or a \code{tbl_spark} object. Alternatively, an expression can be
-supplied to serve as instructions on how to retrieve the target table at
-incorporation-time. There are two ways to specify an association to a
-target table: (1) as a table-prep formula, which is a right-hand side (RHS)
-formula expression (e.g., \verb{~ \{ <table reading code>\}}), or (2) as a
-function (e.g., \verb{function() \{ <table reading code>\}}).}
+\item{tbl}{\emph{Table or expression for reading in one}
 
-\item{tbl_name}{A optional name to assign to the input table object. If no
-value is provided, a name will be generated based on whatever information
-is available.}
+\verb{obj:<tbl_*>|<tbl reading expression>} // \strong{required}
 
-\item{label}{An optional label for the information report. If no value is
-provided, a label will be generated based on the current system time.
-Markdown can be used here to make the label more visually appealing (it
-will appear in the header area of the information report).}
+The input table. This can be a data frame, a tibble, a \code{tbl_dbi} object, or
+a \code{tbl_spark} object. Alternatively, an expression can be supplied to serve
+as instructions on how to retrieve the target table at incorporation-time.
+There are two ways to specify an association to a target table: (1) as a
+table-prep formula, which is a right-hand side (RHS) formula expression
+(e.g., \verb{~ \{ <tbl reading code>\}}), or (2) as a function (e.g.,
+\verb{function() \{ <tbl reading code>\}}).}
 
-\item{agent}{A pointblank \emph{agent} object. The table from this object can be
-extracted and used in the new informant instead of supplying a table in
-\code{tbl}.}
+\item{tbl_name}{\emph{A table name}
 
-\item{lang}{The language to use for the information report (a summary table
-that provides all of the available information for the table. By default,
-\code{NULL} will create English (\code{"en"}) text. Other options include French
-(\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}), Portuguese
-(\code{"pt"}), Turkish (\code{"tr"}), Chinese (\code{"zh"}), Russian (\code{"ru"}), Polish
-(\code{"pl"}), Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch (\code{"nl"}).}
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
 
-\item{locale}{An optional locale ID to use for formatting values in the
-information report according the locale's rules. Examples include \code{"en_US"}
-for English (United States) and \code{"fr_FR"} for French (France); more simply,
-this can be a language identifier without a country designation, like "es"
-for Spanish (Spain, same as \code{"es_ES"}).}
+A optional name to assign to the input table object. If no value is
+provided, a name will be generated based on whatever information is
+available.}
 
-\item{read_fn}{The \code{read_fn} argument is deprecated. Instead, supply a
-table-prep formula or function to \code{tbl}.}
+\item{label}{\emph{An optional label for the information report}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional label for the information report. If no value is provided, a
+label will be generated based on the current system time. Markdown can be
+used here to make the label more visually appealing (it will appear in the
+header area of the information report).}
+
+\item{agent}{\emph{The pointblank agent object}
+
+\verb{obj:<ptblank_agent>} // \emph{default:} \code{NULL} (\code{optional})
+
+A pointblank \emph{agent} object. The table from this object can be extracted
+and used in the new informant instead of supplying a table in \code{tbl}.}
+
+\item{lang}{\emph{Reporting language}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+The language to use for the information report (a summary table that
+provides all of the available information for the table. By default, \code{NULL}
+will create English (\code{"en"}) text. Other options include French (\code{"fr"}),
+German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}), Portuguese (\code{"pt"}),
+Turkish (\code{"tr"}), Chinese (\code{"zh"}), Russian (\code{"ru"}), Polish (\code{"pl"}),
+Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch (\code{"nl"}).}
+
+\item{locale}{\emph{Locale for value formatting within reports}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional locale ID to use for formatting values in the information
+report according the locale's rules. Examples include \code{"en_US"} for English
+(United States) and \code{"fr_FR"} for French (France); more simply, this can be
+a language identifier without a country designation, like "es" for Spanish
+(Spain, same as \code{"es_ES"}).}
+
+\item{read_fn}{\emph{\link{Deprecated} Table reading function}
+
+\code{function} // \emph{default:} \code{NULL} (\code{optional})
+
+The \code{read_fn} argument is deprecated. Instead, supply a table-prep formula
+or function to \code{tbl}.}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -88,6 +115,7 @@ options.
 }
 \section{Supported Input Tables}{
 
+
 The types of data tables that are officially supported are:
 \itemize{
 \item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
@@ -109,6 +137,7 @@ formally tested (so be mindful of this when using unsupported backends with
 }
 
 \section{YAML}{
+
 
 A \strong{pointblank} informant can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an informant (with
@@ -175,6 +204,7 @@ as reserved keys).
 
 \section{Writing an Informant to Disk}{
 
+
 An \emph{informant} object can be written to disk with the \code{\link[=x_write_disk]{x_write_disk()}}
 function. Informants are stored in the serialized RDS format and can be
 easily retrieved with the \code{\link[=x_read_disk]{x_read_disk()}} function.
@@ -235,7 +265,7 @@ Viewer.
 \if{html}{
 
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_informant_1.png" alt="This image was generated from the first code example in the `create_informant()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_create_informant_1.png" alt="This image was generated from the first code example in the `create_informant()` help file." style="width:100\%;">
 }
 }
 
@@ -254,7 +284,7 @@ report
 \if{html}{
 
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_create_informant_2.png" alt="This image was generated from the second code example in the `create_informant()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_create_informant_2.png" alt="This image was generated from the second code example in the `create_informant()` help file." style="width:100\%;">
 }
 }
 }

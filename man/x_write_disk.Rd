@@ -14,16 +14,31 @@ x_write_disk(
 )
 }
 \arguments{
-\item{x}{An \emph{agent} object of class \code{ptblank_agent}, an \emph{informant} of class
+\item{x}{\emph{One of several types of objects}
+
+\verb{<object>} // \strong{required}
+
+An \emph{agent} object of class \code{ptblank_agent}, an \emph{informant} of class
 \code{ptblank_informant}, or an table scan of class \code{ptblank_tbl_scan}.}
 
-\item{filename}{The filename to create on disk for the \code{agent}, \code{informant},
-or table scan.}
+\item{filename}{\emph{File name}
 
-\item{path}{An optional path to which the file should be saved (this is
-automatically combined with \code{filename}).}
+\verb{scalar<character>} // \strong{required}
 
-\item{keep_tbl}{An option to keep a data table that is associated with the
+The filename to create on disk for the \code{agent}, \code{informant}, or table scan.}
+
+\item{path}{\emph{File path}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional path to which the file should be saved (this is automatically
+combined with \code{filename}).}
+
+\item{keep_tbl}{\emph{Keep data table inside object}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+An option to keep a data table that is associated with the
 \emph{agent} or \emph{informant} (which is the case when the \emph{agent}, for example, is
 created using \verb{create_agent(tbl = <data table, ...)}). The default is
 \code{FALSE} where the data table is removed before writing to disk. For
@@ -31,12 +46,19 @@ database tables of the class \code{tbl_dbi} and for Spark DataFrames
 (\code{tbl_spark}) the table is always removed (even if \code{keep_tbl} is set to
 \code{TRUE}).}
 
-\item{keep_extracts}{An option to keep any collected extract data for failing
-rows. Only applies to \emph{agent} objects. By default, this is \code{FALSE} (i.e.,
-extract data is removed).}
+\item{keep_extracts}{\emph{Keep data extracts inside object}
 
-\item{quiet}{Should the function \emph{not} inform when the file is written? By
-default this is \code{FALSE}.}
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+An option to keep any collected extract data for failing rows. Only applies
+to \emph{agent} objects. By default, this is \code{FALSE} (i.e., extract data is
+removed).}
+
+\item{quiet}{\emph{Inform (or not) upon file writing}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+Should the function \emph{not} inform when the file is written?}
 }
 \value{
 Invisibly returns \code{TRUE} if the file has been written.
@@ -100,14 +122,14 @@ using as many validation functions as we want. After that, use
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   agent \%>\% 
-  col_exists(columns = vars(date, date_time)) \%>\%
+  col_exists(columns = c(date, date_time)) \%>\%
   col_vals_regex(
-    columns = vars(b),
+    columns = b,
     regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(columns = vars(d), value = 100) \%>\%
-  col_vals_lte(columns = vars(c), value = 5) \%>\%
+  col_vals_gt(columns = d, value = 100) \%>\%
+  col_vals_lte(columns = c, value = 5) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 
@@ -162,7 +184,7 @@ integrated into the text.
     fn = snip_lowest(column = "a")
   ) \%>\%
   info_columns(
-    columns = vars(a),
+    columns = a,
     info = "From \{low_a\} to \{high_a\}."
   ) \%>\%
   info_columns(
@@ -170,7 +192,7 @@ integrated into the text.
     info = "Time-based values."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "The date part of `date_time`."
   ) \%>\%
   incorporate()
@@ -204,13 +226,13 @@ validation steps, and \code{\link[=interrogate]{interrogate()}}.
     actions = al
   ) \%>\%
   col_vals_gt(
-    columns = vars(b),
-    value = vars(g),
+    columns = b,
+    value = g,
     na_pass = TRUE,
     label = "b > g"
   ) \%>\%
   col_is_character(
-    columns = vars(b, f),
+    columns = c(b, f),
     label = "Verifying character-type columns" 
   ) \%>\%
   interrogate()

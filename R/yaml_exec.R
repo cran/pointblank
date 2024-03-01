@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Execute all agent and informant YAML tasks
 #' 
 #' @description
+#' 
 #' The `yaml_exec()` function takes all relevant **pointblank** YAML files in a
 #' directory and executes them. Execution involves interrogation of agents for
 #' YAML agents and incorporation of informants for YAML informants. Under the
@@ -60,16 +63,20 @@
 #' "pointblank")`.
 #' 
 #' @param path The path that contains the YAML files for agents and informants.
+#' 
 #' @param files A vector of YAML files to use in the execution workflow. By
 #'   default, `yaml_exec()` will attempt to process every valid YAML file in
 #'   `path` but supplying a vector here limits the scope to the specified files.
+#' 
 #' @param write_to_disk Should the execution workflow include a step that writes
 #'   output files to disk? This internally calls [x_write_disk()] to write RDS
 #'   files and uses the base filename of the agent/informant YAML file as part
 #'   of the output filename, appending the date-time to the basename.
+#' 
 #' @param output_path The output path for any generated output files. By
 #'   default, this will be a subdirectory of the provided `path` called
 #'   `"output"`.
+#' 
 #' @param keep_tbl,keep_extracts For agents, the table may be kept if it is a
 #'   data frame object (databases tables will never be pulled for storage) and
 #'   *extracts*, collections of table rows that failed a validation step, may

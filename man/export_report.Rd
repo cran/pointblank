@@ -7,20 +7,35 @@
 export_report(x, filename, path = NULL, quiet = FALSE)
 }
 \arguments{
-\item{x}{An \emph{agent} object of class \code{ptblank_agent}, an \emph{informant} of class
+\item{x}{\emph{One of several types of objects}
+
+\verb{<object>} // \strong{required}
+
+An \emph{agent} object of class \code{ptblank_agent}, an \emph{informant} of class
 \code{ptblank_informant}, a \emph{multiagent} of class \code{ptblank_multiagent}, a table
 scan of class \code{ptblank_tbl_scan}, or, customized reporting objects
 (\code{ptblank_agent_report}, \code{ptblank_informant_report},
 \code{ptblank_multiagent_report.wide}, \code{ptblank_multiagent_report.long}).}
 
-\item{filename}{The filename to create on disk for the HTML export of the
-object provided. It's recommended that the extension \code{".html"} is included.}
+\item{filename}{\emph{File name}
 
-\item{path}{An optional path to which the file should be saved (this is
-automatically combined with \code{filename}).}
+\verb{scalar<character>} // \strong{required}
 
-\item{quiet}{Should the function \emph{not} inform when the file is written? By
-default this is \code{FALSE}.}
+The filename to create on disk for the HTML export of the object provided.
+It's recommended that the extension \code{".html"} is included.}
+
+\item{path}{\emph{File path}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional path to which the file should be saved (this is automatically
+combined with \code{filename}).}
+
+\item{quiet}{\emph{Inform (or not) upon file writing}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+Should the function \emph{not} inform when the file is written?}
 }
 \value{
 Invisibly returns \code{TRUE} if the file has been written.
@@ -73,14 +88,14 @@ many validation functions as we want. Then, we \code{\link[=interrogate]{interro
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   agent \%>\% 
-  col_exists(columns = vars(date, date_time)) \%>\%
+  col_exists(columns = c(date, date_time)) \%>\%
   col_vals_regex(
-    columns = vars(b),
+    columns = b,
     regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(columns = vars(d), value = 100) \%>\%
-  col_vals_lte(columns = vars(c), value = 5) \%>\%
+  col_vals_gt(columns = d, value = 100) \%>\%
+  col_vals_lte(columns = c, value = 5) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 
@@ -132,7 +147,7 @@ integrated into the text.
     fn = snip_lowest(column = "a")
   ) \%>\%
   info_columns(
-    columns = vars(a),
+    columns = a,
     info = "From \{low_a\} to \{high_a\}."
   ) \%>\%
   info_columns(
@@ -140,7 +155,7 @@ integrated into the text.
     info = "Time-based values."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "The date part of `date_time`."
   ) \%>\%
   incorporate()

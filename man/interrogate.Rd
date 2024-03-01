@@ -10,36 +10,74 @@ interrogate(
   get_first_n = NULL,
   sample_n = NULL,
   sample_frac = NULL,
-  sample_limit = 5000
+  sample_limit = 5000,
+  show_step_label = FALSE,
+  progress = interactive()
 )
 }
 \arguments{
-\item{agent}{An agent object of class \code{ptblank_agent} that is created with
-\code{\link[=create_agent]{create_agent()}}.}
+\item{agent}{\emph{The pointblank agent object}
 
-\item{extract_failed}{An option to collect rows that didn't pass a particular
-validation step. The default is \code{TRUE} and further options allow for fine
-control of how these rows are collected.}
+\verb{obj:<ptblank_agent>} // \strong{required}
 
-\item{get_first_n}{If the option to collect non-passing rows is chosen, there
-is the option here to collect the first \code{n} rows here. Supply the number of
-rows to extract from the top of the non-passing rows table (the ordering of
-data from the original table is retained).}
+A \strong{pointblank} \emph{agent} object that is commonly created through the use of
+the \code{\link[=create_agent]{create_agent()}} function.}
 
-\item{sample_n}{If the option to collect non-passing rows is chosen, this
-option allows for the sampling of \code{n} rows. Supply the number of rows to
-sample from the non-passing rows table. If \code{n} is greater than the number
-of non-passing rows, then all the rows will be returned.}
+\item{extract_failed}{\emph{Collect failed rows as data extracts}
 
-\item{sample_frac}{If the option to collect non-passing rows is chosen, this
-option allows for the sampling of a fraction of those rows. Provide a
-number in the range of \code{0} and \code{1}. The number of rows to return may be
-extremely large (and this is especially when querying remote databases),
-however, the \code{sample_limit} option will apply a hard limit to the returned
-rows.}
+\verb{scalar<logical>} // \emph{default:} \code{TRUE}
 
-\item{sample_limit}{A value that limits the possible number of rows returned
-when sampling non-passing rows using the \code{sample_frac} option.}
+An option to collect rows that didn't pass a particular validation step.
+The default is \code{TRUE} and further options allow for fine control of how
+these rows are collected.}
+
+\item{get_first_n}{\emph{Get the first n values}
+
+\verb{scalar<integer>} // \emph{default:} \code{NULL} (\code{optional})
+
+If the option to collect non-passing rows is chosen, there is the option
+here to collect the first \code{n} rows here. Supply the number of rows to
+extract from the top of the non-passing rows table (the ordering of data
+from the original table is retained).}
+
+\item{sample_n}{\emph{Sample n values}
+
+\verb{scalar<integer>} // \emph{default:} \code{NULL} (\code{optional})
+
+If the option to collect non-passing rows is chosen, this option allows for
+the sampling of \code{n} rows. Supply the number of rows to sample from the
+non-passing rows table. If \code{n} is greater than the number of non-passing
+rows, then all the rows will be returned.}
+
+\item{sample_frac}{\emph{Sample a fraction of values}
+
+\verb{scalar<numeric>} // \emph{default:} \code{NULL} (\code{optional})
+
+If the option to collect non-passing rows is chosen, this option allows for
+the sampling of a fraction of those rows. Provide a number in the range of
+\code{0} and \code{1}. The number of rows to return may be extremely large (and this
+is especially when querying remote databases), however, the \code{sample_limit}
+option will apply a hard limit to the returned rows.}
+
+\item{sample_limit}{\emph{Row limit for sampling}
+
+\verb{scalar<integer>} // \emph{default:} \code{5000}
+
+A value that limits the possible number of rows returned when sampling
+non-passing rows using the \code{sample_frac} option.}
+
+\item{show_step_label}{\emph{Show step labels in progress}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+Whether to show the \code{label} value of each validation step in the console.}
+
+\item{progress}{\emph{Show interrogation progress}
+
+\verb{scalar<logical>} // \emph{default:} \code{interactive()}
+
+Whether to show the progress of an agent's interrogation in the console.
+Defaults to \code{TRUE} in interactive sessions.}
 }
 \value{
 A \code{ptblank_agent} object.
@@ -83,7 +121,7 @@ process.
     tbl = tbl,
     label = "`interrogate()` example"
   ) \%>\%
-  col_vals_gt(columns = vars(a), value = 5) \%>\%
+  col_vals_gt(columns = a, value = 5) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 
@@ -95,7 +133,7 @@ We can print the resulting object to see the validation report.
 \if{html}{
 
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_interrogate_1.png" alt="This image was generated from the first code example in the `interrogate()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_interrogate_1.png" alt="This image was generated from the first code example in the `interrogate()` help file." style="width:100\%;">
 }
 }
 }

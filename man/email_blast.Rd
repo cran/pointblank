@@ -43,6 +43,10 @@ using the \code{\link[=get_agent_x_list]{get_agent_x_list()}} function. The defa
 the \code{x$notify} logical vector (i.e., any validation step that results in a
 'notify' state).}
 }
+\value{
+Nothing is returned. The end result is the side-effect of
+email-sending if certain conditions are met.
+}
 \description{
 The \code{email_blast()} function is useful for sending an email message that
 explains the result of a \strong{pointblank} validation. It is powered by the
@@ -56,6 +60,7 @@ To better get a handle on emailing with \code{email_blast()}, the analogous
 \code{\link[=email_create]{email_create()}} function can be used with a \strong{pointblank} agent object.
 }
 \section{YAML}{
+
 
 A \strong{pointblank} agent can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an agent (with \code{\link[=yaml_read_agent]{yaml_read_agent()}})
@@ -83,8 +88,8 @@ R statement:
     )
   )
 ) \%>\%
-  col_vals_gt(vars(a), 1) \%>\%
-  col_vals_lt(vars(a), 7) 
+  col_vals_gt(a, 1) \%>\%
+  col_vals_lt(a, 7) 
 }\if{html}{\out{</div>}}
 
 YAML representation:
@@ -105,10 +110,10 @@ end_fns: ~email_blast(x, to = "joe_public@example.com",
 embed_report: true
 steps:
 - col_vals_gt:
-    columns: vars(a)
+    columns: c(a)
     value: 1.0
 - col_vals_lt:
-    columns: vars(a)
+    columns: c(a)
     value: 7.0
 }\if{html}{\out{</div>}}
 }
@@ -165,8 +170,8 @@ interrogation of data in \code{small_table}:
       )
     )
   ) \%>\%
-  col_vals_gt(vars(a), value = 1) \%>\%
-  col_vals_lt(vars(a), value = 7) \%>\%
+  col_vals_gt(a, value = 1) \%>\%
+  col_vals_lt(a, value = 7) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 

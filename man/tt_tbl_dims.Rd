@@ -7,8 +7,12 @@
 tt_tbl_dims(tbl)
 }
 \arguments{
-\item{tbl}{A table object to be used as input for the transformation. This
-can be a data frame, a tibble, a \code{tbl_dbi} object, or a \code{tbl_spark} object.}
+\item{tbl}{\emph{A data table}
+
+\verb{obj:<tbl_*>} // \strong{required}
+
+A table object to be used as input for the transformation. This can be a
+data frame, a tibble, a \code{tbl_dbi} object, or a \code{tbl_spark} object.}
 }
 \value{
 A \code{tibble} object.
@@ -40,7 +44,7 @@ dimensions. Here, we check that \code{game_revenue} has at least \code{1500} row
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tt_tbl_dims(tbl = game_revenue) \%>\%
   dplyr::filter(.param. == "rows") \%>\%
   test_col_vals_gt(
-    columns = vars(value),
+    columns = value,
     value = 1500
   )
 #> [1] TRUE
@@ -52,7 +56,7 @@ We can check \code{small_table} to ensure that number of columns is less than
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{tt_tbl_dims(tbl = small_table) \%>\%
   dplyr::filter(.param. == "columns") \%>\%
   test_col_vals_lt(
-    columns = vars(value),
+    columns = value,
     value = 10
   )
 #> [1] TRUE

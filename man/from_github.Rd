@@ -39,14 +39,14 @@ where GitHub URLs for raw user content are needed.
 # obtained from the HEAD of the default branch
 # from_github(
 #   file = "inst/data_files/small_table.csv",
-#   repo = "rich-iannone/pointblank"
+#   repo = "rstudio/pointblank"
 # )
 
 # The path to the file location can be supplied
 # fully or partially to `subdir`
 # from_github(
 #   file = "small_table.csv",
-#   repo = "rich-iannone/pointblank",
+#   repo = "rstudio/pointblank",
 #   subdir = "inst/data_files"
 # )
 
@@ -60,12 +60,12 @@ where GitHub URLs for raw user content are needed.
 #     tbl = ~ file_tbl(
 #       file = from_github(
 #         file = "inst/data_files/small_table.csv",
-#         repo = "rich-iannone/pointblank"
+#         repo = "rstudio/pointblank"
 #       ),
 #       col_types = "TDdcddlc"
 #     )
 #   ) \%>\%
-#   col_vals_gt(vars(a), 0) \%>\%
+#   col_vals_gt(a, 0) \%>\%
 #   interrogate()
 
 # The `from_github()` helper function is
@@ -76,7 +76,7 @@ where GitHub URLs for raw user content are needed.
 # a commit at release time
 # from_github(
 #   file = "inst/extdata/small_table.csv",
-#   repo = "rich-iannone/pointblank@v0.2.1"
+#   repo = "rstudio/pointblank@v0.2.1"
 # )
 
 # A file may also be obtained from a repo at the
@@ -84,21 +84,21 @@ where GitHub URLs for raw user content are needed.
 # full SHA-1 hash for the commit can be used)
 # from_github(
 #   file = "data-raw/small_table.csv",
-#   repo = "rich-iannone/pointblank@e04a71"
+#   repo = "rstudio/pointblank@e04a71"
 # )
 
 # A file may also be obtained from an
 # *open* pull request
 # from_github(
 #   file = "data-raw/small_table.csv",
-#   repo = "rich-iannone/pointblank#248"
+#   repo = "rstudio/pointblank#248"
 # )
 
 }
 \seealso{
 Other Utility and Helper Functions: 
-\code{\link{affix_datetime}()},
 \code{\link{affix_date}()},
+\code{\link{affix_datetime}()},
 \code{\link{col_schema}()},
 \code{\link{has_columns}()},
 \code{\link{stop_if_not}()}

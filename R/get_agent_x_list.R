@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Get the agent's **x-list**
 #'
-#' @description 
+#' @description
+#' 
 #' The agent's **x-list** is a record of information that the agent possesses at
 #' any given time. The **x-list** will contain the most complete information
 #' after an interrogation has taken place (before then, the data largely
@@ -92,14 +95,24 @@
 #' HTML has inlined styles, making it more suitable for email message bodies
 #' }
 #'
-#' @param agent An agent object of class `ptblank_agent`.
-#' @param i The validation step number, which is assigned to each validation
-#'   step in the order of invocation. If `NULL` (the default), the **x-list**
-#'   will provide information for all validation steps. If a valid step number
-#'   is provided then **x-list** will have information pertaining only to that
+#' @param agent *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // **required**
+#' 
+#'   A **pointblank** *agent* object that is commonly created through the use of
+#'   the [create_agent()] function.
+#' 
+#' @param i *A validation step number*
+#'   
+#'   `scalar<integer>` // *default:* `NULL` (`optional`)
+#' 
+#'   The validation step number, which is assigned to each validation step in
+#'   the order of invocation. If `NULL` (the default), the **x-list** will
+#'   provide information for all validation steps. If a valid step number is
+#'   provided then **x-list** will have information pertaining only to that
 #'   step.
 #' 
-#' @return A `list` object.
+#' @return An `x_list` object.
 #' 
 #' @section Examples:
 #' 
@@ -132,8 +145,8 @@
 #'     tbl = tbl,
 #'     actions = al
 #'   ) %>%
-#'   col_vals_gt(columns = vars(a), value = 7) %>%
-#'   col_is_numeric(columns = vars(a)) %>%
+#'   col_vals_gt(columns = a, value = 7) %>%
+#'   col_is_numeric(columns = a) %>%
 #'   interrogate()
 #' ```
 #'   

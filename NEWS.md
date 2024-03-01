@@ -1,3 +1,33 @@
+# pointblank 0.12.0
+
+## New features
+
+* Complete `{tidyselect}` support for the `columns` argument of *all validation functions*, as well as in `has_columns()` and `info_columns`. The `columns` argument can now take familiar column-selection expressions as one would use inside `dplyr::select()`. This also begins a process of deprecation:
+  - `columns = vars(...)` will continue to work, but `c()` now supersedes `vars()`.
+  - If passing an *external vector* of column names, it should be wrapped in `all_of()`.
+
+* The `label` argument of validation functions now exposes the following string variables via `{glue}` syntax:
+
+  - `"{.step}"`: The validation step name
+  - `"{.col}"`: The current column name
+  - `"{.seg_col}"`: The current segment's column name
+  - `"{.seg_val}"`: The current segment's value/group
+  
+  These dynamic values may be useful for validations that get expanded into multiple steps.
+  
+* `interrogate()` gains two new options for printing progress in the console output:
+
+  - `progress`: Whether interrogation progress should be printed to the console (`TRUE` for interactive sessions, same as before)
+  - `show_step_label`: Whether each validation step's label value should be printed alongside the progress.
+
+## Minor improvements and bug fixes
+
+* Fixes issue with rendering reports in Quarto HTML documents.
+
+* When no columns are returned from a `{tidyselect}` expression in `columns`, the agent's report now displays the originally supplied *expression* instead of being simply blank (e.g., in `create_agent(small_table) |> col_vals_null(matches("z"))`).
+
+* Fixes issue with the hashing implementation to improve performance and alignment of validation steps in the multiagent.
+
 # pointblank 0.11.4
 
 * Fixes issue with gt `0.9.0` compatibility.

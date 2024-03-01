@@ -7,20 +7,32 @@
 info_snippet(x, snippet_name, fn)
 }
 \arguments{
-\item{x}{An informant object of class \code{ptblank_informant}.}
+\item{x}{\emph{The pointblank informant object}
 
-\item{snippet_name}{The name for snippet, which is used for interpolating the
-result of the snippet formula into \emph{info text} defined by an \verb{info_*()}
-function.}
+\verb{obj:<ptblank_informant>} // \strong{required}
 
-\item{fn}{A formula that obtains a snippet of data from the target table.
-It's best to use a leading dot (\code{.}) that stands for the table itself and
-use pipes to construct a series of operations to be performed on the table
-(e.g., \code{~ . \%>\% dplyr::pull(column_2) \%>\% max(na.rm = TRUE)}). So long as
-the result is a length-1 vector, it'll likely be valid for insertion into
-some info text. Alternatively, a \verb{snip_*()} function can be used here
-(these functions always return a formula that's suitable for all types of
-data sources).}
+A \strong{pointblank} \emph{informant} object that is commonly created through the
+use of the \code{\link[=create_informant]{create_informant()}} function.}
+
+\item{snippet_name}{\emph{The snippet name}
+
+\verb{scalar<character>} // \strong{required}
+
+The name for snippet, which is used for interpolating the result of the
+snippet formula into \emph{info text} defined by an \verb{info_*()} function.}
+
+\item{fn}{\emph{Function for snippet text generation}
+
+\verb{<function>} // \strong{required}
+
+A formula that obtains a snippet of data from the target table. It's best
+to use a leading dot (\code{.}) that stands for the table itself and use pipes
+to construct a series of operations to be performed on the table (e.g.,
+\code{~ . \%>\% dplyr::pull(column_2) \%>\% max(na.rm = TRUE)}). So long as the
+result is a length-1 vector, it'll likely be valid for insertion into some
+info text. Alternatively, a \verb{snip_*()} function can be used here (these
+functions always return a formula that's suitable for all types of data
+sources).}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -39,6 +51,7 @@ with just the \code{snippet_name} inside (e.g., \code{"This column has {n_cat} c
 }
 \section{Snip functions provided in \strong{pointblank}}{
 
+
 For convenience, there are several \verb{snip_*()} functions provided in the
 package that work on column data from the \emph{informant}'s target table. These
 are:
@@ -55,6 +68,7 @@ these functions is necessary for obtaining the resultant text.
 
 \section{YAML}{
 
+
 A \strong{pointblank} informant can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an informant (with
 \code{\link[=yaml_read_informant]{yaml_read_informant()}}) or perform the 'incorporate' action using the target
@@ -66,7 +80,7 @@ demonstrate their relationship here).
 \if{html}{\out{<div class="sourceCode">}}\preformatted{# R statement
 informant \%>\% 
   info_columns(
-    columns = "date_time",
+    columns = date_time,
     `Latest Date` = "The latest date is \{latest_date\}."
   ) \%>\%
   info_snippet(
@@ -121,7 +135,7 @@ the highest value in that column).
     fn = snip_highest(column = "a")
   ) \%>\%
   info_columns(
-    columns = vars(a),
+    columns = a,
     info = "In the range of 1 to \{max_a\}. ((SIMPLE))"
   ) \%>\%
   info_columns(
@@ -129,7 +143,7 @@ the highest value in that column).
     info = "Time-based values (e.g., `Sys.time()`)."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "The date part of `date_time`. ((CALC))"
   ) \%>\%
   info_section(
@@ -146,7 +160,7 @@ We can print the \code{informant} object to see the information report.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_snippet_1.png" alt="This image was generated from the first code example in the `info_snippet()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_info_snippet_1.png" alt="This image was generated from the first code example in the `info_snippet()` help file." style="width:100\%;">
 }
 }
 
@@ -168,7 +182,7 @@ informant
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_snippet_2.png" alt="This image was generated from the second code example in the `info_snippet()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_info_snippet_2.png" alt="This image was generated from the second code example in the `info_snippet()` help file." style="width:100\%;">
 }
 }
 }
@@ -180,8 +194,8 @@ informant
 
 \seealso{
 Other Information Functions: 
-\code{\link{info_columns_from_tbl}()},
 \code{\link{info_columns}()},
+\code{\link{info_columns_from_tbl}()},
 \code{\link{info_section}()},
 \code{\link{info_tabular}()},
 \code{\link{snip_highest}()},

@@ -7,7 +7,12 @@
 incorporate(informant)
 }
 \arguments{
-\item{informant}{An informant object of class \code{ptblank_informant}.}
+\item{informant}{\emph{The pointblank informant object}
+
+\verb{obj:<ptblank_informant>} // \strong{required}
+
+A \strong{pointblank} \emph{informant} object that is commonly created through the
+use of the \code{\link[=create_informant]{create_informant()}} function.}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -71,7 +76,7 @@ use \code{incorporate()} to work the snippets into the info text.
     fn = ~ . \%>\% ncol()
   ) \%>\%
   info_columns(
-    columns = vars(a),
+    columns = a,
     info = "In the range of 1 to 10. ((SIMPLE))"
   ) \%>\%
   info_columns(
@@ -79,7 +84,7 @@ use \code{incorporate()} to work the snippets into the info text.
     info = "Time-based values (e.g., `Sys.time()`)."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "The date part of `date_time`. ((CALC))"
   ) \%>\%
   info_section(
@@ -97,7 +102,7 @@ We can print the resulting object to see the information report.
 \if{html}{
 
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_incorporate_1.png" alt="This image was generated from the first code example in the `incorporate()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_incorporate_1.png" alt="This image was generated from the first code example in the `incorporate()` help file." style="width:100\%;">
 }
 }
 
@@ -126,7 +131,7 @@ Furthermore, the info text in the \code{ROWS} section has updated text
 \if{html}{
 
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_incorporate_2.png" alt="This image was generated from the second code example in the `incorporate()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_incorporate_2.png" alt="This image was generated from the second code example in the `incorporate()` help file." style="width:100\%;">
 }
 }
 }

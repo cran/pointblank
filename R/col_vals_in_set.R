@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Are column data part of a specified set of values?
 #'
 #' @description
+#' 
 #' The `col_vals_in_set()` validation function, the `expect_col_vals_in_set()`
 #' expectation function, and the `test_col_vals_in_set()` test function all
 #' check whether column values in a table are part of a specified `set` of
@@ -30,7 +33,24 @@
 #' that is equal to the number of rows in the table (after any `preconditions`
 #' have been applied).
 #' 
+#' @inheritParams col_vals_gt
+#' 
+#' @param set *Set of values*
+#' 
+#'   `vector<integer|numeric|character>` // **required**
+#' 
+#'   A vector of numeric or string-based elements, where column values found
+#'   within this `set` will be considered as passing.
+#'   
+#' @return For the validation function, the return value is either a
+#'   `ptblank_agent` object or a table object (depending on whether an agent
+#'   object or a table was passed to `x`). The expectation function invisibly
+#'   returns its input but, in the context of testing data, the function is
+#'   called primarily for its potential side-effects (e.g., signaling failure).
+#'   The test function returns a logical value.
+#' 
 #' @section Supported Input Tables:
+#' 
 #' The types of data tables that are officially supported are:
 #' 
 #'  - data frames (`data.frame`) and tibbles (`tbl_df`)
@@ -48,14 +68,21 @@
 #' **pointblank**).
 #'
 #' @section Column Names:
-#' If providing multiple column names, the result will be an expansion of
-#' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
-#' will result in the entry of two validation steps). Aside from column names in
-#' quotes and in `vars()`, **tidyselect** helper functions are available for
-#' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
-#' `matches()`, and `everything()`.
+#' 
+#' `columns` may be a single column (as symbol `a` or string `"a"`) or a vector
+#' of columns (`c(a, b, c)` or `c("a", "b", "c")`). `{tidyselect}` helpers
+#' are also supported, such as `contains("date")` and `where(is.double)`. If
+#' passing an *external vector* of columns, it should be wrapped in `all_of()`.
+#' 
+#' When multiple columns are selected by `columns`, the result will be an
+#' expansion of validation steps to that number of columns (e.g.,
+#' `c(col_a, col_b)` will result in the entry of two validation steps).
+#' 
+#' Previously, columns could be specified in `vars()`. This continues to work, 
+#' but `c()` offers the same capability and supersedes `vars()` in `columns`.
 #' 
 #' @section Preconditions:
+#' 
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
 #' the target table during interrogation as a preparatory step. It might happen
 #' that a particular validation requires a calculated column, some filtering of
@@ -74,6 +101,7 @@
 #' be supplied (e.g., `function(x) dplyr::mutate(x, col_b = col_a + 10)`).
 #' 
 #' @section Segments:
+#' 
 #' By using the `segments` argument, it's possible to define a particular
 #' validation with segments (or row slices) of the target table. An optional
 #' expression or set of expressions that serve to segment the target table by
@@ -104,6 +132,7 @@
 #' generate a separate version of the target table.
 #' 
 #' @section Actions:
+#' 
 #' Often, we will want to specify `actions` for the validation. This argument,
 #' present in every validation function, takes a specially-crafted list
 #' object that is best produced by the [action_levels()] function. Read that
@@ -118,7 +147,22 @@
 #' quarter of the total test units fails, the other `stop()`s at the same
 #' threshold level).
 #' 
+#' @section Labels:
+#' 
+#' `label` may be a single string or a character vector that matches the number
+#' of expanded steps. `label` also supports `{glue}` syntax and exposes the
+#' following dynamic variables contextualized to the current step:
+#'   
+#' - `"{.step}"`: The validation step name
+#' - `"{.col}"`: The current column name
+#' - `"{.seg_col}"`: The current segment's column name
+#' - `"{.seg_val}"`: The current segment's value/group
+#'     
+#' The glue context also supports ordinary expressions for further flexibility
+#' (e.g., `"{toupper(.step)}"`) as long as they return a length-1 string.
+#' 
 #' @section Briefs:
+#' 
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
@@ -126,6 +170,7 @@
 #' then be automatically generated.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** agent can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
 #' or interrogate the target table (via [yaml_agent_interrogate()]). When
@@ -140,7 +185,7 @@
 #' ```r
 #' agent %>% 
 #'   col_vals_in_set(
-#'     columns = vars(a),
+#'     columns = a,
 #'     set = c(1, 2, 3, 4),
 #'     preconditions = ~ . %>% dplyr::filter(a < 10),
 #'     segments = b ~ c("group_1", "group_2"),
@@ -155,7 +200,7 @@
 #' ```yaml
 #' steps:
 #' - col_vals_in_set:
-#'    columns: vars(a)
+#'    columns: c(a)
 #'    set:
 #'    - 1.0
 #'    - 2.0
@@ -177,17 +222,6 @@
 #' possible to preview the transformation of an agent to YAML without any
 #' writing to disk by using the [yaml_agent_string()] function.
 #'   
-#' @inheritParams col_vals_gt
-#' @param set A vector of numeric or string-based elements, where column values
-#'   found within this `set` will be considered as passing.
-#'   
-#' @return For the validation function, the return value is either a
-#'   `ptblank_agent` object or a table object (depending on whether an agent
-#'   object or a table was passed to `x`). The expectation function invisibly
-#'   returns its input but, in the context of testing data, the function is
-#'   called primarily for its potential side-effects (e.g., signaling failure).
-#'   The test function returns a logical value.
-#'   
 #' @section Examples:
 #' 
 #' The `small_table` dataset in the package will be used to validate that column
@@ -207,7 +241,7 @@
 #' agent <-
 #'   create_agent(tbl = small_table) %>%
 #'   col_vals_in_set(
-#'     columns = vars(f), set = c("low", "mid", "high")
+#'     columns = f, set = c("low", "mid", "high")
 #'   ) %>%
 #'   interrogate()
 #' ```
@@ -231,7 +265,7 @@
 #' ```{r}
 #' small_table %>%
 #'   col_vals_in_set(
-#'     columns = vars(f), set = c("low", "mid", "high")
+#'     columns = f, set = c("low", "mid", "high")
 #'   ) %>%
 #'   dplyr::pull(f) %>%
 #'   unique()
@@ -245,7 +279,7 @@
 #' ```r
 #' expect_col_vals_in_set(
 #'   small_table,
-#'   columns = vars(f), set = c("low", "mid", "high")
+#'   columns = f, set = c("low", "mid", "high")
 #' )
 #' ```
 #' 
@@ -257,7 +291,7 @@
 #' ```{r}
 #' small_table %>%
 #'   test_col_vals_in_set(
-#'     columns = vars(f), set = c("low", "mid", "high")
+#'     columns = f, set = c("low", "mid", "high")
 #'   )
 #' ```
 #' 
@@ -286,13 +320,10 @@ col_vals_in_set <- function(
     active = TRUE
 ) {
   
-  # Get `columns` as a label
-  columns_expr <- 
-    rlang::as_label(rlang::quo(!!enquo(columns))) %>%
-    gsub("^\"|\"$", "", .)
-  
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
+  # Get `columns` as a label
+  columns_expr <- as_columns_expr(columns)
   
   # Resolve the columns based on the expression
   columns <- resolve_columns(x = x, var_expr = columns, preconditions)
@@ -310,7 +341,7 @@ col_vals_in_set <- function(
     secret_agent <-
       create_agent(x, label = "::QUIET::") %>%
       col_vals_in_set(
-        columns = columns,
+        columns = tidyselect::all_of(columns),
         set = set,
         preconditions = preconditions,
         segments = segments,
@@ -350,6 +381,7 @@ col_vals_in_set <- function(
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
+  label <- resolve_label(label, columns, segments_list)
   for (i in seq_along(columns)) {
     for (j in seq_along(segments_list)) {
       
@@ -370,7 +402,7 @@ col_vals_in_set <- function(
           seg_val = seg_val,
           actions = covert_actions(actions, agent),
           step_id = step_id[i],
-          label = label,
+          label = label[[i, j]],
           brief = brief[i],
           active = active
         )

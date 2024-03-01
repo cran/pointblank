@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Create a **pointblank** *informant* object
 #'
 #' @description
+#' 
 #' The `create_informant()` function creates an *informant* object, which is
 #' used in an *information management* workflow. The overall aim of this
 #' workflow is to record, collect, and generate useful information on data
@@ -50,7 +53,74 @@
 #' the [get_informant_report()] function, where there are more reporting
 #' options.
 #' 
+#' @param tbl *Table or expression for reading in one*
+#' 
+#'   `obj:<tbl_*>|<tbl reading expression>` // **required**
+#' 
+#'   The input table. This can be a data frame, a tibble, a `tbl_dbi` object, or
+#'   a `tbl_spark` object. Alternatively, an expression can be supplied to serve
+#'   as instructions on how to retrieve the target table at incorporation-time.
+#'   There are two ways to specify an association to a target table: (1) as a
+#'   table-prep formula, which is a right-hand side (RHS) formula expression
+#'   (e.g., `~ { <tbl reading code>}`), or (2) as a function (e.g.,
+#'   `function() { <tbl reading code>}`).
+#'   
+#' @param agent *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // *default:* `NULL` (`optional`)
+#' 
+#'   A pointblank *agent* object. The table from this object can be extracted
+#'   and used in the new informant instead of supplying a table in `tbl`.
+#'   
+#' @param tbl_name *A table name*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   A optional name to assign to the input table object. If no value is
+#'   provided, a name will be generated based on whatever information is
+#'   available.
+#'   
+#' @param label *An optional label for the information report*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional label for the information report. If no value is provided, a
+#'   label will be generated based on the current system time. Markdown can be
+#'   used here to make the label more visually appealing (it will appear in the
+#'   header area of the information report).
+#'   
+#' @param lang *Reporting language*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The language to use for the information report (a summary table that
+#'   provides all of the available information for the table. By default, `NULL`
+#'   will create English (`"en"`) text. Other options include French (`"fr"`),
+#'   German (`"de"`), Italian (`"it"`), Spanish (`"es"`), Portuguese (`"pt"`),
+#'   Turkish (`"tr"`), Chinese (`"zh"`), Russian (`"ru"`), Polish (`"pl"`),
+#'   Danish (`"da"`), Swedish (`"sv"`), and Dutch (`"nl"`).
+#'   
+#' @param locale *Locale for value formatting within reports*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional locale ID to use for formatting values in the information
+#'   report according the locale's rules. Examples include `"en_US"` for English
+#'   (United States) and `"fr_FR"` for French (France); more simply, this can be
+#'   a language identifier without a country designation, like "es" for Spanish
+#'   (Spain, same as `"es_ES"`).
+#'   
+#' @param read_fn *[Deprecated] Table reading function*
+#' 
+#'   `function` // *default:* `NULL` (`optional`)
+#' 
+#'   The `read_fn` argument is deprecated. Instead, supply a table-prep formula
+#'   or function to `tbl`.
+#'   
+#' @return A `ptblank_informant` object.
+#' 
 #' @section Supported Input Tables:
+#' 
 #' The types of data tables that are officially supported are:
 #' 
 #'  - data frames (`data.frame`) and tibbles (`tbl_df`)
@@ -67,7 +137,8 @@
 #' formally tested (so be mindful of this when using unsupported backends with
 #' **pointblank**).
 #' 
-#' @section YAML: 
+#' @section YAML:
+#' 
 #' A **pointblank** informant can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an informant (with
 #' [yaml_read_informant()]) or perform the 'incorporate' action using the target
@@ -133,6 +204,7 @@
 #' as reserved keys).
 #' 
 #' @section Writing an Informant to Disk:
+#' 
 #' An *informant* object can be written to disk with the [x_write_disk()]
 #' function. Informants are stored in the serialized RDS format and can be
 #' easily retrieved with the [x_read_disk()] function.
@@ -141,39 +213,6 @@
 #' of `create_informant()`. In this way, when an *informant* is read from disk
 #' through [x_read_disk()], it can be reused to access the target table (which
 #' may changed, hence the need to use an expression for this).
-#'
-#' @param tbl The input table. This can be a data frame, a tibble, a `tbl_dbi`
-#'   object, or a `tbl_spark` object. Alternatively, an expression can be
-#'   supplied to serve as instructions on how to retrieve the target table at
-#'   incorporation-time. There are two ways to specify an association to a
-#'   target table: (1) as a table-prep formula, which is a right-hand side (RHS)
-#'   formula expression (e.g., `~ { <table reading code>}`), or (2) as a
-#'   function (e.g., `function() { <table reading code>}`).
-#' @param agent A pointblank *agent* object. The table from this object can be
-#'   extracted and used in the new informant instead of supplying a table in
-#'   `tbl`.
-#' @param tbl_name A optional name to assign to the input table object. If no
-#'   value is provided, a name will be generated based on whatever information
-#'   is available.
-#' @param label An optional label for the information report. If no value is
-#'   provided, a label will be generated based on the current system time.
-#'   Markdown can be used here to make the label more visually appealing (it
-#'   will appear in the header area of the information report).
-#' @param lang The language to use for the information report (a summary table
-#'   that provides all of the available information for the table. By default,
-#'   `NULL` will create English (`"en"`) text. Other options include French
-#'   (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish (`"es"`), Portuguese
-#'   (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian (`"ru"`), Polish
-#'   (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch (`"nl"`).
-#' @param locale An optional locale ID to use for formatting values in the
-#'   information report according the locale's rules. Examples include `"en_US"`
-#'   for English (United States) and `"fr_FR"` for French (France); more simply,
-#'   this can be a language identifier without a country designation, like "es"
-#'   for Spanish (Spain, same as `"es_ES"`).
-#' @param read_fn The `read_fn` argument is deprecated. Instead, supply a
-#'   table-prep formula or function to `tbl`.
-#'   
-#' @return A `ptblank_informant` object.
 #' 
 #' @section Examples:
 #' 
@@ -360,6 +399,10 @@ create_informant <- function(
     }
   }
   
+  private <- list(
+    col_ptypes = tbl_info$col_ptypes
+  )
+  
   metadata_list <-
     c(
       list(
@@ -370,7 +413,8 @@ create_informant <- function(
           `_type` = table_type
         )
       ),
-      column_list
+      column_list,
+      list(`_private` = private)
     )
 
   # Create the metadata list object

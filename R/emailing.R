@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Conditionally send email during interrogation
 #' 
 #' @description
+#' 
 #' The `email_blast()` function is useful for sending an email message that
 #' explains the result of a **pointblank** validation. It is powered by the
 #' **blastula** and **glue** packages. This function should be invoked as part
@@ -31,7 +34,38 @@
 #' To better get a handle on emailing with `email_blast()`, the analogous
 #' [email_create()] function can be used with a **pointblank** agent object.
 #' 
-#' @section YAML: 
+#' @param x A reference to the x-list object prepared internally by the agent.
+#'   This version of the x-list is the same as that generated via
+#'   `get_agent_x_list(<agent>)` except this version is internally generated and
+#'   hence only available in an internal evaluation context.
+#'   
+#' @param to,from The email addresses for the recipients and of the sender.
+#' 
+#' @param credentials A credentials list object that is produced by either of
+#'   the [blastula::creds()], [blastula::creds_anonymous()],
+#'   [blastula::creds_key()], or [blastula::creds_file()] functions. Please
+#'   refer to the **blastula** documentation for information on how to use these
+#'   functions.
+#'   
+#' @param msg_subject The subject line of the email message.
+#' 
+#' @param msg_header,msg_body,msg_footer Content for the header, body, and
+#'   footer components of the HTML email message.
+#'   
+#' @param send_condition An expression that should evaluate to a logical vector
+#'   of length 1. If evaluated as `TRUE` then the email will be sent, if `FALSE`
+#'   then that won't happen. The expression can use x-list variables (e.g.,
+#'   `x$notify`, `x$type`, etc.) and all of those variables can be explored
+#'   using the [get_agent_x_list()] function. The default expression is `~ TRUE
+#'   %in% x$notify`, which results in `TRUE` if there are any `TRUE` values in
+#'   the `x$notify` logical vector (i.e., any validation step that results in a
+#'   'notify' state).
+#'   
+#' @return Nothing is returned. The end result is the side-effect of
+#'   email-sending if certain conditions are met.
+#' 
+#' @section YAML:
+#' 
 #' A **pointblank** agent can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
 #' or interrogate the target table (via [yaml_agent_interrogate()]). Here is an
@@ -59,8 +93,8 @@
 #'     )
 #'   )
 #' ) %>%
-#'   col_vals_gt(vars(a), 1) %>%
-#'   col_vals_lt(vars(a), 7) 
+#'   col_vals_gt(a, 1) %>%
+#'   col_vals_lt(a, 7) 
 #' ```
 #' 
 #' YAML representation:
@@ -82,34 +116,12 @@
 #' embed_report: true
 #' steps:
 #' - col_vals_gt:
-#'     columns: vars(a)
+#'     columns: c(a)
 #'     value: 1.0
 #' - col_vals_lt:
-#'     columns: vars(a)
+#'     columns: c(a)
 #'     value: 7.0
 #' ```
-#' 
-#' @param x A reference to the x-list object prepared internally by the agent.
-#'   This version of the x-list is the same as that generated via
-#'   `get_agent_x_list(<agent>)` except this version is internally generated and
-#'   hence only available in an internal evaluation context.
-#' @param to,from The email addresses for the recipients and of the sender.
-#' @param credentials A credentials list object that is produced by either of
-#'   the [blastula::creds()], [blastula::creds_anonymous()],
-#'   [blastula::creds_key()], or [blastula::creds_file()] functions. Please
-#'   refer to the **blastula** documentation for information on how to use these
-#'   functions.
-#' @param msg_subject The subject line of the email message.
-#' @param msg_header,msg_body,msg_footer Content for the header, body, and
-#'   footer components of the HTML email message.
-#' @param send_condition An expression that should evaluate to a logical vector
-#'   of length 1. If evaluated as `TRUE` then the email will be sent, if `FALSE`
-#'   then that won't happen. The expression can use x-list variables (e.g.,
-#'   `x$notify`, `x$type`, etc.) and all of those variables can be explored
-#'   using the [get_agent_x_list()] function. The default expression is `~ TRUE
-#'   %in% x$notify`, which results in `TRUE` if there are any `TRUE` values in
-#'   the `x$notify` logical vector (i.e., any validation step that results in a
-#'   'notify' state).
 #'   
 #' @section Examples:
 #' 
@@ -164,8 +176,8 @@
 #'       )
 #'     )
 #'   ) %>%
-#'   col_vals_gt(vars(a), value = 1) %>%
-#'   col_vals_lt(vars(a), value = 7) %>%
+#'   col_vals_gt(a, value = 1) %>%
+#'   col_vals_lt(a, value = 7) %>%
 #'   interrogate()
 #' ```
 #'  
@@ -232,12 +244,19 @@ email_blast <- function(
 #' Create an email object from a **pointblank** *agent*
 #' 
 #' @description
+#' 
 #' The `email_create()` function produces an email message object that could be
 #' sent using the **blastula** package. By supplying a **pointblank** agent, a
 #' **blastula** `email_message` message object will be created and printing it
 #' will make the HTML email message appear in the Viewer.
 #'
-#' @param x A **pointblank** *agent*.
+#' @param x *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // **required**
+#' 
+#'   A **pointblank** *agent* object that is commonly created through the use of
+#'   the [create_agent()] function.
+#' 
 #' @param msg_header,msg_body,msg_footer Content for the header, body, and
 #'   footer components of the HTML email message.
 #'   
@@ -275,8 +294,8 @@ email_blast <- function(
 #'     label = "An example.",
 #'     actions = al
 #'   ) %>%
-#'   col_vals_gt(vars(a), value = 1) %>%
-#'   col_vals_lt(vars(a), value = 7) %>%
+#'   col_vals_gt(a, value = 1) %>%
+#'   col_vals_lt(a, value = 7) %>%
 #'   interrogate() %>%
 #'   email_create()
 #'   
@@ -409,7 +428,7 @@ stock_msg_footer <- function() {
           `text-transform` = "uppercase",
           cursor = "pointer"
         ),
-        href = "https://rich-iannone.github.io/pointblank/",
+        href = "https://rstudio.github.io/pointblank/",
         htmltools::HTML("{get_lsv('email/footer_2')[[x$lang]]}")
       )
     )

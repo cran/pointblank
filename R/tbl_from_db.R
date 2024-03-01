@@ -1,27 +1,30 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 # nocov start
 
 #' Get a table from a database
 #' 
-#' @description 
+#' @description
+#' 
 #' If your target table is in a database, the `db_tbl()` function is a handy way
 #' of accessing it. This function simplifies the process of getting a `tbl_dbi`
 #' object, which usually involves a combination of building a connection to a
@@ -42,6 +45,7 @@
 #'   connection. This only works if: (1) the `db` is chosen as either `"sqlite"`
 #'   or `"duckdb"`, (2) the `dbname` was is set to `":memory:"`, and (3) the
 #'   object supplied to `table` is a data frame or a tibble object.
+#'   
 #' @param dbtype Either an appropriate driver function (e.g.,
 #'   `RPostgres::Postgres()`) or a shortname for the database type. Valid names
 #'   are: `"postgresql"`, `"postgres"`, or `"pgsql"` (PostgreSQL, using the
@@ -49,11 +53,15 @@
 #'   `RMySQL::MySQL()`); `bigquery` or `bq` (BigQuery, using
 #'   `bigrquery::bigquery()`); `"duckdb"` (DuckDB, using `duckdb::duckdb()`);
 #'   and `"sqlite"` (SQLite, using `RSQLite::SQLite()`).
+#'   
 #' @param dbname The database name.
+#' 
 #' @param host,port The database host and optional port number.
+#' 
 #' @param user,password The environment variables used to access the username
 #'   and password for the database. Enclose in [I()] when using literal username
 #'   or password values.
+#'   
 #' @param bq_project,bq_dataset,bq_billing If accessing a table from a
 #'   *BigQuery* data source, there's the requirement to provide the table's
 #'   associated project (`bq_project`) and dataset (`bq_dataset`) names. By

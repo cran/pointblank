@@ -37,6 +37,7 @@ with lower severity) so long as the call to \code{log4r_step()} is present.
 }
 \section{YAML}{
 
+
 A \strong{pointblank} agent can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an agent (with \code{\link[=yaml_read_agent]{yaml_read_agent()}})
 or interrogate the target table (via \code{\link[=yaml_agent_interrogate]{yaml_agent_interrogate()}}). Here is an
@@ -128,8 +129,8 @@ then \code{\link[=interrogate]{interrogate()}} the data.
     label = "An example.",
     actions = al
   ) \%>\%
-  col_vals_gt(columns = vars(d), 300) \%>\%
-  col_vals_in_set(columns = vars(f), c("low", "high")) \%>\%
+  col_vals_gt(columns = d, 300) \%>\%
+  col_vals_in_set(columns = f, c("low", "high")) \%>\%
   interrogate()
 
 agent
@@ -137,7 +138,7 @@ agent
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_log4r_step_1.png" alt="This image was generated from the first code example in the `log4r_step()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_log4r_step_1.png" alt="This image was generated from the first code example in the `log4r_step()` help file." style="width:100\%;">
 }
 }
 

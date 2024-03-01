@@ -12,7 +12,12 @@ email_create(
 )
 }
 \arguments{
-\item{x}{A \strong{pointblank} \emph{agent}.}
+\item{x}{\emph{The pointblank agent object}
+
+\verb{obj:<ptblank_agent>} // \strong{required}
+
+A \strong{pointblank} \emph{agent} object that is commonly created through the use of
+the \code{\link[=create_agent]{create_agent()}} function.}
 
 \item{msg_header, msg_body, msg_footer}{Content for the header, body, and
 footer components of the HTML email message.}
@@ -57,8 +62,8 @@ email just by printing \code{email_object}. It should appear in the Viewer.
     label = "An example.",
     actions = al
   ) \%>\%
-  col_vals_gt(vars(a), value = 1) \%>\%
-  col_vals_lt(vars(a), value = 7) \%>\%
+  col_vals_gt(a, value = 1) \%>\%
+  col_vals_lt(a, value = 7) \%>\%
   interrogate() \%>\%
   email_create()
   
@@ -67,7 +72,7 @@ email_object
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_email_create_1.png" alt="This image was generated from the first code example in the `email_create()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_email_create_1.png" alt="This image was generated from the first code example in the `email_create()` help file." style="width:100\%;">
 }
 }
 }

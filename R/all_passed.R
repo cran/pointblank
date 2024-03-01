@@ -1,31 +1,35 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Did all of the validations fully *pass*?
 #'
 #' @description
+#' 
 #' Given an agent's validation plan that had undergone interrogation via
 #' [interrogate()], did every single validation step result in zero *failing*
 #' test units? Using the `all_passed()` function will let us know whether that's
 #' `TRUE` or not.
 #' 
 #' @details
+#' 
 #' The `all_passed()` function provides a single logical value based on an
 #' interrogation performed in the *agent*-based workflow. For very large-scale
 #' validation (where data quality is a known issue, and is perhaps something to
@@ -40,11 +44,21 @@
 #' using the [get_agent_x_list()] function). This allows for many possibilities
 #' in producing a single logical value from an interrogation.
 #'
-#' @param agent An agent object of class `ptblank_agent`.
-#' @param i A vector of validation step numbers. These values are assigned to
-#'   each validation step by **pointblank** in the order of definition. If
-#'   `NULL` (the default), all validation steps will be used for the evaluation
-#'   of complete *passing*.
+#' @param agent *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // **required**
+#' 
+#'   A **pointblank** *agent* object that is commonly created through the use of
+#'   the [create_agent()] function.
+#' 
+#' @param i *Validation step numbers*
+#'   
+#'    `vector<integer>` // *default:* `NULL` (`optional`)
+#' 
+#'   A vector of validation step numbers. These values are assigned to each
+#'   validation step by **pointblank** in the order of definition. If `NULL`
+#'   (the default), all validation steps will be used for the evaluation of
+#'   complete *passing*.
 #'
 #' @return A logical value.
 #' 
@@ -63,9 +77,9 @@
 #' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'   col_vals_gt(columns = vars(a), value = 3) %>%
-#'   col_vals_lte(columns = vars(a), value = 10) %>%
-#'   col_vals_increasing(columns = vars(a)) %>%
+#'   col_vals_gt(columns = a, value = 3) %>%
+#'   col_vals_lte(columns = a, value = 10) %>%
+#'   col_vals_increasing(columns = a) %>%
 #'   interrogate()
 #' ```
 #' 

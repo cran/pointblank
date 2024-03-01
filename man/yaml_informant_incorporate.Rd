@@ -7,10 +7,17 @@
 yaml_informant_incorporate(filename, path = NULL)
 }
 \arguments{
-\item{filename}{The name of the YAML file that contains fields related to an
-\emph{informant}.}
+\item{filename}{\emph{File name}
 
-\item{path}{An optional path to the YAML file (combined with \code{filename}).}
+\verb{scalar<character>} // \strong{required}
+
+The name of the YAML file that contains fields related to an \emph{informant}.}
+
+\item{path}{\emph{File path}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional path to the YAML file (combined with \code{filename}).}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -53,7 +60,7 @@ informant
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_3.png" alt="This image was generated from the third code example in the `yaml_write()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_write_3.png" alt="This image was generated from the third code example in the `yaml_write()` help file." style="width:100\%;">
 }
 }
 

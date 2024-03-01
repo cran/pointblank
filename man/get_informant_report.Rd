@@ -13,17 +13,30 @@ get_informant_report(
 )
 }
 \arguments{
-\item{informant}{An informant object of class \code{ptblank_informant}.}
+\item{informant}{\emph{The pointblank informant object}
 
-\item{size}{The size of the display table, which can be either \code{"standard"}
-(the default, with a width of 875px), \code{"small"} (width of 575px), or, a
-pixel- or percent-based width of your choosing (supply an integer value for
-the width in pixels, or values with \code{"px"} or \code{"\%"} appended, like \code{"75\%"},
+\verb{obj:<ptblank_informant>} // \strong{required}
+
+A \strong{pointblank} \emph{informant} object that is commonly created through the
+use of the \code{\link[=create_informant]{create_informant()}} function.}
+
+\item{size}{\emph{Size option for display-table report}
+
+\verb{scalar<character>} // \emph{default:} \code{"standard"}
+
+The size of the display table, which can be either \code{"standard"} (the
+default, with a width of 875px), \code{"small"} (width of 575px), or, a pixel-
+or percent-based width of your choosing (supply an integer value for the
+width in pixels, or values with \code{"px"} or \code{"\%"} appended, like \code{"75\%"},
 \code{"500px"}, etc.).}
 
-\item{title}{Options for customizing the title of the report. The default is
-the keyword \code{":default:"} which produces generic title text that refers to
-the \strong{pointblank} package in the language governed by the \code{lang} option.
+\item{title}{\emph{Title customization options}
+
+\verb{scalar<character>} // \emph{default:} \code{":default:"}
+
+Options for customizing the title of the report. The default is the keyword
+\code{":default:"} which produces generic title text that refers to the
+\strong{pointblank} package in the language governed by the \code{lang} option.
 Another keyword option is \code{":tbl_name:"}, and that presents the name of the
 table as the title for the report. If no title is wanted, then the
 \code{":none:"} keyword option can be used. Aside from keyword options, text can
@@ -33,15 +46,23 @@ and transformed internally to HTML. To circumvent such a transformation,
 use text in \code{\link[=I]{I()}} to explicitly state that the supplied text should not be
 transformed.}
 
-\item{lang}{The language to use for the \emph{information report}.
-By default, \code{NULL} will create English (\code{"en"}) text. Other options include
-French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}),
-Portuguese (\code{"pt"}), Turkish (\code{"tr"}), Chinese (\code{"zh"}), Russian (\code{"ru"}),
-Polish (\code{"pl"}), Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch (\code{"nl"}).
-This \code{lang} option will override any previously set language setting (e.g.,
-by the \code{\link[=create_informant]{create_informant()}} call).}
+\item{lang}{\emph{Reporting language}
 
-\item{locale}{An optional locale ID to use for formatting values in the
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+The language to use for the \emph{information report}. By default, \code{NULL} will
+create English (\code{"en"}) text. Other options include French (\code{"fr"}), German
+(\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}), Portuguese (\code{"pt"}), Turkish
+(\code{"tr"}), Chinese (\code{"zh"}), Russian (\code{"ru"}), Polish (\code{"pl"}), Danish
+(\code{"da"}), Swedish (\code{"sv"}), and Dutch (\code{"nl"}). This \code{lang} option will
+override any previously set language setting (e.g., by the
+\code{\link[=create_informant]{create_informant()}} call).}
+
+\item{locale}{\emph{Locale for value formatting}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional locale ID to use for formatting values in the
 \emph{information report} summary table according the locale's rules. Examples
 include \code{"en_US"} for English (United States) and \code{"fr_FR"} for French
 (France); more simply, this can be a language identifier without a country

@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Add information that focuses on aspects of the data table as a whole
 #' 
-#' @description 
+#' @description
+#' 
 #' When an *informant* object is created with the [create_informant()] function,
 #' it has two starter sections: (1) 'table' and (2) 'columns'. The 'table'
 #' section should contain a few properties upon creation, such as the supplied
@@ -29,7 +32,26 @@
 #' text*."`), we can add more information that makes sense for describing the
 #' table as a whole.
 #' 
+#' @param x *The pointblank informant object*
+#' 
+#'   `obj:<ptblank_informant>` // **required**
+#' 
+#'   A **pointblank** *informant* object that is commonly created through the
+#'   use of the [create_informant()] function.
+#' 
+#' @param ... *Information entries*
+#' 
+#'   `<info-text expressions>` // **required**
+#' 
+#'   Information entries as a series of named arguments. The names refer to
+#'   subsection titles within the `TABLE` section and the values are the *info
+#'   text* (informational text that can be written as Markdown and further
+#'   styled with *Text Tricks*).
+#' 
+#' @return A `ptblank_informant` object.
+#' 
 #' @section Info Text:
+#' 
 #' The *info text* that's used for any of the `info_*()` functions readily
 #' accepts Markdown formatting, and, there are a few *Text Tricks* that can be
 #' used to spice up the presentation. Markdown links written as `< link url >`
@@ -73,6 +95,7 @@
 #' common being in the form of hexadecimal color values or as CSS color names.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** informant can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an informant (with
 #' [yaml_read_informant()]) or perform the 'incorporate' action using the target
@@ -115,14 +138,6 @@
 #' done when using the [incorporate()] function. Thus, the source text is always
 #' maintained in the YAML representation and is never written in processed form.
 #' 
-#' @param x An informant object of class `ptblank_informant`.
-#' @param ... Information entries as a series of named arguments. The names
-#'   refer to subsection titles within the `TABLE` section and the values are
-#'   the *info text* (informational text that can be written as Markdown and
-#'   further styled with *Text Tricks*).
-#' 
-#' @return A `ptblank_informant` object.
-#' 
 #' @section Examples:
 #'  
 #' Create a pointblank `informant` object with [create_informant()]. We can
@@ -149,7 +164,7 @@
 #'     `Row Definition` = "A row has randomized values.",
 #'     Source = c(
 #'       "- From the **pointblank** package.",
-#'       "- [https://rich-iannone.github.io/pointblank/]()"
+#'       "- [https://rstudio.github.io/pointblank/]()"
 #'      )
 #'    )
 #' ```
@@ -212,6 +227,7 @@ info_tabular <- function(
 #' Add information that focuses on aspects of a data table's columns
 #' 
 #' @description
+#' 
 #' Upon creation of an *informant* object (with the [create_informant()]
 #' function), there are two sections containing properties: (1) 'table' and (2)
 #' 'columns'. The 'columns' section is initialized with the table's column names
@@ -221,7 +237,42 @@ info_tabular <- function(
 #' series of named arguments (in the form `entry_name = "The *info text*."`)
 #' serves as additional information for the column or columns.
 #' 
+#' @param x *The pointblank informant object*
+#' 
+#'   `obj:<ptblank_informant>` // **required**
+#' 
+#'   A **pointblank** *informant* object that is commonly created through the
+#'   use of the [create_informant()] function.
+#' 
+#' @param columns *The target columns*
+#'   
+#'   `vector<character>|vars(<columns>)` // **required**
+#' 
+#'   The column or set of columns to focus on. Can be defined as a column name
+#'   in quotes (e.g., `"<column_name>"`), one or more column names in `vars()`
+#'   (e.g., `vars(<column_name>)`), or with a select helper (e.g.,
+#'   `starts_with("date")`).
+#'   
+#' @param ... *Information entries*
+#' 
+#'   `<info-text expressions>` // **required**
+#'   
+#'   Information entries as a series of named arguments. The names refer to
+#'   subsection titles within `COLUMN` -> `<COLUMN_NAME>` and the RHS contains
+#'   the *info text* (informational text that can be written as Markdown and
+#'   further styled with *Text Tricks*).
+#'   
+#' @param .add *Add to existing info text*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   Should new text be added to existing text? This is `TRUE` by default;
+#'   setting to `FALSE` replaces any existing text for a property.
+#' 
+#' @return A `ptblank_informant` object.
+#' 
 #' @section Info Text:
+#' 
 #' The *info text* that's used for any of the `info_*()` functions readily
 #' accepts Markdown formatting, and, there are a few *Text Tricks* that can be
 #' used to spice up the presentation. Markdown links written as `< link url >`
@@ -265,6 +316,7 @@ info_tabular <- function(
 #' common being in the form of hexadecimal color values or as CSS color names.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** informant can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an informant (with
 #' [yaml_read_informant()]) or perform the 'incorporate' action using the target
@@ -279,19 +331,19 @@ info_tabular <- function(
 #' # R statement
 #' informant %>% 
 #'   info_columns(
-#'     columns = "date_time",
+#'     columns = date_time,
 #'     info = "*info text* 1."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "date",
+#'     columns = date,
 #'     info = "*info text* 2."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "item_count",
+#'     columns = item_count,
 #'     info = "*info text* 3. Statistics: {snippet_1}."
 #'   ) %>%
 #'   info_columns(
-#'     columns = vars(date, date_time),
+#'     columns = c(date, date_time),
 #'     info = "UTC time."
 #'   )
 #' 
@@ -324,20 +376,6 @@ info_tabular <- function(
 #' done when using the [incorporate()] function. Thus, the source text is always
 #' maintained in the YAML representation and is never written in processed form.
 #' 
-#' @param x An informant object of class `ptblank_informant`.
-#' @param columns The column or set of columns to focus on. Can be defined as a
-#'   column name in quotes (e.g., `"<column_name>"`), one or more column names
-#'   in `vars()` (e.g., `vars(<column_name>)`), or with a select helper (e.g.,
-#'   `starts_with("date")`).
-#' @param ... Information entries as a series of named arguments. The names
-#'   refer to subsection titles within `COLUMN` -> `<COLUMN_NAME>` and the RHS
-#'   contains the *info text* (informational text that can be written as
-#'   Markdown and further styled with *Text Tricks*).
-#' @param .add Should new text be added to existing text? This is `TRUE` by
-#'   default; setting to `FALSE` replaces any existing text for a property.
-#' 
-#' @return A `ptblank_informant` object.
-#' 
 #' @section Examples:
 #'  
 #' Create a pointblank `informant` object with [create_informant()]. We can
@@ -363,7 +401,7 @@ info_tabular <- function(
 #' informant <-
 #'   informant %>%
 #'   info_columns(
-#'     columns = vars(a),
+#'     columns = a,
 #'     info = "In the range of 1 to 10. ((SIMPLE))"
 #'   ) %>%
 #'   info_columns(
@@ -371,7 +409,7 @@ info_tabular <- function(
 #'     info = "Time-based values (e.g., `Sys.time()`)."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "date",
+#'     columns = date,
 #'     info = "The date part of `date_time`. ((CALC))"
 #'   )
 #' ```
@@ -411,10 +449,14 @@ info_columns <- function(
   metadata_list <- metadata$metadata
   metadata_columns <- metadata_list$columns
   
-  x <- dplyr::as_tibble(metadata_columns %>% lapply(function(x) 1))
+  if (is.null(x$tbl)) {
+    tbl <- metadata_list[["_private"]]$col_ptypes
+  } else {
+    tbl <- x$tbl
+  }
   
   # Resolve the columns based on the expression
-  columns <- resolve_columns(x = x, var_expr = columns, preconditions = NULL)
+  columns <- resolve_columns(x = tbl, var_expr = columns)
   
   if (length(columns) == 1 && is.na(columns)) {
    
@@ -470,6 +512,7 @@ info_columns <- function(
 #' Add column information from another data table
 #' 
 #' @description
+#' 
 #' The `info_columns_from_tbl()` function is a wrapper around the
 #' [info_columns()] function and is useful if you wish to apply *info text* to
 #' columns where that information already exists in a data frame (or in some
@@ -485,12 +528,26 @@ info_columns <- function(
 #' of the informant) will have a new entry for the `"info"` property. Empty or
 #' missing info text will be pruned from `tbl`.
 #' 
-#' @param x An informant object of class `ptblank_informant`.
-#' @param tbl The two-column data frame which contains metadata about the target
-#'   table in the informant object. 
-#' @param .add Should new text be added to existing text? This is `TRUE` by
-#'   default; setting to `FALSE` replaces any existing text for the `"info"`
-#'   property.
+#' @param x *The pointblank informant object*
+#' 
+#'   `obj:<ptblank_informant>` // **required**
+#' 
+#'   A **pointblank** *informant* object that is commonly created through the
+#'   use of the [create_informant()] function.
+#'   
+#' @param tbl *Metadata table with column information*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   The two-column data frame which contains metadata about the target table in
+#'   the informant object.
+#'   
+#' @param .add *Add to existing info text*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   Should new text be added to existing text? This is `TRUE` by default;
+#'   setting to `FALSE` replaces any existing text for the `"info"` property.
 #' 
 #' @return A `ptblank_informant` object.
 #' 
@@ -552,11 +609,11 @@ info_columns <- function(
 #' informant <-
 #'   informant %>%
 #'   info_columns(
-#'     columns = "item_revenue",
+#'     columns = item_revenue,
 #'     info = "Revenue reported in USD."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "acquisition",
+#'     columns = acquisition,
 #'     `top list` = "{top5_aq}"
 #'   ) %>%
 #'   info_snippet(
@@ -648,7 +705,8 @@ check_info_columns_tbl <- function(tbl) {
 
 #' Add information that focuses on some key aspect of the data table
 #' 
-#' @description 
+#' @description
+#' 
 #' While the [info_tabular()] and [info_columns()] functions allow us to
 #' add/modify info text for specific sections, the `info_section()` makes it
 #' possible to add sections of our own choosing and the information that make
@@ -656,7 +714,32 @@ check_info_columns_tbl <- function(tbl) {
 #' named arguments (in the form `entry_name = "The *info text*."`) to build the
 #' informational content for that section.
 #' 
+#' @param x *The pointblank informant object*
+#' 
+#'   `obj:<ptblank_informant>` // **required**
+#' 
+#'   A **pointblank** *informant* object that is commonly created through the
+#'   use of the [create_informant()] function.
+#'   
+#' @param section_name *The section name*
+#' 
+#'   `scalar<character>` // **required**
+#' 
+#'   The name of the section for which this information pertains.
+#'   
+#' @param ... *Information entries*
+#' 
+#'   `<info-text expressions>` // **required**
+#' 
+#'   Information entries as a series of named arguments. The names refer to
+#'   subsection titles within the section defined as `section_name` and the RHS
+#'   is the *info text* (informational text that can be written as Markdown and
+#'   further styled with *Text Tricks*).
+#' 
+#' @return A `ptblank_informant` object.
+#' 
 #' @section Info Text:
+#' 
 #' The *info text* that's used for any of the `info_*()` functions readily
 #' accepts Markdown formatting, and, there are a few *Text Tricks* that can be
 #' used to spice up the presentation. Markdown links written as `< link url >`
@@ -700,6 +783,7 @@ check_info_columns_tbl <- function(tbl) {
 #' common being in the form of hexadecimal color values or as CSS color names.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** informant can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an informant (with
 #' [yaml_read_informant()]) or perform the 'incorporate' action using the target
@@ -752,16 +836,6 @@ check_info_columns_tbl <- function(tbl) {
 #' done when using the [incorporate()] function. Thus, the source text is always
 #' maintained in the YAML representation and is never written in processed form.
 #' 
-#' @param x An informant object of class `ptblank_informant`.
-#' @param section_name The name of the section for which this information
-#'   pertains.
-#' @param ... Information entries as a series of named arguments. The names
-#'   refer to subsection titles within the section defined as `section_name` and
-#'   the RHS is the *info text* (informational text that can be written as
-#'   Markdown and further styled with *Text Tricks*).
-#' 
-#' @return A `ptblank_informant` object.
-#' 
 #' @section Examples:
 #' 
 #' Create a pointblank `informant` object with [create_informant()]. We can
@@ -806,7 +880,6 @@ check_info_columns_tbl <- function(tbl) {
 #' `r pb_get_image_tag(file = "man_info_section_1.png")`
 #' }
 #' }
-#'
 #'
 #' @family Information Functions
 #' @section Function ID:
@@ -869,7 +942,8 @@ info_section <- function(
 
 #' Generate a useful text 'snippet' from the target table
 #' 
-#' @description 
+#' @description
+#' 
 #' Getting little snippets of information from a table goes hand-in-hand with
 #' mixing those bits of info with your table info. Call `info_snippet()` to
 #' define a snippet and how you'll get that from the target table. The snippet
@@ -882,7 +956,37 @@ info_section <- function(
 #' with just the `snippet_name` inside (e.g., `"This column has {n_cat}
 #' categories."`).
 #' 
+#' @param x *The pointblank informant object*
+#' 
+#'   `obj:<ptblank_informant>` // **required**
+#' 
+#'   A **pointblank** *informant* object that is commonly created through the
+#'   use of the [create_informant()] function.
+#' 
+#' @param snippet_name *The snippet name*
+#' 
+#'   `scalar<character>` // **required**
+#' 
+#'   The name for snippet, which is used for interpolating the result of the
+#'   snippet formula into *info text* defined by an `info_*()` function.
+#'   
+#' @param fn *Function for snippet text generation*
+#' 
+#'   `<function>` // **required**
+#' 
+#'   A formula that obtains a snippet of data from the target table. It's best
+#'   to use a leading dot (`.`) that stands for the table itself and use pipes
+#'   to construct a series of operations to be performed on the table (e.g.,
+#'   `~ . %>% dplyr::pull(column_2) %>% max(na.rm = TRUE)`). So long as the
+#'   result is a length-1 vector, it'll likely be valid for insertion into some
+#'   info text. Alternatively, a `snip_*()` function can be used here (these
+#'   functions always return a formula that's suitable for all types of data
+#'   sources).
+#' 
+#' @return A `ptblank_informant` object.
+#' 
 #' @section Snip functions provided in **pointblank**:
+#' 
 #' For convenience, there are several `snip_*()` functions provided in the
 #' package that work on column data from the *informant*'s target table. These
 #' are:
@@ -896,6 +1000,7 @@ info_section <- function(
 #' these functions is necessary for obtaining the resultant text.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** informant can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an informant (with
 #' [yaml_read_informant()]) or perform the 'incorporate' action using the target
@@ -908,7 +1013,7 @@ info_section <- function(
 #' # R statement
 #' informant %>% 
 #'   info_columns(
-#'     columns = "date_time",
+#'     columns = date_time,
 #'     `Latest Date` = "The latest date is {latest_date}."
 #'   ) %>%
 #'   info_snippet(
@@ -930,21 +1035,6 @@ info_section <- function(
 #'   item_count:
 #'     _type: integer
 #' ```
-#' 
-#' @param x An informant object of class `ptblank_informant`.
-#' @param snippet_name The name for snippet, which is used for interpolating the
-#'   result of the snippet formula into *info text* defined by an `info_*()`
-#'   function.
-#' @param fn A formula that obtains a snippet of data from the target table.
-#'   It's best to use a leading dot (`.`) that stands for the table itself and
-#'   use pipes to construct a series of operations to be performed on the table
-#'   (e.g., `~ . %>% dplyr::pull(column_2) %>% max(na.rm = TRUE)`). So long as
-#'   the result is a length-1 vector, it'll likely be valid for insertion into
-#'   some info text. Alternatively, a `snip_*()` function can be used here
-#'   (these functions always return a formula that's suitable for all types of
-#'   data sources).
-#' 
-#' @return A `ptblank_informant` object.
 #' 
 #' @section Examples:
 #' 
@@ -978,7 +1068,7 @@ info_section <- function(
 #'     fn = snip_highest(column = "a")
 #'   ) %>%
 #'   info_columns(
-#'     columns = vars(a),
+#'     columns = a,
 #'     info = "In the range of 1 to {max_a}. ((SIMPLE))"
 #'   ) %>%
 #'   info_columns(
@@ -986,7 +1076,7 @@ info_section <- function(
 #'     info = "Time-based values (e.g., `Sys.time()`)."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "date",
+#'     columns = date,
 #'     info = "The date part of `date_time`. ((CALC))"
 #'   ) %>%
 #'   info_section(
@@ -1064,43 +1154,91 @@ info_snippet <- function(
 
 #' A `fn` for `info_snippet()`: get a list of column categories
 #' 
+#' @description
+#' 
 #' The `snip_list()` function can be used as an [info_snippet()] function (i.e.,
 #' provided to `fn`) to get a catalog list from a table column. You can limit
 #' the of items in that list with the `limit` value.
 #' 
-#' @param column The name of the column that contains the target values.
-#' @param limit A limit of items put into the generated list. The returned text
-#'   will state the remaining number of items beyond the `limit`. By default,
-#'   the limit is `5`.
-#' @param sorting A keyword used to designate the type of sorting to use for the
-#'   list. The three options are `"inorder"` (the default), `"infreq"`, and
-#'   `"inseq"`. With `"inorder"`, distinct items are listed in the order in
-#'   which they first appear. Using `"infreq"` orders the items by the
-#'   decreasing frequency of each item. The `"inseq"` option applies an
-#'   alphanumeric sorting to the distinct list items.
-#' @param reverse An option to reverse the ordering of list items. By default,
-#'   this is `FALSE` but using `TRUE` will reverse the items before applying the
+#' @param column *The target column*
+#'   
+#'   `scalar<character>` // **required**
+#' 
+#'   The name of the column that contains the target values.
+#' 
+#' @param limit *Limit for list length*
+#' 
+#'   `scalar<integer>` // *default:* `5`
+#' 
+#'   A limit of items put into the generated list. The returned text will state
+#'   the remaining number of items beyond the `limit`.
+#' 
+#' @param sorting *Type of sorting within list*
+#' 
+#'   `singl-kw:[inorder|infreq|inseq]` // *default:* `"inorder"`
+#' 
+#'   A keyword used to designate the type of sorting to use for the list. The
+#'   three options are `"inorder"` (the default), `"infreq"`, and `"inseq"`.
+#'   With `"inorder"`, distinct items are listed in the order in which they
+#'   first appear. Using `"infreq"` orders the items by the decreasing frequency
+#'   of each item. The `"inseq"` option applies an alphanumeric sorting to the
+#'   distinct list items.
+#' 
+#' @param reverse *Reversal of list order*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#' 
+#'   An option to reverse the ordering of list items. By default, this is
+#'   `FALSE` but using `TRUE` will reverse the items before applying the
 #'   `limit`.
-#' @param sep The separator to use between list items. By default, this is a
-#'   comma.
-#' @param and_or The type of conjunction to use between the final and
-#'   penultimate list items (should the item length be below the `limit` value).
-#'   If `NULL` (the default) is used, then the 'and' conjunction will be used.
-#'   Alternatively, the following keywords can be used: `"and"`, `"or"`, or
-#'   an empty string (for no conjunction at all).
-#' @param oxford Whether to use an Oxford comma under certain conditions. By
-#'   default, this is `TRUE`.
-#' @param as_code Should each list item appear in a 'code font' (i.e., as
-#'   monospaced text)? By default this is `TRUE`. Using `FALSE` keeps all list
-#'   items in the same font as the rest of the information report.
-#' @param quot_str An option for whether list items should be set in double
-#'   quotes. If `NULL` (the default), the quotation marks are mainly associated
-#'   with list items derived from `character` or `factor` values; numbers,
-#'   dates, and logical values won't have quotation marks. We can explicitly use
-#'   quotations (or not) with either `TRUE` or `FALSE` here.
-#' @param lang The language to use for any joining words (from the `and_or`
-#'   option) or additional words in the generated list string. By default,
-#'   `NULL` will use whichever `lang` setting is available in the parent
+#' 
+#' @param sep *Separator text for list*
+#' 
+#'   `scalar<character>` // *default:* `","`
+#' 
+#'   The separator to use between list items. By default, this is a comma.
+#' 
+#' @param and_or *Use of 'and' or 'or' within list*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The type of conjunction to use between the final and penultimate list items
+#'   (should the item length be below the `limit` value). If `NULL` (the
+#'   default) is used, then the 'and' conjunction will be used. Alternatively,
+#'   the following keywords can be used: `"and"`, `"or"`, or an empty string
+#'   (for no conjunction at all).
+#' 
+#' @param oxford *Usage of oxford comma*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   Whether to use an Oxford comma under certain conditions.
+#' 
+#' @param as_code *Treat items as code*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   Should each list item appear in a 'code font' (i.e., as monospaced text)?
+#'   By default this is `TRUE`. Using `FALSE` keeps all list items in the same
+#'   font as the rest of the information report.
+#' 
+#' @param quot_str *Set items in double quotes*
+#' 
+#'   `scalar<logical>` // *default:* `NULL` (`optional`)
+#' 
+#'   An option for whether list items should be set in double quotes. If `NULL`
+#'   (the default), the quotation marks are mainly associated with list items
+#'   derived from `character` or `factor` values; numbers, dates, and logical
+#'   values won't have quotation marks. We can explicitly use quotations (or
+#'   not) with either `TRUE` or `FALSE` here.
+#' 
+#' @param lang *Reporting language*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The language to use for any joining words (from the `and_or` option) or
+#'   additional words in the generated list string. By default, `NULL` will use
+#'   whichever `lang` setting is available in the parent
 #'   *informant* object (this is settable in the [create_informant()] `lang`
 #'   argument). If specified here as an override, the language options are
 #'   English (`"en"`), French (`"fr"`), German (`"de"`), Italian (`"it"`),
@@ -1126,7 +1264,7 @@ info_snippet <- function(
 #'     label = "An example."
 #'   ) %>% 
 #'   info_columns(
-#'     columns = "f",
+#'     columns = f,
 #'     `Items` = "This column contains {values_f}."
 #'   ) %>%
 #'   info_snippet(
@@ -1311,6 +1449,7 @@ snip_list <- function(
 #' A `fn` for `info_snippet()`: get an inline statistical summary
 #'
 #' @description
+#' 
 #' The `snip_stats()` function can be used as an [info_snippet()] function
 #' (i.e., provided to `fn`) to produce a five- or seven-number statistical
 #' summary. This inline summary works well within a paragraph of text and can
@@ -1324,10 +1463,19 @@ snip_list <- function(
 #' 3. Bowley's seven-figure summary (`"bowley"`): minimum, P10, Q1, median, Q3,
 #' P90, maximum
 #'
-#' @param column The name of the column that contains the target values.
-#' @param type The type of summary. By default, the `"5num"` keyword is used to
-#'   generate a five-number summary. Two other options provide seven-number
-#'   summaries: `"7num"` and `"bowley"`.
+#' @param column *The target column*
+#'   
+#'   `scalar<character>` // **required**
+#' 
+#'   The name of the column that contains the target values.
+#' 
+#' @param type *Type of statistical summary*
+#' 
+#'   `singl-kw:[5num|7num|bowley]` // *default:* `"5num"`
+#' 
+#'   The type of summary. By default, the `"5num"` keyword is used to generate a
+#'   five-number summary. Two other options provide seven-number summaries:
+#'   `"7num"` and `"bowley"`.
 #'   
 #' @return A formula needed for [info_snippet()]'s `fn` argument.
 #' 
@@ -1347,7 +1495,7 @@ snip_list <- function(
 #'     label = "An example."
 #'   ) %>% 
 #'   info_columns(
-#'     columns = "d",
+#'     columns = d,
 #'     `Stats` = "Stats (fivenum): {stats_d}."
 #'   ) %>%
 #'   info_snippet(
@@ -1396,11 +1544,17 @@ snip_stats <- function(
 
 #' A `fn` for `info_snippet()`: get the lowest value from a column
 #' 
+#' @description
+#' 
 #' The `snip_lowest()` function can be used as an [info_snippet()] function
 #' (i.e., provided to `fn`) to get the lowest numerical, time value, or
 #' alphabetical value from a column in the target table.
 #' 
-#' @param column The name of the column that contains the target values.
+#' @param column *The target column*
+#'   
+#'   `scalar<character>` // **required**
+#' 
+#'   The name of the column that contains the target values.
 #'   
 #' @return A formula needed for [info_snippet()]'s `fn` argument.
 #' 
@@ -1420,7 +1574,7 @@ snip_stats <- function(
 #'     label = "An example."
 #'   ) %>% 
 #'   info_columns(
-#'     columns = "a",
+#'     columns = a,
 #'     `Lowest Value` = "Lowest value is {lowest_a}."
 #'   ) %>%
 #'   info_snippet(
@@ -1464,11 +1618,17 @@ snip_lowest <- function(column) {
 
 #' A `fn` for `info_snippet()`: get the highest value from a column
 #' 
+#' @description
+#' 
 #' The `snip_highest()` function can be used as an [info_snippet()] function
 #' (i.e., provided to `fn`) to get the highest numerical, time value, or
 #' alphabetical value from a column in the target table.
 #' 
-#' @param column The name of the column that contains the target values.
+#' @param column *The target column*
+#'   
+#'   `scalar<character>` // **required**
+#' 
+#'   The name of the column that contains the target values.
 #'   
 #' @return A formula needed for [info_snippet()]'s `fn` argument.
 #' 
@@ -1488,7 +1648,7 @@ snip_lowest <- function(column) {
 #'     label = "An example."
 #'   ) %>% 
 #'   info_columns(
-#'     columns = "a",
+#'     columns = a,
 #'     `Highest Value` = "Highest value is {highest_a}."
 #'   ) %>%
 #'   info_snippet(

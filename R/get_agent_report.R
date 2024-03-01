@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Get a summary report from an agent
 #' 
-#' @description 
+#' @description
+#' 
 #' We can get an informative summary table from an agent by using the
 #' `get_agent_report()` function. The table can be provided in two substantially
 #' different forms: as a **gt** based display table (the default), or, as a
@@ -102,23 +105,52 @@
 #' in a data extract. Will be `NA` if no extract is available.
 #' }
 #' 
-#' @param agent An agent object of class `ptblank_agent`.
-#' @param arrange_by A choice to arrange the report table rows by the validation
-#'   step number (`"i"`, the default), or, to arrange in descending order by
-#'   severity of the failure state (with `"severity"`).
-#' @param keep An option to keep `"all"` of the report's table rows (the
+#' @param agent *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // **required**
+#' 
+#'   A **pointblank** *agent* object that is commonly created through the use of
+#'   the [create_agent()] function.
+#' 
+#' @param arrange_by *Method of arranging the report's table rows*
+#' 
+#'   `singl-kw:[i|severity]` // *default:* `"i"`
+#' 
+#'   A choice to arrange the report table rows by the validation step number
+#'   (`"i"`, the default), or, to arrange in descending order by severity of the
+#'   failure state (with `"severity"`).
+#'   
+#' @param keep *Which table rows should be kept?*
+#' 
+#'   `singl-kw:[all|fail_states]` // *default:* `"all"`
+#' 
+#'   An option to keep `"all"` of the report's table rows (the
 #'   default), or, keep only those rows that reflect one or more
 #'   `"fail_states"`.
-#' @param display_table Should a display table be generated? If `TRUE` (the
-#'   default), and if the **gt** package is installed, a display table for the
-#'   report will be shown in the Viewer. If `FALSE`, or if **gt** is not
-#'   available, then a tibble will be returned.
-#' @param size The size of the display table, which can be either `"standard"`
-#'   (the default) or `"small"`. This only applies to a display table (where
+#'   
+#' @param display_table *Return a display-table report via gt*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   Should a display table be generated? If `TRUE`, and if the **gt** package
+#'   is installed, a display table for the report will be shown in the Viewer.
+#'   If `FALSE`, or if **gt** is not available, then a tibble will be returned.
+#'   
+#' @param size *Size option for display-table report*
+#' 
+#'   `scalar<character>` // *default:* `"standard"`
+#' 
+#'   The size of the display table, which can be either `"standard"` (the
+#'   default) or `"small"`. This only applies to a display table (where
 #'   `display_table = TRUE`).
-#' @param title Options for customizing the title of the report. The default is
-#'   the keyword `":default:"` which produces generic title text that refers to
-#'   the **pointblank** package in the language governed by the `lang` option.
+#'   
+#' @param title *Title customization options*
+#' 
+#'   `scalar<character>` // *default:* `":default:"`
+#' 
+#'   Options for customizing the title of the report. The default is the keyword
+#'   `":default:"` which produces generic title text that refers to the
+#'   **pointblank** package in the language governed by the `lang` option.
 #'   Another keyword option is `":tbl_name:"`, and that presents the name of the
 #'   table as the title for the report. If no title is wanted, then the
 #'   `":none:"` keyword option can be used. Aside from keyword options, text can
@@ -127,16 +159,26 @@
 #'   and transformed internally to HTML. To circumvent such a transformation,
 #'   use text in [I()] to explicitly state that the supplied text should not be
 #'   transformed.
-#' @param lang The language to use for automatic creation of briefs (short
-#'   descriptions for each validation step) and for the *agent report* (a
-#'   summary table that provides the validation plan and the results from the
-#'   interrogation. By default, `NULL` will create English (`"en"`) text. Other
-#'   options include French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish
-#'   (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian
-#'   (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch
-#'   (`"nl"`). This `lang` option will override any previously set language
-#'   setting (e.g., by the [create_agent()] call).
-#' @param locale An optional locale ID to use for formatting values in the
+#'   
+#' @param lang *Reporting language*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The language to use for automatic creation of briefs (short descriptions
+#'   for each validation step) and for the *agent report* (a summary table that
+#'   provides the validation plan and the results from the interrogation. By
+#'   default, `NULL` will create English (`"en"`) text. Other options include
+#'   French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish (`"es"`),
+#'   Portuguese (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian (`"ru"`),
+#'   Polish (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch (`"nl"`).
+#'   This `lang` option will override any previously set language setting (e.g.,
+#'   by the [create_agent()] call).
+#'   
+#' @param locale *Locale for value formatting*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional locale ID to use for formatting values in the
 #'   *agent report* summary table according the locale's rules. Examples include
 #'   `"en_US"` for English (United States) and `"fr_FR"` for French (France);
 #'   more simply, this can be a language identifier without a country
@@ -168,7 +210,7 @@
 #'     tbl_name = "small_table",
 #'     label = "An example."
 #'   ) %>%
-#'   col_vals_gt(columns = vars(a), value = 4) %>%
+#'   col_vals_gt(columns = a, value = 4) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -468,7 +510,8 @@ get_agent_report <- function(
         htmltools::HTML(agent_label_styled),
         htmltools::tags$div(
           style = htmltools::css(
-            height = "25px"
+            height = "25px",
+            `padding-top` = "10px"
           ),
           htmltools::HTML(paste0(table_type, action_levels))
         ) 
@@ -709,16 +752,42 @@ get_agent_report <- function(
           }
         }
         
-        if (
-          is.null(column_i) |
-          (is.list(column_i) && is.na(unlist(column_i)))
-        ) {
+        # If column missing
+        if (is.null(column_i) || identical(unlist(column_i), NA_character_)) {
           
-          NA_character_
+          columns_expr <- validation_set$columns_expr[[x]]
+          not_interrogated <- is.na(validation_set$eval_error[[x]])
+          eval_error <- isTRUE(validation_set$eval_error[[x]])
           
-        } else if (is.na(column_i)) {
-          
-          NA_character_
+          # If column selection attempted AND:
+          # - in validation planning, OR
+          # - the evaluation errors, OR
+          # - is a col_exists() step
+          columns_expr_exists <- !is.na(columns_expr) && columns_expr != "NULL"
+          show_column_expr <- columns_expr_exists &&
+            (not_interrogated || eval_error || assertion_str == "col_exists")
+          # Then display the original column selection expression for debugging
+          if (show_column_expr) {
+            as.character(
+              htmltools::tags$p(
+                title = columns_expr,
+                style = htmltools::css(
+                  `margin-top` = "0",
+                  `margin-bottom` = "0",
+                  `font-family` = "monospace",
+                  `font-size` = "10px",
+                  `white-space` = "nowrap",
+                  `text-overflow` = "ellipsis",
+                  overflow = "hidden",
+                  color = if (eval_error) "firebrick",
+                  `font-face` = "maroon"
+                ),
+                columns_expr
+              )
+            )
+          } else {
+            NA_character_
+          }
           
         } else {
           
@@ -1828,9 +1897,7 @@ get_agent_report <- function(
       agent_report <- 
         agent_report %>%
         gt::tab_header(
-          title = get_lsv(text = c(
-            "agent_report", "pointblank_validation_title_text"
-          ))[[lang]],
+          title = title_text,
           subtitle = gt::md(
             paste0(agent_label_styled, " ", table_type, " <br><br>")
           )
@@ -1884,6 +1951,7 @@ get_agent_report <- function(
           }
           #pb_agent code {
             font-family: 'IBM Plex Mono', monospace, courier;
+            color: black;
             background-color: transparent;
             padding: 0;
           }
@@ -1898,11 +1966,15 @@ get_agent_report <- function(
   
   # nocov end
   
+  # Quarto rendering workaround
+  if (check_quarto()) {
+    agent_report <- gt::fmt(agent_report, fns = identity)
+  }
+  
   agent_report
 }
 
-get_default_title_text <- function(report_type,
-                                   lang) {
+get_default_title_text <- function(report_type, lang) {
   
   if (report_type == "informant") {
     title_text <- 

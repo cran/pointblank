@@ -7,10 +7,17 @@
 yaml_agent_interrogate(filename, path = NULL)
 }
 \arguments{
-\item{filename}{The name of the YAML file that contains fields related to an
-\emph{agent}.}
+\item{filename}{\emph{File name}
 
-\item{path}{An optional path to the YAML file (combined with \code{filename}).}
+\verb{scalar<character>} // \strong{required}
+
+The name of the YAML file that contains fields related to an \emph{agent}.}
+
+\item{path}{#' @param path \emph{File path}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional path to the YAML file (combined with \code{filename}).}
 }
 \value{
 A \code{ptblank_agent} object.
@@ -49,7 +56,7 @@ agent
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_1.png" alt="This image was generated from the first code example in the `yaml_write()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_write_1.png" alt="This image was generated from the first code example in the `yaml_write()` help file." style="width:100\%;">
 }
 }
 
@@ -82,7 +89,7 @@ agent
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_2.png" alt="This image was generated from the second code example in the `yaml_write()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_write_2.png" alt="This image was generated from the second code example in the `yaml_write()` help file." style="width:100\%;">
 }
 }
 }

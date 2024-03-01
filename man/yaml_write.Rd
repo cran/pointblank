@@ -14,32 +14,55 @@ yaml_write(
 )
 }
 \arguments{
-\item{...}{Any mix of \strong{pointblank} objects such as the \emph{agent}
+\item{...}{\emph{Pointblank agents, informants, table stores}
+
+\verb{<series of obj:<ptblank_agent|ptblank_informant|tbl_store>>}
+// \strong{required}
+
+Any mix of \strong{pointblank} objects such as the \emph{agent}
 (\code{ptblank_agent}), the \emph{informant} (\code{ptblank_informant}), or the table
 store (\code{tbl_store}). The agent and informant can be combined into a single
 YAML file (so long as both objects refer to the same table). A table store
 cannot be combined with either an agent or an informant so it must undergo
 conversion alone.}
 
-\item{.list}{Allows for the use of a list as an input alternative to \code{...}.}
+\item{.list}{\emph{Alternative to \code{...}}
 
-\item{filename}{The name of the YAML file to create on disk. It is
-recommended that either the \code{.yaml} or \code{.yml} extension be used for this
-file. If not provided then default names will be used (\code{"tbl_store.yml"})
-for a table store and the other objects will get default naming to the
-effect of \code{"<object>-<tbl_name>.yml"}.}
+\verb{<list of multiple expressions>} // \strong{required} (or, use \code{...})
 
-\item{path}{An optional path to which the YAML file should be saved (combined
-with \code{filename}).}
+Allows for the use of a list as an input alternative to \code{...}.}
 
-\item{expanded}{Should the written validation expressions for an \emph{agent} be
-expanded such that \strong{tidyselect} and \code{\link[=vars]{vars()}} expressions for columns are
-evaluated, yielding a validation function per column? By default, this is
-\code{FALSE} so expressions as written will be retained in the YAML
-representation.}
+\item{filename}{\emph{File name}
 
-\item{quiet}{Should the function \emph{not} inform when the file is written? By
-default this is \code{FALSE}.}
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+The name of the YAML file to create on disk. It is recommended that either
+the \code{.yaml} or \code{.yml} extension be used for this file. If not provided then
+default names will be used (\code{"tbl_store.yml"}) for a table store and the
+other objects will get default naming to the effect of
+\code{"<object>-<tbl_name>.yml"}.}
+
+\item{path}{\emph{File path}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional path to which the YAML file should be saved (combined with
+\code{filename}).}
+
+\item{expanded}{\emph{Expand validation when repeating across multiple columns}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+Should the written validation expressions for an \emph{agent} be expanded such
+that \strong{tidyselect} expressions for columns are evaluated, yielding a
+validation function per column? By default, this is \code{FALSE} so expressions
+as written will be retained in the YAML representation.}
+
+\item{quiet}{\emph{Inform (or not) upon file writing}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+.  Should the function \emph{not} inform when the file is written?}
 }
 \value{
 Invisibly returns \code{TRUE} if the YAML file has been written.
@@ -121,14 +144,14 @@ using as many validation functions as we want.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   agent \%>\% 
-  col_exists(columns = vars(date, date_time)) \%>\%
+  col_exists(columns = c(date, date_time)) \%>\%
   col_vals_regex(
-    columns = vars(b),
+    columns = b,
     regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}"
   ) \%>\%
   rows_distinct() \%>\%
-  col_vals_gt(columns = vars(d), value = 100) \%>\%
-  col_vals_lte(columns = vars(c), value = 5)
+  col_vals_gt(columns = d, value = 100) \%>\%
+  col_vals_lte(columns = c, value = 5)
 }\if{html}{\out{</div>}}
 
 The agent can be written to a \strong{pointblank}-readable YAML file with the
@@ -157,17 +180,17 @@ actions:
   notify_fraction: 0.35
 steps:
 - col_exists:
-    columns: vars(date, date_time)
+    columns: c(date, date_time)
 - col_vals_regex:
-    columns: vars(b)
+    columns: c(b)
     regex: '[0-9]-[a-z]\{3\}-[0-9]\{3\}'
 - rows_distinct:
     columns: ~
 - col_vals_gt:
-    columns: vars(d)
+    columns: c(d)
     value: 100.0
 - col_vals_lte:
-    columns: vars(c)
+    columns: c(c)
     value: 5.0
 }\if{html}{\out{</div>}}
 
@@ -199,7 +222,7 @@ agent
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_1.png" alt="This image was generated from the first code example in the `yaml_write()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_write_1.png" alt="This image was generated from the first code example in the `yaml_write()` help file." style="width:100\%;">
 }
 }
 
@@ -232,7 +255,7 @@ agent
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_2.png" alt="This image was generated from the second code example in the `yaml_write()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_write_2.png" alt="This image was generated from the second code example in the `yaml_write()` help file." style="width:100\%;">
 }
 }
 }
@@ -257,7 +280,7 @@ using as many \verb{info_*()} functions as we want.
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <- 
   informant \%>\%
   info_columns(
-    columns = vars(a),
+    columns = a,
     info = "In the range of 1 to 10. (SIMPLE)"
   ) \%>\%
   info_columns(
@@ -265,7 +288,7 @@ using as many \verb{info_*()} functions as we want.
     info = "Time-based values (e.g., `Sys.time()`)."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "The date part of `date_time`. (CALC)"
   )
 }\if{html}{\out{</div>}}
@@ -338,7 +361,7 @@ informant
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_yaml_write_3.png" alt="This image was generated from the third code example in the `yaml_write()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_yaml_write_3.png" alt="This image was generated from the third code example in the `yaml_write()` help file." style="width:100\%;">
 }
 }
 

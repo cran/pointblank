@@ -1,32 +1,85 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Get a summary report using multiple agents
 #' 
-#' @description 
+#' @description
+#' 
 #' We can get an informative summary table from a collective of agents by using
 #' the `get_multiagent_report()` function. Information from multiple agent can
 #' be provided in three very forms: (1) the *Long Display* (stacked reports),
 #' (2) the *Wide Display* (a comparison report), (3) as a tibble with packed
 #' columns.
 #' 
+#' @param multiagent A multiagent object of class `ptblank_multiagent`.
+#' 
+#' @param display_table Should a display table be generated? If `TRUE` (the
+#'   default) a display table for the report will be shown in the Viewer. If
+#'   `FALSE` then a tibble will be returned.
+#'   
+#' @param display_mode If we are getting a display table, should the agent data
+#'   be presented in a `"long"` or `"wide"` form? The default is `"long"` but
+#'   when comparing multiple runs where the target table is the same it might be
+#'   preferable to choose `"wide"`.
+#'   
+#' @param title Options for customizing the title of the report when
+#'   `display_table = TRUE`. The default is the keyword `":default:"` which
+#'   produces generic title text. If no title is wanted, then the `":none:"`
+#'   keyword option can be used. Another keyword option is `":tbl_name:"`, and
+#'   that presents the name of the table as the title for the report (this can
+#'   only be used when `display_mode = "long"`). Aside from keyword options,
+#'   text can be provided for the title and `glue::glue()` calls can be used to
+#'   construct the text string. If providing text, it will be interpreted as
+#'   Markdown text and transformed internally to HTML. To circumvent such a
+#'   transformation, use text in [I()] to explicitly state that the supplied
+#'   text should not be transformed.
+#'   
+#' @param lang *Reporting language*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The language to use for the long or wide report forms. By default, `NULL`
+#'   will preserve any language set in the component reports. The following
+#'   options will force the same language across all component reports: English
+#'   (`"en"`), French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish
+#'   (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian
+#'   (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch
+#'   (`"nl"`).
+#'   
+#' @param locale *Locale for value formatting*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional locale ID to use for formatting values in the long or wide
+#'   report forms (according the locale's rules). Examples include `"en_US"` for
+#'   English (United States) and `"fr_FR"` for French (France); more simply,
+#'   this can be a language identifier without a country designation, like
+#'   `"es"` for Spanish (Spain, same as `"es_ES"`). This `locale` option will
+#'   override any previously set locale values.
+#' 
+#' @return A **gt** table object if `display_table = TRUE` or a tibble if
+#'   `display_table = FALSE`.
+#' 
 #' @section The Long Display:
+#' 
 #' When displayed as `"long"` the multiagent report will stack individual agent
 #' reports in a single document in the order of the agents in the multiagent
 #' object.
@@ -36,6 +89,7 @@
 #' of the agents within the multiagent object.
 #' 
 #' @section The Wide Display:
+#' 
 #' When displayed as `"wide"` the multiagent report will show data from
 #' individual agents as columns, with rows standing as validation steps common
 #' across the agents.
@@ -56,42 +110,6 @@
 #' - *subsequent columns*: each column beyond `STEP` represents a separate
 #' interrogation from an *agent* object. The time stamp for the completion of
 #' each interrogation is shown as the column label.
-#' 
-#' @param multiagent A multiagent object of class `ptblank_multiagent`.
-#' @param display_table Should a display table be generated? If `TRUE` (the
-#'   default) a display table for the report will be shown in the Viewer. If
-#'   `FALSE` then a tibble will be returned.
-#' @param display_mode If we are getting a display table, should the agent data
-#'   be presented in a `"long"` or `"wide"` form? The default is `"long"` but
-#'   when comparing multiple runs where the target table is the same it might be
-#'   preferable to choose `"wide"`.
-#' @param title Options for customizing the title of the report when
-#'   `display_table = TRUE`. The default is the keyword `":default:"` which
-#'   produces generic title text. If no title is wanted, then the `":none:"`
-#'   keyword option can be used. Another keyword option is `":tbl_name:"`, and
-#'   that presents the name of the table as the title for the report (this can
-#'   only be used when `display_mode = "long"`). Aside from keyword options,
-#'   text can be provided for the title and `glue::glue()` calls can be used to
-#'   construct the text string. If providing text, it will be interpreted as
-#'   Markdown text and transformed internally to HTML. To circumvent such a
-#'   transformation, use text in [I()] to explicitly state that the supplied
-#'   text should not be transformed.
-#' @param lang The language to use for the long or wide report forms. By
-#'   default, `NULL` will preserve any language set in the component reports.
-#'   The following options will force the same language across all component
-#'   reports: English (`"en"`), French (`"fr"`), German (`"de"`), Italian
-#'   (`"it"`), Spanish (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese
-#'   (`"zh"`), Russian (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish
-#'   (`"sv"`), and Dutch (`"nl"`).
-#' @param locale An optional locale ID to use for formatting values in the long
-#'   or wide report forms (according the locale's rules). Examples include
-#'   `"en_US"` for English (United States) and `"fr_FR"` for French (France);
-#'   more simply, this can be a language identifier without a country
-#'   designation, like `"es"` for Spanish (Spain, same as `"es_ES"`). This
-#'   `locale` option will override any previously set locale values.
-#' 
-#' @return A **gt** table object if `display_table = TRUE` or a tibble if
-#'   `display_table = FALSE`.
 #' 
 #' @section Examples:
 #' 
@@ -128,32 +146,32 @@
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
-#'     columns = vars(date_time),
+#'     columns = date_time,
 #'     value = vars(date),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   col_vals_gt(
-#'     columns = vars(b), 
+#'     columns = b, 
 #'     value = vars(g),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   rows_distinct() %>%
 #'   col_vals_equal(
-#'     columns = vars(d), 
+#'     columns = d, 
 #'     value = vars(d),
 #'     na_pass = TRUE
 #'   ) %>%
 #'   col_vals_between(
-#'     columns = vars(c), 
+#'     columns = c, 
 #'     left = vars(a), right = vars(d)
 #'   ) %>%
 #'   col_vals_not_between(
-#'     columns = vars(c),
+#'     columns = c,
 #'     left = 10, right = 20,
 #'     na_pass = TRUE
 #'   ) %>%
-#'   rows_distinct(columns = vars(d, e, f)) %>%
-#'   col_is_integer(columns = vars(a)) %>%
+#'   rows_distinct(columns = d, e, f) %>%
+#'   col_is_integer(columns = a) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -163,9 +181,9 @@
 #' ```r
 #' agent_2 <- 
 #'   agent_1 %>%
-#'   col_exists(columns = vars(date, date_time)) %>%
+#'   col_exists(columns = date, date_time) %>%
 #'   col_vals_regex(
-#'     columns = vars(b), 
+#'     columns = b, 
 #'     regex = "[0-9]-[a-z]{3}-[0-9]{3}",
 #'     active = FALSE
 #'   ) %>%
@@ -179,7 +197,7 @@
 #' agent_3 <- 
 #'   agent_2 %>%
 #'   col_vals_in_set(
-#'     columns = vars(f),
+#'     columns = f,
 #'     set = c("low", "mid", "high")
 #'   ) %>%
 #'   remove_steps(i = 5) %>%
@@ -871,6 +889,7 @@ get_multiagent_report <- function(
           #report code {
             font-family: 'IBM Plex Mono', monospace, courier;
             font-size: 11px;
+            color: black;
             background-color: transparent;
             padding: 0;
           }
@@ -895,6 +914,11 @@ get_multiagent_report <- function(
   }
   
   class(report_tbl) <- c("ptblank_multiagent_report.wide", class(report_tbl))
+  
+  # Quarto rendering workaround
+  if (check_quarto()) {
+    report_tbl <- gt::fmt(report_tbl, fns = identity)
+  }
   
   report_tbl
 }

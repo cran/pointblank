@@ -7,10 +7,20 @@
 deactivate_steps(agent, i = NULL)
 }
 \arguments{
-\item{agent}{An agent object of class \code{ptblank_agent}.}
+\item{agent}{\emph{The pointblank agent object}
 
-\item{i}{The validation step number, which is assigned to each validation
-step in the order of definition.}
+\verb{obj:<ptblank_agent>} // \strong{required}
+
+A \strong{pointblank} \emph{agent} object that is commonly created through the use of
+the \code{\link[=create_agent]{create_agent()}} function.}
+
+\item{i}{\emph{A validation step number}
+
+\verb{scalar<integer>} // \emph{default:} \code{NULL} (\code{optional})
+
+The validation step number, which is assigned to each validation step in
+the order of definition. If \code{NULL} (the default) then step deactivation
+won't occur by index.}
 }
 \value{
 A \code{ptblank_agent} object.
@@ -41,9 +51,9 @@ agent_1 <-
     tbl_name = "small_table",
     label = "An example."
   ) \%>\%
-  col_exists(columns = vars(date)) \%>\%
+  col_exists(columns = date) \%>\%
   col_vals_regex(
-    columns = vars(b),
+    columns = b,
     regex = "[0-9]-[a-z]{3}-[0-9]"
   ) \%>\%
   interrogate()

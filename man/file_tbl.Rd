@@ -115,7 +115,7 @@ A different strategy is to provide the data-reading function call directly to
       col_types = "TDdcddlc"
     )
   ) \%>\%
-  col_vals_gt(columns = vars(a), value = 0)
+  col_vals_gt(columns = a, value = 0)
 }\if{html}{\out{</div>}}
 
 All of the file-reading instructions are encapsulated in the \code{tbl} expression
@@ -135,14 +135,14 @@ gets the same CSV file from the GitHub repository for the pointblank package.
     tbl = ~ file_tbl(
       file = from_github(
         file = "inst/data_files/small_table.csv",
-        repo = "rich-iannone/pointblank"
+        repo = "rstudio/pointblank"
       ),
       col_types = "TDdcddlc"
     ),
     tbl_name = "small_table",
     label = "`file_tbl()` example.",
   ) \%>\%
-  col_vals_gt(columns = vars(a), value = 0) \%>\%
+  col_vals_gt(columns = a, value = 0) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 
@@ -152,7 +152,7 @@ gets the same CSV file from the GitHub repository for the pointblank package.
 \if{html}{
 
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_file_tbl_1.png" alt="This image was generated from the first code example in the `file_tbl()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_file_tbl_1.png" alt="This image was generated from the first code example in the `file_tbl()` help file." style="width:100\%;">
 }
 }
 

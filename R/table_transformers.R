@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Table Transformer: obtain a summary stats table for numeric columns
 #' 
 #' @description
+#' 
 #' With any table object, you can produce a summary table that is scoped to the
 #' numeric column values. The output summary table will have a leading column
 #' called `".param."` with labels for each of the nine rows, each corresponding
@@ -39,8 +42,12 @@
 #' table. Column names from the input will be used in the output, preserving
 #' order as well.
 #' 
-#' @param tbl A table object to be used as input for the transformation. This
-#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A table object to be used as input for the transformation. This can be a
+#'   data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
 #' 
 #' @return A `tibble` object.
 #' 
@@ -60,7 +67,7 @@
 #' ```{r}
 #' tt_summary_stats(tbl = game_revenue) %>%
 #'   col_vals_lt(
-#'     columns = vars(item_revenue),
+#'     columns = item_revenue,
 #'     value = 150,
 #'     segments = .param. ~ "max"
 #'   )
@@ -76,7 +83,7 @@
 #'   dplyr::filter(item_type == "iap") %>%
 #'   tt_summary_stats() %>%
 #'   col_vals_between(
-#'     columns = vars(item_revenue),
+#'     columns = item_revenue,
 #'     left = 8, right = 12,
 #'     segments = .param. ~ "med"
 #'   )
@@ -105,7 +112,7 @@
 #'   rows_complete() %>%
 #'   rows_distinct() %>%
 #'   col_vals_between(
-#'     columns = vars(item_revenue),
+#'     columns = item_revenue,
 #'     left = 8, right = 12,
 #'     preconditions = ~ . %>%
 #'       dplyr::filter(item_type == "iap") %>%
@@ -154,7 +161,7 @@ tt_summary_stats <- function(tbl) {
     
     if (r_col_types[i] %in% c("integer", "numeric")) {
       
-      data_col <- dplyr::select(tbl, col_names[i])
+      data_col <- dplyr::select(tbl, tidyselect::all_of(col_names[i]))
       
       # nocov start
       
@@ -193,6 +200,7 @@ tt_summary_stats <- function(tbl) {
 #' Table Transformer: obtain a summary table for string columns
 #' 
 #' @description
+#' 
 #' With any table object, you can produce a summary table that is scoped to
 #' string-based columns. The output summary table will have a leading column
 #' called `".param."` with labels for each of the three rows, each corresponding
@@ -206,8 +214,12 @@ tt_summary_stats <- function(tbl) {
 #' table. Column names from the input will be used in the output, preserving
 #' order as well.
 #' 
-#' @param tbl A table object to be used as input for the transformation. This
-#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A table object to be used as input for the transformation. This can be a
+#'   data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
 #' 
 #' @return A `tibble` object.
 #' 
@@ -226,11 +238,11 @@ tt_summary_stats <- function(tbl) {
 #' ```{r}
 #' tt_string_info(tbl = game_revenue) %>%
 #'   col_vals_equal(
-#'     columns = vars(player_id),
+#'     columns = player_id,
 #'     value = 15
 #'   ) %>%
 #'   col_vals_equal(
-#'     columns = vars(session_id),
+#'     columns = session_id,
 #'     value = 24
 #'   )
 #' ```
@@ -244,7 +256,7 @@ tt_summary_stats <- function(tbl) {
 #' ```{r}
 #' tt_string_info(tbl = small_table) %>%
 #'   test_col_vals_lte(
-#'     columns = vars(f),
+#'     columns = f,
 #'     value = 4
 #'   )
 #' ```
@@ -274,7 +286,7 @@ tt_string_info <- function(tbl) {
     
     if (r_col_types[i] == "character") {
       
-      data_col <- dplyr::select(tbl, col_names[i])
+      data_col <- dplyr::select(tbl, tidyselect::all_of(col_names[i]))
       
       suppressWarnings({
         info_list <- get_table_column_nchar_stats(data_column = data_col)
@@ -299,14 +311,19 @@ tt_string_info <- function(tbl) {
 #' Table Transformer: get the dimensions of a table
 #' 
 #' @description
+#' 
 #' With any table object, you can produce a summary table that contains nothing
 #' more than the table's dimensions: the number of rows and the number of
 #' columns. The output summary table will have two columns and two rows. The
 #' first is the `".param."` column with the labels `"rows"` and `"columns"`; the
 #' second column, `"value"`, contains the row and column counts.
 #' 
-#' @param tbl A table object to be used as input for the transformation. This
-#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A table object to be used as input for the transformation. This can be a
+#'   data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
 #' 
 #' @return A `tibble` object.
 #' 
@@ -326,7 +343,7 @@ tt_string_info <- function(tbl) {
 #' tt_tbl_dims(tbl = game_revenue) %>%
 #'   dplyr::filter(.param. == "rows") %>%
 #'   test_col_vals_gt(
-#'     columns = vars(value),
+#'     columns = value,
 #'     value = 1500
 #'   )
 #' ```
@@ -338,7 +355,7 @@ tt_string_info <- function(tbl) {
 #' tt_tbl_dims(tbl = small_table) %>%
 #'   dplyr::filter(.param. == "columns") %>%
 #'   test_col_vals_lt(
-#'     columns = vars(value),
+#'     columns = value,
 #'     value = 10
 #'   )
 #' ```
@@ -370,6 +387,7 @@ tt_tbl_dims <- function(tbl) {
 #' Table Transformer: get a table's column names
 #' 
 #' @description
+#' 
 #' With any table object, you can produce a summary table that contains table's
 #' column names. The output summary table will have two columns and as many rows
 #' as there are columns in the input table. The first column is the `".param."`
@@ -377,8 +395,12 @@ tt_tbl_dims <- function(tbl) {
 #' columns from the input table. The second column, `"value"`, contains the
 #' column names from the input table.
 #' 
-#' @param tbl A table object to be used as input for the transformation. This
-#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A table object to be used as input for the transformation. This can be a
+#'   data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
 #' 
 #' @return A `tibble` object.
 #' 
@@ -399,7 +421,7 @@ tt_tbl_dims <- function(tbl) {
 #' ```{r}
 #' tt_tbl_colnames(tbl = game_revenue) %>%
 #'   test_col_vals_make_subset(
-#'     columns = vars(value),
+#'     columns = value,
 #'     set = c("acquisition", "country")
 #'   )
 #' ```
@@ -414,7 +436,7 @@ tt_tbl_dims <- function(tbl) {
 #'   tt_tbl_colnames() %>%
 #'   tt_string_info() %>%
 #'   test_col_vals_lt(
-#'     columns = vars(value),
+#'     columns = value,
 #'     value = 15
 #'   )
 #' ```
@@ -448,6 +470,7 @@ tt_tbl_colnames <- function(tbl) {
 #' Table Transformer: shift the times of a table
 #' 
 #' @description
+#' 
 #' With any table object containing date or date-time columns, these values can
 #' be precisely shifted with `tt_time_shift()` and specification of the time
 #' shift. We can either provide a string with the time shift components and the
@@ -455,7 +478,8 @@ tt_tbl_colnames <- function(tbl) {
 #' created via **lubridate** expressions or by using the [base::difftime()]
 #' function).
 #' 
-#' @details 
+#' @details
+#' 
 #' The `time_shift` specification cannot have a higher time granularity than the
 #' least granular time column in the input table. Put in simpler terms, if there
 #' are any date-based based columns (or just a single date-based column) then
@@ -465,15 +489,24 @@ tt_tbl_colnames <- function(tbl) {
 #' altered in the same circumstances, however, the object will resolved to an
 #' exact number of days through rounding.
 #' 
-#' @param tbl A table object to be used as input for the transformation. This
-#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
-#' @param time_shift Either a character-based representation that specifies the
-#'   time difference by which all time values in time-based columns will be
-#'   shifted, or, a `difftime` object. The character string is constructed in
-#'   the format `"0y 0m 0d 0H 0M 0S"` and individual time components can be
-#'   omitted (i.e., `"1y 5d"` is a valid specification of shifting time values
-#'   ahead one year and five days). Adding a `"-"` at the beginning of the
-#'   string (e.g., `"-2y"`) will shift time values back.
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A table object to be used as input for the transformation. This can be a
+#'   data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#'   
+#' @param time_shift *Time-shift specification*
+#' 
+#'   `scalar<character>` // *default:* `"0y 0m 0d 0H 0M 0S"`
+#' 
+#'   Either a character-based representation that specifies the time difference
+#'   by which all time values in time-based columns will be shifted, or, a
+#'   `difftime` object. The character string is constructed in the format 
+#'   `"0y 0m 0d 0H 0M 0S"` and individual time components can be omitted (i.e.,
+#'   `"1y 5d"` is a valid specification of shifting time values ahead one year
+#'   and five days). Adding a `"-"` at the beginning of the string (e.g.,
+#'   `"-2y"`) will shift time values back.
 #' 
 #' @return A data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object
 #'   depending on what was provided as `tbl`.
@@ -552,7 +585,7 @@ tt_time_shift <- function(
         tbl %>%
         dplyr::mutate(
           dplyr::across(
-            .cols = time_columns,
+            .cols = tidyselect::all_of(time_columns),
             .fns = ~ lubridate::days(n_days) + .
           )
         )
@@ -563,7 +596,7 @@ tt_time_shift <- function(
         tbl %>%
         dplyr::mutate(
           dplyr::across(
-            .cols = time_columns,
+            .cols = tidyselect::all_of(time_columns),
             .fns = ~ time_shift + .
           )
         )
@@ -612,7 +645,7 @@ tt_time_shift <- function(
           tbl %>%
           dplyr::mutate(
             dplyr::across(
-              .cols = time_columns,
+              .cols = tidyselect::all_of(time_columns),
               .fns = ~ fn_time(time_value * direction_val) + .)
           )
       }
@@ -625,6 +658,7 @@ tt_time_shift <- function(
 #' Table Transformer: slice a table with a slice point on a time column
 #' 
 #' @description
+#' 
 #' With any table object containing date, date-time columns, or a mixture
 #' thereof, any one of those columns can be used to effectively slice the data
 #' table in two with a `slice_point`: and you get to choose which of those
@@ -636,27 +670,50 @@ tt_time_shift <- function(
 #' accepted: (1) an ISO 8601 formatted time string (as a date or a date-time),
 #' (2) a `POSIXct` time, or (3) a `Date` object.
 #' 
-#' @details 
+#' @details
+#' 
 #' There is the option to `arrange` the table by the date or date-time values in
 #' the `time_column`. This ordering is always done in an ascending manner. Any
 #' `NA`/`NULL` values in the `time_column` will result in the corresponding rows
 #' can being removed (no matter which slice is retained).
 #'  
-#' @param tbl A table object to be used as input for the transformation. This
-#'   can be a data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
-#' @param time_column The time-based column that will be used as a basis for the
-#'   slicing. If no time column is provided then the first one found will be
-#'   used.
-#' @param slice_point The location on the `time_column` where the slicing will
-#'   occur. This can either be a decimal value from `0` to `1`, an ISO 8601
-#'   formatted time string (as a date or a date-time), a `POSIXct` time, or a
-#'   `Date` object.
-#' @param keep Which slice should be kept? The `"left"` side (the default)
-#'   contains data rows that are earlier than the `slice_point` and the
-#'   `"right"` side will have rows that are later.
-#' @param arrange Should the slice be arranged by the `time_column`? This may be
-#'   useful if the input `tbl` isn't ordered by the `time_column`. By default,
-#'   this is `FALSE` and the original ordering is retained.
+#' @param tbl *A data table*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A table object to be used as input for the transformation. This can be a
+#'   data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object.
+#'   
+#' @param time_column *Column with time data*
+#' 
+#'    `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The time-based column that will be used as a basis for the slicing. If no
+#'   time column is provided then the first one found will be used.
+#'   
+#' @param slice_point
+#' 
+#'    `scalar<numeric|character|POSIXct|Date>` // *default:* `0`
+#' 
+#'   The location on the `time_column` where the slicing will occur. This can
+#'   either be a decimal value from `0` to `1`, an ISO 8601 formatted time
+#'   string (as a date or a date-time), a `POSIXct` time, or a `Date` object.
+#'   
+#' @param keep *Data slice to keep*
+#' 
+#'   `singl-kw:[left|right]` // *default:* `"left"`
+#' 
+#'   Which slice should be kept? The `"left"` side (the default) contains data
+#'   rows that are earlier than the `slice_point` and the `"right"` side will
+#'   have rows that are later.
+#'   
+#' @param arrange *Arrange data slice by the time data?*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#' 
+#'   Should the slice be arranged by the `time_column`? This may be useful if
+#'   the input `tbl` isn't ordered by the `time_column`. By default, this is
+#'   `FALSE` and the original ordering is retained.
 #' 
 #' @return A data frame, a tibble, a `tbl_dbi` object, or a `tbl_spark` object
 #'   depending on what was provided as `tbl`.
@@ -821,8 +878,10 @@ tt_time_slice <- function(
 
 #' Get a parameter value from a summary table
 #' 
-#' @description The `get_tt_param()` function can help you to obtain a single
-#' parameter value from a summary table generated by the `tt_*()` functions
+#' @description
+#' 
+#' The `get_tt_param()` function can help you to obtain a single parameter value
+#' from a summary table generated by the `tt_*()` functions
 #' [tt_summary_stats()], [tt_string_info()], [tt_tbl_dims()], or
 #' [tt_tbl_colnames()]. The following parameters are to be used depending on the
 #' input `tbl`:
@@ -838,17 +897,33 @@ tt_time_slice <- function(
 #' in their input tables, respectively. For that reason, a column name must be
 #' supplied to the `column` argument in `get_tt_param()`.
 #' 
-#' @param tbl A summary table generated by either of the [tt_summary_stats()],
+#' @param tbl *Summary table generated by specific transformer functions*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A summary table generated by either of the [tt_summary_stats()],
 #'   [tt_string_info()], [tt_tbl_dims()], or [tt_tbl_colnames()] functions.
-#' @param param The parameter name associated to the value that is to be gotten.
-#'   These parameter names are always available in the first column (`.param.`)
-#'   of a summary table obtained by [tt_summary_stats()], [tt_string_info()],
+#'   
+#' @param param *Parameter name*
+#' 
+#'   `scalar<character>` // **required**
+#' 
+#'   The parameter name associated to the value that is to be gotten. These
+#'   parameter names are always available in the first column (`.param.`) of a
+#'   summary table obtained by [tt_summary_stats()], [tt_string_info()],
 #'   [tt_tbl_dims()], or [tt_tbl_colnames()].
-#' @param column The column in the summary table for which the data value should
-#'   be obtained. This must be supplied for summary tables generated by
+#'   
+#' @param column *The target column*
+#'   
+#'   `scalar<character>` // **required** (in select cases)
+#' 
+#'   The column in the summary table for which the data value should be
+#'   obtained. This must be supplied for summary tables generated by
 #'   [tt_summary_stats()] and [tt_string_info()] (the [tt_tbl_dims()] and
 #'   [tt_tbl_colnames()] functions will always generate a two-column summary
 #'   table).
+#'   
+#' @return A scalar value.
 #'   
 #' @section Examples:
 #' 
@@ -878,7 +953,7 @@ tt_time_slice <- function(
 #'     keep = "right"
 #'   ) %>%
 #'   test_col_vals_lte(
-#'     columns = vars(session_duration), 
+#'     columns = session_duration, 
 #'     value = get_tt_param(
 #'       tbl = stats_tbl,
 #'       param = "max",
@@ -983,9 +1058,9 @@ get_tt_param <- function(
     # Obtain the value from the `tbl` through a `select()`, `filter()`, `pull()`
     param_value <-
       tbl %>%
-      dplyr::select(.param., .env$column) %>%
+      dplyr::select(.param., tidyselect::all_of(column)) %>%
       dplyr::filter(.param. == .env$param) %>%
-      dplyr::pull(.env$column)
+      dplyr::pull(tidyselect::all_of(column))
     
   } else if (tt_type == "tbl_dims") {
     

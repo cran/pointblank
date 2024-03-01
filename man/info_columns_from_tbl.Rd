@@ -7,14 +7,26 @@
 info_columns_from_tbl(x, tbl, .add = TRUE)
 }
 \arguments{
-\item{x}{An informant object of class \code{ptblank_informant}.}
+\item{x}{\emph{The pointblank informant object}
 
-\item{tbl}{The two-column data frame which contains metadata about the target
-table in the informant object.}
+\verb{obj:<ptblank_informant>} // \strong{required}
 
-\item{.add}{Should new text be added to existing text? This is \code{TRUE} by
-default; setting to \code{FALSE} replaces any existing text for the \code{"info"}
-property.}
+A \strong{pointblank} \emph{informant} object that is commonly created through the
+use of the \code{\link[=create_informant]{create_informant()}} function.}
+
+\item{tbl}{\emph{Metadata table with column information}
+
+\verb{obj:<tbl_*>} // \strong{required}
+
+The two-column data frame which contains metadata about the target table in
+the informant object.}
+
+\item{.add}{\emph{Add to existing info text}
+
+\verb{scalar<logical>} // \emph{default:} \code{TRUE}
+
+Should new text be added to existing text? This is \code{TRUE} by default;
+setting to \code{FALSE} replaces any existing text for the \code{"info"} property.}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -91,7 +103,7 @@ call.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_from_tbl_1.png" alt="This image was generated from the first code example in the `info_columns_from_tbl()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_info_columns_from_tbl_1.png" alt="This image was generated from the first code example in the `info_columns_from_tbl()` help file." style="width:100\%;">
 }
 }
 
@@ -104,11 +116,11 @@ and \code{acquisition} columns and view the updated report.
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <-
   informant \%>\%
   info_columns(
-    columns = "item_revenue",
+    columns = item_revenue,
     info = "Revenue reported in USD."
   ) \%>\%
   info_columns(
-    columns = "acquisition",
+    columns = acquisition,
     `top list` = "\{top5_aq\}"
   ) \%>\%
   info_snippet(
@@ -122,7 +134,7 @@ informant
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_from_tbl_2.png" alt="This image was generated from the second code example in the `info_columns_from_tbl()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_info_columns_from_tbl_2.png" alt="This image was generated from the second code example in the `info_columns_from_tbl()` help file." style="width:100\%;">
 }
 }
 }

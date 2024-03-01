@@ -1,27 +1,30 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 # nocov start
 
 #' Get a table from a local or remote file
 #' 
-#' @description 
+#' @description
+#' 
 #' If your target table is in a file, stored either locally or remotely, the
 #' `file_tbl()` function can make it possible to access it in a single function
 #' call. Compatible file types for this function are: CSV (`.csv`), TSV
@@ -41,18 +44,22 @@
 #'   in the user system or at a `http://`, `https://`, `ftp://`, or `ftps://`
 #'   URL. For a file hosted in a GitHub repository, a call to the
 #'   [from_github()] function can be used here.
+#'   
 #' @param type The file type. This is normally inferred by file extension and is
 #'   by default `NULL` to indicate that the extension will dictate the type of
 #'   file reading that is performed internally. However, if there is no
 #'   extension (and valid extensions are `.csv`, `.tsv`, `.rda`, and `.rds`), we
 #'   can provide the type as either of `csv`, `tsv`, `rda`, or `rds`.
+#'   
 #' @param ... Options passed to **readr**'s `read_csv()` or `read_tsv()`
 #'   function. Both functions have the same arguments and one or the other will
 #'   be used internally based on the file extension or an explicit value given
 #'   to `type`.
+#'   
 #' @param keep In the case of a downloaded file, should it be stored in the
 #'   working directory (`keep = TRUE`) or should it be downloaded to a temporary
 #'   directory? By default, this is `FALSE`.
+#'   
 #' @param verify If `TRUE` (the default) then a verification of the data object
 #'   having the `data.frame` class will be carried out.
 #'   
@@ -128,7 +135,7 @@
 #'       col_types = "TDdcddlc"
 #'     )
 #'   ) %>%
-#'   col_vals_gt(columns = vars(a), value = 0)
+#'   col_vals_gt(columns = a, value = 0)
 #' ```
 #'
 #' All of the file-reading instructions are encapsulated in the `tbl` expression
@@ -148,14 +155,14 @@
 #'     tbl = ~ file_tbl(
 #'       file = from_github(
 #'         file = "inst/data_files/small_table.csv",
-#'         repo = "rich-iannone/pointblank"
+#'         repo = "rstudio/pointblank"
 #'       ),
 #'       col_types = "TDdcddlc"
 #'     ),
 #'     tbl_name = "small_table",
 #'     label = "`file_tbl()` example.",
 #'   ) %>%
-#'   col_vals_gt(columns = vars(a), value = 0) %>%
+#'   col_vals_gt(columns = a, value = 0) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -403,6 +410,8 @@ file_tbl <- function(
 
 #' Specify a file for download from GitHub
 #' 
+#' @description
+#' 
 #' The `from_github()` function is helpful for generating a valid URL that
 #' points to a data file in a public GitHub repository. This function can be
 #' used in the `file` argument of the [file_tbl()] function or anywhere else
@@ -411,10 +420,13 @@ file_tbl <- function(
 #' @param file The name of the file to target in a GitHub repository. This can
 #'   be a path leading to and including the file. This is combined with any path
 #'   given in `subdir`.
+#'   
 #' @param repo The GitHub repository address in the format
 #'   `username/repo[/subdir][@ref|#pull|@*release]`.
+#'   
 #' @param subdir A path string representing a subdirectory in the GitHub
 #'   repository. This is combined with any path components included in `file`.
+#'   
 #' @param default_branch The name of the default branch for the repo. This is
 #'   usually `"main"` (the default used here).
 #'   
@@ -425,14 +437,14 @@ file_tbl <- function(
 #' # obtained from the HEAD of the default branch
 #' # from_github(
 #' #   file = "inst/data_files/small_table.csv",
-#' #   repo = "rich-iannone/pointblank"
+#' #   repo = "rstudio/pointblank"
 #' # )
 #' 
 #' # The path to the file location can be supplied
 #' # fully or partially to `subdir`
 #' # from_github(
 #' #   file = "small_table.csv",
-#' #   repo = "rich-iannone/pointblank",
+#' #   repo = "rstudio/pointblank",
 #' #   subdir = "inst/data_files"
 #' # )
 #' 
@@ -446,12 +458,12 @@ file_tbl <- function(
 #' #     tbl = ~ file_tbl(
 #' #       file = from_github(
 #' #         file = "inst/data_files/small_table.csv",
-#' #         repo = "rich-iannone/pointblank"
+#' #         repo = "rstudio/pointblank"
 #' #       ),
 #' #       col_types = "TDdcddlc"
 #' #     )
 #' #   ) %>%
-#' #   col_vals_gt(vars(a), 0) %>%
+#' #   col_vals_gt(a, 0) %>%
 #' #   interrogate()
 #' 
 #' # The `from_github()` helper function is
@@ -462,7 +474,7 @@ file_tbl <- function(
 #' # a commit at release time
 #' # from_github(
 #' #   file = "inst/extdata/small_table.csv",
-#' #   repo = "rich-iannone/pointblank@v0.2.1"
+#' #   repo = "rstudio/pointblank@v0.2.1"
 #' # )
 #' 
 #' # A file may also be obtained from a repo at the
@@ -470,14 +482,14 @@ file_tbl <- function(
 #' # full SHA-1 hash for the commit can be used)
 #' # from_github(
 #' #   file = "data-raw/small_table.csv",
-#' #   repo = "rich-iannone/pointblank@e04a71"
+#' #   repo = "rstudio/pointblank@e04a71"
 #' # )
 #' 
 #' # A file may also be obtained from an
 #' # *open* pull request
 #' # from_github(
 #' #   file = "data-raw/small_table.csv",
-#' #   repo = "rich-iannone/pointblank#248"
+#' #   repo = "rstudio/pointblank#248"
 #' # )
 #' 
 #' @family Utility and Helper Functions

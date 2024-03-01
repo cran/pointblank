@@ -7,20 +7,37 @@
 info_columns(x, columns, ..., .add = TRUE)
 }
 \arguments{
-\item{x}{An informant object of class \code{ptblank_informant}.}
+\item{x}{\emph{The pointblank informant object}
 
-\item{columns}{The column or set of columns to focus on. Can be defined as a
-column name in quotes (e.g., \code{"<column_name>"}), one or more column names
-in \code{vars()} (e.g., \verb{vars(<column_name>)}), or with a select helper (e.g.,
+\verb{obj:<ptblank_informant>} // \strong{required}
+
+A \strong{pointblank} \emph{informant} object that is commonly created through the
+use of the \code{\link[=create_informant]{create_informant()}} function.}
+
+\item{columns}{\emph{The target columns}
+
+\verb{vector<character>|vars(<columns>)} // \strong{required}
+
+The column or set of columns to focus on. Can be defined as a column name
+in quotes (e.g., \code{"<column_name>"}), one or more column names in \code{vars()}
+(e.g., \verb{vars(<column_name>)}), or with a select helper (e.g.,
 \code{starts_with("date")}).}
 
-\item{...}{Information entries as a series of named arguments. The names
-refer to subsection titles within \code{COLUMN} -> \verb{<COLUMN_NAME>} and the RHS
-contains the \emph{info text} (informational text that can be written as
-Markdown and further styled with \emph{Text Tricks}).}
+\item{...}{\emph{Information entries}
 
-\item{.add}{Should new text be added to existing text? This is \code{TRUE} by
-default; setting to \code{FALSE} replaces any existing text for a property.}
+\verb{<info-text expressions>} // \strong{required}
+
+Information entries as a series of named arguments. The names refer to
+subsection titles within \code{COLUMN} -> \verb{<COLUMN_NAME>} and the RHS contains
+the \emph{info text} (informational text that can be written as Markdown and
+further styled with \emph{Text Tricks}).}
+
+\item{.add}{\emph{Add to existing info text}
+
+\verb{scalar<logical>} // \emph{default:} \code{TRUE}
+
+Should new text be added to existing text? This is \code{TRUE} by default;
+setting to \code{FALSE} replaces any existing text for a property.}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -36,6 +53,7 @@ series of named arguments (in the form \code{entry_name = "The *info text*."})
 serves as additional information for the column or columns.
 }
 \section{Info Text}{
+
 
 The \emph{info text} that's used for any of the \verb{info_*()} functions readily
 accepts Markdown formatting, and, there are a few \emph{Text Tricks} that can be
@@ -82,6 +100,7 @@ common being in the form of hexadecimal color values or as CSS color names.
 
 \section{YAML}{
 
+
 A \strong{pointblank} informant can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an informant (with
 \code{\link[=yaml_read_informant]{yaml_read_informant()}}) or perform the 'incorporate' action using the target
@@ -95,19 +114,19 @@ the YAML representation.
 \if{html}{\out{<div class="sourceCode">}}\preformatted{# R statement
 informant \%>\% 
   info_columns(
-    columns = "date_time",
+    columns = date_time,
     info = "*info text* 1."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "*info text* 2."
   ) \%>\%
   info_columns(
-    columns = "item_count",
+    columns = item_count,
     info = "*info text* 3. Statistics: \{snippet_1\}."
   ) \%>\%
   info_columns(
-    columns = vars(date, date_time),
+    columns = c(date, date_time),
     info = "UTC time."
   )
 
@@ -166,7 +185,7 @@ existing if it lands in the same area).
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{informant <-
   informant \%>\%
   info_columns(
-    columns = vars(a),
+    columns = a,
     info = "In the range of 1 to 10. ((SIMPLE))"
   ) \%>\%
   info_columns(
@@ -174,7 +193,7 @@ existing if it lands in the same area).
     info = "Time-based values (e.g., `Sys.time()`)."
   ) \%>\%
   info_columns(
-    columns = "date",
+    columns = date,
     info = "The date part of `date_time`. ((CALC))"
   )
 }\if{html}{\out{</div>}}
@@ -187,7 +206,7 @@ Upon printing the \code{informant} object, we see the additions made to the
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_columns_1.png" alt="This image was generated from the first code example in the `info_columns()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_info_columns_1.png" alt="This image was generated from the first code example in the `info_columns()` help file." style="width:100\%;">
 }
 }
 }

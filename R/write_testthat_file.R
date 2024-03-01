@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Transform a **pointblank** agent to a **testthat** test file
 #' 
 #' @description
+#' 
 #' With a **pointblank** *agent*, we can write a **testthat** test file and opt
 #' to place it in the `testthat/tests` if it is available in the project path
 #' (we can specify an alternate path as well). This works by transforming the
@@ -48,7 +51,8 @@
 #' perform an interrogation on the target data before generating the
 #' **testthat** test file.
 #' 
-#' @details 
+#' @details
+#' 
 #' Tests for inactive validation steps will be skipped with a clear message
 #' indicating that the reason for skipping was due to the test not being active.
 #' Any inactive validation steps can be forced into an active state by using the
@@ -75,7 +79,7 @@
 #'   
 #'   expect_col_exists(
 #'     tbl,
-#'     columns = vars(date_time),
+#'     columns = date_time,
 #'     threshold = 1
 #'   ) 
 #' })
@@ -84,7 +88,7 @@
 #'   
 #'   expect_col_vals_lte(
 #'     tbl,
-#'     columns = vars(c),
+#'     columns = c,
 #'     value = 5,
 #'     threshold = 0.25
 #'   ) 
@@ -102,8 +106,8 @@
 #'     tbl = ~ small_table,
 #'     actions = action_levels(stop_at = 0.25)
 #'   ) %>%
-#'   col_exists(vars(date_time)) %>%
-#'   col_vals_lte(vars(c), value = 5)
+#'   col_exists(date_time) %>%
+#'   col_vals_lte(c, value = 5)
 #'   
 #' write_testthat_file(
 #'   agent = agent,
@@ -112,29 +116,57 @@
 #' )
 #' ```
 #' 
-#' @param agent An agent object of class `ptblank_agent`.
-#' @param name An optional name for for the **testhat** test file. This should
-#'   be a name without extension and without the leading `"test-"` text. If
-#'   nothing is supplied, the name will be derived from the `tbl_name` in the
-#'   agent. If that's not present, a generic name will be used.
-#' @param path A path can be specified here if there shouldn't be an attempt to
-#'   place the file in `testthat/tests`.
-#' @param overwrite Should a **testthat** file of the same name be overwritten?
-#'   By default, this is `FALSE`.
-#' @param skips This is an optional vector of test-skipping keywords modeled
-#'   after the **testthat** `skip_on_*()` functions. The following keywords can
-#'   be used to include `skip_on_*()` statements: `"cran"`
-#'   ([testthat::skip_on_cran()]), `"travis"` ([testthat::skip_on_travis()]),
-#'   `"appveyor"` ([testthat::skip_on_appveyor()]), `"ci"`
-#'   ([testthat::skip_on_ci()]), `"covr"` ([testthat::skip_on_covr()]), `"bioc"`
+#' @param agent *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // **required**
+#' 
+#'   A **pointblank** *agent* object that is commonly created through the use of
+#'   the [create_agent()] function.
+#' 
+#' @param name *Name for generated testthat file*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional name for for the **testhat** test file. This should be a name
+#'   without extension and without the leading `"test-"` text. If nothing is
+#'   supplied, the name will be derived from the `tbl_name` in the agent. If
+#'   that's not present, a generic name will be used.
+#'   
+#' @param path *File path*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   A path can be specified here if there shouldn't be an attempt to place the
+#'   file in `testthat/tests`.
+#'   
+#' @param overwrite *Overwrite a previous file of the same name*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#'   
+#'   Should a **testthat** file of the same name be overwritten?
+#'   
+#' @param skips *Test skipping*
+#' 
+#'   `vector<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   This is an optional vector of test-skipping keywords modeled after the
+#'   **testthat** `skip_on_*()` functions. The following keywords can be used to
+#'   include `skip_on_*()` statements: `"cran"` ([testthat::skip_on_cran()]),
+#'   `"travis"` ([testthat::skip_on_travis()]), `"appveyor"`
+#'   ([testthat::skip_on_appveyor()]), `"ci"` ([testthat::skip_on_ci()]),
+#'   `"covr"` ([testthat::skip_on_covr()]), `"bioc"`
 #'   ([testthat::skip_on_bioc()]). There are keywords for skipping tests on
 #'   certain operating systems and all of them will insert a specific
 #'   [testthat::skip_on_os()] call. These are `"windows"`
 #'   (`skip_on_os("windows")`), `"mac"` (`skip_on_os("mac")`), `"linux"`
 #'   (`skip_on_os("linux")`), and `"solaris"` (`skip_on_os("solaris")`). These
 #'   calls will be placed at the top of the generated **testthat** test file.
-#' @param quiet Should the function *not* inform when the file is written? By
-#'   default this is `FALSE`.
+#'   
+#' @param quiet *Inform (or not) upon file writing*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#' 
+#'   Should the function *not* inform when the file is written?
 #'   
 #' @return Invisibly returns `TRUE` if the **testthat** file has been written. 
 #' 
@@ -174,13 +206,13 @@
 #'     label = "An example.",
 #'     actions = al
 #'   ) %>%
-#'   col_exists(vars(date, date_time)) %>%
+#'   col_exists(c(date, date_time)) %>%
 #'   col_vals_regex(
-#'     vars(b),
+#'     b,
 #'     regex = "[0-9]-[a-z]{3}-[0-9]{3}"
 #'   ) %>%
-#'   col_vals_gt(vars(d), value = 100) %>%
-#'   col_vals_lte(vars(c), value = 5) %>%
+#'   col_vals_gt(d, value = 100) %>%
+#'   col_vals_lte(c, value = 5) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -213,7 +245,7 @@
 #'   
 #'   expect_col_exists(
 #'     tbl,
-#'     columns = vars(date),
+#'     columns = date,
 #'     threshold = 1
 #'   ) 
 #' })
@@ -222,7 +254,7 @@
 #'   
 #'   expect_col_exists(
 #'     tbl,
-#'     columns = vars(date_time),
+#'     columns = date_time,
 #'     threshold = 1
 #'   ) 
 #' })
@@ -232,7 +264,7 @@
 #'   
 #'   expect_col_vals_regex(
 #'     tbl,
-#'     columns = vars(b),
+#'     columns = b,
 #'     regex = "[0-9]-[a-z]{3}-[0-9]{3}",
 #'     threshold = 0.25
 #'   ) 
@@ -242,7 +274,7 @@
 #'   
 #'   expect_col_vals_gt(
 #'     tbl,
-#'     columns = vars(d),
+#'     columns = d,
 #'     value = 100,
 #'     threshold = 0.25
 #'   ) 
@@ -252,7 +284,7 @@
 #'   
 #'   expect_col_vals_lte(
 #'     tbl,
-#'     columns = vars(c),
+#'     columns = c,
 #'     value = 5,
 #'     threshold = 0.25
 #'   ) 

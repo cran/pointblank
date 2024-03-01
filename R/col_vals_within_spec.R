@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Do values in column data fit within a specification?
 #' 
 #' @description
+#' 
 #' The `col_vals_within_spec()` validation function, the
 #' `expect_col_vals_within_spec()` expectation function, and the
 #' `test_col_vals_within_spec()` test function all check whether column values
@@ -31,7 +34,25 @@
 #' over the number of test units that is equal to the number of rows in the
 #' table (after any `preconditions` have been applied).
 #' 
+#' @inheritParams col_vals_gt
+#' 
+#' @param spec *Specification type*
+#' 
+#'   `scalar<character>` // **required**
+#' 
+#'   A specification string for defining the specification type. Examples are
+#'   `"email"`, `"url"`, and `"postal[USA]"`. All options are explained in the
+#'   *Specifications* section.
+#' 
+#' @return For the validation function, the return value is either a
+#'   `ptblank_agent` object or a table object (depending on whether an agent
+#'   object or a table was passed to `x`). The expectation function invisibly
+#'   returns its input but, in the context of testing data, the function is
+#'   called primarily for its potential side-effects (e.g., signaling failure).
+#'   The test function returns a logical value.
+#' 
 #' @section Supported Input Tables:
+#' 
 #' The types of data tables that are officially supported are:
 #' 
 #'  - data frames (`data.frame`) and tibbles (`tbl_df`)
@@ -49,6 +70,7 @@
 #' **pointblank**).
 #' 
 #' @section Specifications:
+#' 
 #' A specification type must be used with the `spec` argument. This is a
 #' character-based keyword that corresponds to the type of data in the specified
 #' `columns`. The following keywords can be used:
@@ -96,20 +118,28 @@
 #' Only a single `spec` value should be provided per function call.
 #'
 #' @section Column Names:
-#' If providing multiple column names, the result will be an expansion of
-#' validation steps to that number of column names (e.g., `vars(col_a, col_b)`
-#' will result in the entry of two validation steps). Aside from column names in
-#' quotes and in `vars()`, **tidyselect** helper functions are available for
-#' specifying columns. They are: `starts_with()`, `ends_with()`, `contains()`,
-#' `matches()`, and `everything()`.
+#' 
+#' `columns` may be a single column (as symbol `a` or string `"a"`) or a vector
+#' of columns (`c(a, b, c)` or `c("a", "b", "c")`). `{tidyselect}` helpers
+#' are also supported, such as `contains("date")` and `where(is.double)`. If
+#' passing an *external vector* of columns, it should be wrapped in `all_of()`.
+#' 
+#' When multiple columns are selected by `columns`, the result will be an
+#' expansion of validation steps to that number of columns (e.g.,
+#' `c(col_a, col_b)` will result in the entry of two validation steps).
+#' 
+#' Previously, columns could be specified in `vars()`. This continues to work, 
+#' but `c()` offers the same capability and supersedes `vars()` in `columns`.
 #'
 #' @section Missing Values:
+#' 
 #' This validation function supports special handling of `NA` values. The
 #' `na_pass` argument will determine whether an `NA` value appearing in a test
 #' unit should be counted as a *pass* or a *fail*. The default of `na_pass =
 #' FALSE` means that any `NA`s encountered will accumulate failing test units.
 #' 
 #' @section Preconditions:
+#' 
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
 #' the target table during interrogation as a preparatory step. It might happen
 #' that a particular validation requires a calculated column, some filtering of
@@ -128,6 +158,7 @@
 #' be supplied (e.g., `function(x) dplyr::mutate(x, col_b = col_a + 10)`).
 #' 
 #' @section Segments:
+#' 
 #' By using the `segments` argument, it's possible to define a particular
 #' validation with segments (or row slices) of the target table. An optional
 #' expression or set of expressions that serve to segment the target table by
@@ -158,6 +189,7 @@
 #' generate a separate version of the target table.
 #' 
 #' @section Actions:
+#' 
 #' Often, we will want to specify `actions` for the validation. This argument,
 #' present in every validation function, takes a specially-crafted list
 #' object that is best produced by the [action_levels()] function. Read that
@@ -172,7 +204,22 @@
 #' quarter of the total test units fails, the other `stop()`s at the same
 #' threshold level).
 #' 
+#' @section Labels:
+#' 
+#' `label` may be a single string or a character vector that matches the number
+#' of expanded steps. `label` also supports `{glue}` syntax and exposes the
+#' following dynamic variables contextualized to the current step:
+#'   
+#' - `"{.step}"`: The validation step name
+#' - `"{.col}"`: The current column name
+#' - `"{.seg_col}"`: The current segment's column name
+#' - `"{.seg_val}"`: The current segment's value/group
+#'     
+#' The glue context also supports ordinary expressions for further flexibility
+#' (e.g., `"{toupper(.step)}"`) as long as they return a length-1 string.
+#' 
 #' @section Briefs:
+#' 
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
@@ -180,6 +227,7 @@
 #' then be automatically generated.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** agent can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
 #' or interrogate the target table (via [yaml_agent_interrogate()]). When
@@ -194,7 +242,7 @@
 #' ```r
 #' agent %>% 
 #'   col_vals_within_spec(
-#'     columns = vars(a),
+#'     columns = a,
 #'     spec = "email",
 #'     na_pass = TRUE,
 #'     preconditions = ~ . %>% dplyr::filter(b < 10),
@@ -210,7 +258,7 @@
 #' ```yaml
 #' steps:
 #' - col_vals_within_spec:
-#'     columns: vars(a)
+#'     columns: c(a)
 #'     spec: email
 #'     na_pass: true
 #'     preconditions: ~. %>% dplyr::filter(b < 10)
@@ -228,17 +276,6 @@
 #' them with their default when generating the YAML by other means). It is also
 #' possible to preview the transformation of an agent to YAML without any
 #' writing to disk by using the [yaml_agent_string()] function.
-#'
-#' @inheritParams col_vals_gt
-#' @param spec A specification string. Examples are `"email"`, `"url"`, and
-#'   `"postal[USA]"`. All options are explained in the *Specifications* section.
-#' 
-#' @return For the validation function, the return value is either a
-#'   `ptblank_agent` object or a table object (depending on whether an agent
-#'   object or a table was passed to `x`). The expectation function invisibly
-#'   returns its input but, in the context of testing data, the function is
-#'   called primarily for its potential side-effects (e.g., signaling failure).
-#'   The test function returns a logical value.
 #' 
 #' @section Examples:
 #' 
@@ -264,7 +301,7 @@
 #' agent <-
 #'   create_agent(tbl = spec_slice) %>%
 #'   col_vals_within_spec(
-#'     columns = vars(email_addresses),
+#'     columns = email_addresses,
 #'     spec = "email"
 #'   ) %>%
 #'   interrogate()
@@ -289,7 +326,7 @@
 #' ```{r}
 #' spec_slice %>%
 #'   col_vals_within_spec(
-#'     columns = vars(email_addresses),
+#'     columns = email_addresses,
 #'     spec = "email"
 #'   ) %>%
 #'   dplyr::select(email_addresses)
@@ -303,7 +340,7 @@
 #' ```r
 #' expect_col_vals_within_spec(
 #'   spec_slice,
-#'   columns = vars(email_addresses),
+#'   columns = email_addresses,
 #'   spec = "email"
 #' )
 #' ```
@@ -316,7 +353,7 @@
 #' ```{r}
 #' spec_slice %>%
 #'   test_col_vals_within_spec(
-#'     columns = vars(email_addresses),
+#'     columns = email_addresses,
 #'     spec = "email"
 #'   )
 #' ```
@@ -345,13 +382,10 @@ col_vals_within_spec <- function(
     active = TRUE
 ) {
   
-  # Get `columns` as a label
-  columns_expr <- 
-    rlang::as_label(rlang::quo(!!enquo(columns))) %>%
-    gsub("^\"|\"$", "", .)
-  
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
+  # Get `columns` as a label
+  columns_expr <- as_columns_expr(columns)
   
   # Resolve the columns based on the expression
   columns <- resolve_columns(x = x, var_expr = columns, preconditions)
@@ -372,7 +406,7 @@ col_vals_within_spec <- function(
     secret_agent <-
       create_agent(x, label = "::QUIET::") %>%
       col_vals_within_spec(
-        columns = columns,
+        columns = tidyselect::all_of(columns),
         spec = spec,
         na_pass = na_pass,
         preconditions = preconditions,
@@ -413,6 +447,7 @@ col_vals_within_spec <- function(
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
+  label <- resolve_label(label, columns, segments_list)
   for (i in seq_along(columns)) {
     for (j in seq_along(segments_list)) {
       
@@ -434,7 +469,7 @@ col_vals_within_spec <- function(
           seg_val = seg_val,
           actions = covert_actions(actions, agent),
           step_id = step_id[i],
-          label = label,
+          label = label[[i, j]],
           brief = brief[i],
           active = active
         )

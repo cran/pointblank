@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Write **pointblank** objects to YAML files
 #' 
 #' @description
+#' 
 #' With `yaml_write()` we can take different **pointblank** objects (these are
 #' the `ptblank_agent`, `ptblank_informant`, and `tbl_store`) and write them to
 #' YAML. With an *agent*, for example, `yaml_write()` will write that everything
@@ -38,29 +41,57 @@
 #' This option can be set when using [create_agent()]/[create_informant()] or
 #' with [set_tbl()] (useful with an existing agent or informant object).
 #' 
-#' @param ... Any mix of **pointblank** objects such as the *agent*
+#' @param ... *Pointblank agents, informants, table stores*
+#' 
+#'   `<series of obj:<ptblank_agent|ptblank_informant|tbl_store>>`
+#'   // **required**
+#' 
+#'   Any mix of **pointblank** objects such as the *agent*
 #'   (`ptblank_agent`), the *informant* (`ptblank_informant`), or the table
 #'   store (`tbl_store`). The agent and informant can be combined into a single
 #'   YAML file (so long as both objects refer to the same table). A table store
 #'   cannot be combined with either an agent or an informant so it must undergo
 #'   conversion alone.
-#' @param .list Allows for the use of a list as an input alternative to `...`.
-#' @param filename The name of the YAML file to create on disk. It is
-#'   recommended that either the `.yaml` or `.yml` extension be used for this
-#'   file. If not provided then default names will be used (`"tbl_store.yml"`)
-#'   for a table store and the other objects will get default naming to the
-#'   effect of `"<object>-<tbl_name>.yml"`.
-#' @param path An optional path to which the YAML file should be saved (combined
-#'   with `filename`).
-#' @param expanded Should the written validation expressions for an *agent* be
-#'   expanded such that **tidyselect** and [vars()] expressions for columns are
-#'   evaluated, yielding a validation function per column? By default, this is
-#'   `FALSE` so expressions as written will be retained in the YAML
-#'   representation.
-#' @param quiet Should the function *not* inform when the file is written? By
-#'   default this is `FALSE`.
 #'   
-#' @return Invisibly returns `TRUE` if the YAML file has been written. 
+#' @param .list *Alternative to `...`*
+#' 
+#'   `<list of multiple expressions>` // **required** (or, use `...`)
+#' 
+#'   Allows for the use of a list as an input alternative to `...`.
+#' 
+#' @param filename *File name*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The name of the YAML file to create on disk. It is recommended that either
+#'   the `.yaml` or `.yml` extension be used for this file. If not provided then
+#'   default names will be used (`"tbl_store.yml"`) for a table store and the
+#'   other objects will get default naming to the effect of
+#'   `"<object>-<tbl_name>.yml"`.
+#' 
+#' @param path *File path*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional path to which the YAML file should be saved (combined with
+#'   `filename`).
+#' 
+#' @param expanded *Expand validation when repeating across multiple columns*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#' 
+#'   Should the written validation expressions for an *agent* be expanded such
+#'   that **tidyselect** expressions for columns are evaluated, yielding a
+#'   validation function per column? By default, this is `FALSE` so expressions
+#'   as written will be retained in the YAML representation.
+#' 
+#' @param quiet *Inform (or not) upon file writing*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#' 
+#'.  Should the function *not* inform when the file is written?
+#'   
+#' @return Invisibly returns `TRUE` if the YAML file has been written.
 #'   
 #' @section Examples:
 #' 
@@ -108,14 +139,14 @@
 #' ```r
 #' agent <-
 #'   agent %>% 
-#'   col_exists(columns = vars(date, date_time)) %>%
+#'   col_exists(columns = c(date, date_time)) %>%
 #'   col_vals_regex(
-#'     columns = vars(b),
+#'     columns = b,
 #'     regex = "[0-9]-[a-z]{3}-[0-9]{3}"
 #'   ) %>%
 #'   rows_distinct() %>%
-#'   col_vals_gt(columns = vars(d), value = 100) %>%
-#'   col_vals_lte(columns = vars(c), value = 5)
+#'   col_vals_gt(columns = d, value = 100) %>%
+#'   col_vals_lte(columns = c, value = 5)
 #' ```
 #'
 #' The agent can be written to a **pointblank**-readable YAML file with the
@@ -147,17 +178,17 @@
 #'   notify_fraction: 0.35
 #' steps:
 #' - col_exists:
-#'     columns: vars(date, date_time)
+#'     columns: c(date, date_time)
 #' - col_vals_regex:
-#'     columns: vars(b)
+#'     columns: c(b)
 #'     regex: '[0-9]-[a-z]{3}-[0-9]{3}'
 #' - rows_distinct:
 #'     columns: ~
 #' - col_vals_gt:
-#'     columns: vars(d)
+#'     columns: c(d)
 #'     value: 100.0
 #' - col_vals_lte:
-#'     columns: vars(c)
+#'     columns: c(c)
 #'     value: 5.0
 #' ```
 #' 
@@ -251,7 +282,7 @@
 #' informant <- 
 #'   informant %>%
 #'   info_columns(
-#'     columns = vars(a),
+#'     columns = a,
 #'     info = "In the range of 1 to 10. (SIMPLE)"
 #'   ) %>%
 #'   info_columns(
@@ -259,7 +290,7 @@
 #'     info = "Time-based values (e.g., `Sys.time()`)."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "date",
+#'     columns = date,
 #'     info = "The date part of `date_time`. (CALC)"
 #'   )
 #' ```
@@ -523,7 +554,8 @@ yaml_write <- function(
 
 #' Display **pointblank** YAML using an agent or a YAML file
 #' 
-#' @description 
+#' @description
+#' 
 #' With **pointblank** YAML, we can serialize an agent's validation plan (with
 #' [yaml_write()]), read it back later with a new agent (with
 #' [yaml_read_agent()]), or perform an interrogation on the target data table
@@ -536,15 +568,19 @@ yaml_write <- function(
 #'
 #' @param agent An *agent* object of class `ptblank_agent`. If an object is
 #'   provided here, then `filename` must not be provided.
+#' 
 #' @param filename The name of the YAML file that contains fields related to an
 #'   *agent*. If a file name is provided here, then *agent* object must not be
 #'   provided in `agent`.
+#' 
 #' @param path An optional path to the YAML file (combined with `filename`).
+#' 
 #' @param expanded Should the written validation expressions for an *agent* be
-#'   expanded such that **tidyselect** and [vars()] expressions for columns are
-#'   evaluated, yielding a validation function per column? By default, this is
-#'   `FALSE` so expressions as written will be retained in the YAML
-#'   representation.
+#'   expanded such that **tidyselect** expressions for columns are evaluated, 
+#'   yielding a validation function per column? By default, this is `FALSE`
+#'   so expressions as written will be retained in the YAML representation.
+#' 
+#' @return Nothing is returned. Instead, text is printed to the console.
 #'   
 #' @section Examples:
 #'
@@ -612,56 +648,46 @@ yaml_agent_string <- function(
     expanded = FALSE
 ) {
   
-  if (is.null(agent) && is.null(filename)) {
-    stop(
-      "An `agent` object or a `filename` for a YAML file must be specified.",
-      call. = FALSE
-    )
-  }
-  
-  if (!is.null(agent) && !is.null(filename)) {
-    stop(
-      "Only `agent` or `filename` should be specified (not both).",
-      call. = FALSE
-    )
-  }
-  
-  if (!is.null(agent)) {
-    
-    # Display the agent's YAML as a nicely formatted string by
-    # generating the YAML (`as_agent_yaml_list() %>% as.yaml()`) and
-    # then emitting it to the console via `message()`
-    message(
-      as_agent_yaml_list(
-        agent = agent,
-        expanded = expanded
-      ) %>%
-        yaml::as.yaml(
-          handlers = list(
-            logical = function(x) {
-              result <- ifelse(x, "true", "false")
-              class(result) <- "verbatim"
-              result
-            }
+  switch(
+    rlang::check_exclusive(agent, filename),
+    agent = {
+      # Display the agent's YAML as a nicely formatted string by
+      # generating the YAML (`as_agent_yaml_list() %>% as.yaml()`) and
+      # then emitting it to the console via `message()`
+      message(
+        as_agent_yaml_list(
+          agent = agent,
+          expanded = expanded
+        ) %>%
+          yaml::as.yaml(
+            handlers = list(
+              logical = function(x) {
+                result <- ifelse(x, "true", "false")
+                class(result) <- "verbatim"
+                result
+              }
+            )
           )
-        )
-    )
-    
-  } else {
-    
-    if (!is.null(path)) {
-      filename <- file.path(path, filename)
+      )
+    },
+    filename = {
+      # Display the agent's YAML as a nicely formatted string by
+      # reading the YAML file specified by `file` (and perhaps `path`)
+      # and then emitting it to the console via `message()`
+      if (!is.null(path)) {
+        filename <- file.path(path, filename)
+      }
+      message(
+        readLines(filename) %>%
+          paste(collapse = "\n")
+      )
     }
-    
-    # Display the agent's YAML as a nicely formatted string by
-    # reading the YAML file specified by `file` (and perhaps `path`)
-    # and then emitting it to the console via `message()`
-    message(readLines(filename) %>% paste(collapse = "\n"))
-  }
+  )
+  
 }
 
-as_vars_fn <- function(columns) {
-  paste0("vars(", columns, ")")
+as_c_fn <- function(columns) {
+  paste0("c(", paste0('"', columns, '"', collapse = ", "), ")")
 }
 
 as_list_preconditions <- function(preconditions) {
@@ -1001,6 +1027,14 @@ as_agent_yaml_list <- function(agent, expanded) {
       dplyr::filter(dplyr::row_number() == 1) %>%
       dplyr::ungroup() %>%
       dplyr::rename(i = i_o)
+    
+    # Temporary conversion of `$label` to list-column
+    step_labels <- split(agent$validation_set$label, agent$validation_set$i_o)
+    step_labels_collapsed <- lapply(step_labels, function(label) {
+      # Collapse `label` when possible
+      if (all(is.na(label)) || all(label == label[1])) label[1] else label
+    })
+    agent_validation_set$label <- unname(step_labels_collapsed)
   
   } else {
     
@@ -1292,16 +1326,16 @@ as_agent_yaml_list <- function(agent, expanded) {
       
     } else if (validation_fn %in% c("rows_distinct", "rows_complete")) {
 
-      if (is.na(step_list$column[[1]][[1]])) {
-        vars_cols <- NULL
-      } else {
-        vars_cols <- as_vars_fn(step_list$column[[1]])
-      }
+      column_text <- 
+        get_column_text(
+          step_list = step_list,
+          expanded = expanded
+        )
       
       lst_step <- 
         list(
           validation_fn = list(
-            columns = vars_cols,
+            columns = column_text,
             preconditions = as_list_preconditions(step_list$preconditions),
             segments = as_list_segments(step_list$seg_expr),
             actions = as_action_levels(
@@ -1489,6 +1523,9 @@ as_agent_yaml_list <- function(agent, expanded) {
 
     # Remove list elements that are representative of defaults
     lst_step <- prune_lst_step(lst_step)
+    
+    # Unlist labels as character vector/scalar
+    lst_step$validation_fn$label <- lst_step$validation_fn$label[[1]]
 
     # Set the top level list-element name to that of
     # the validation function
@@ -1517,15 +1554,18 @@ get_column_text <- function(step_list, expanded) {
     if (!is.na(step_list$column[[1]]) &&
         step_list$column[[1]] == step_list$columns_expr) {
       
-      column_text <- as_vars_fn(step_list$column[[1]])
+      column_text <- as_c_fn(step_list$column[[1]])
       
     } else {
       column_text <- step_list$columns_expr
     }
     
+    # Strip tidyselect namespacing for leaner yaml writing
+    column_text <- gsub("\\btidyselect::", "", column_text)
+    
   } else {
     
-    column_text <- as_vars_fn(columns = step_list$column[[1]])
+    column_text <- as_c_fn(columns = step_list$column[[1]])
   }
   
   column_text
@@ -1572,6 +1612,9 @@ as_informant_yaml_list <- function(informant) {
     lst_locale <- list(locale = informant$locale)
   }
   
+  # Hide private field
+  metadata <- informant$metadata[names(informant$metadata) != "_private"]
+  
   c(
     type = "informant",           # YAML type: `informant`
     lst_read_fn,                  # table-prep formula (stored in key `tbl`)
@@ -1580,7 +1623,7 @@ as_informant_yaml_list <- function(informant) {
     lst_lang,                     # informant language
     lst_locale,                   # informant locale
     lst_meta_snippets,            # informant metadata snippet statements
-    informant$metadata            # informant metadata entries
+    metadata                      # informant metadata entries
   )
 }
 

@@ -45,48 +45,90 @@ test_col_vals_not_between(
 )
 }
 \arguments{
-\item{x}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), Spark DataFrame
+\item{x}{\emph{A pointblank agent or a data table}
+
+\verb{obj:<ptblank_agent>|obj:<tbl_*>} // \strong{required}
+
+A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), Spark DataFrame
 (\code{tbl_spark}), or, an \emph{agent} object of class \code{ptblank_agent} that is
-created with \code{\link[=create_agent]{create_agent()}}.}
+commonly created with \code{\link[=create_agent]{create_agent()}}.}
 
-\item{columns}{The column (or a set of columns, provided as a character
-vector) to which this validation should be applied.}
+\item{columns}{\emph{The target columns}
 
-\item{left, right}{The lower (or left) and upper (or right) boundary values
-for the range. These can be expressed as single values, compatible columns
-given in \code{vars()}, or a combination of both. By default, any column values
-greater than or equal to \code{left} \emph{and} less than or equal to \code{right} will
-fail validation. The inclusivity of the bounds can be modified by the
-\code{inclusive} option.}
+\verb{<tidy-select>} // \strong{required}
 
-\item{inclusive}{A two-element logical value that indicates whether the
-\code{left} and \code{right} bounds should be inclusive. By default, both bounds
-are inclusive.}
+A column-selecting expression, as one would use inside \code{dplyr::select()}.
+Specifies the column (or a set of columns) to which this validation should
+be applied. See the \emph{Column Names} section for more information.}
 
-\item{na_pass}{Should any encountered \code{NA} values be considered as passing
-test units? This is by default \code{FALSE}. Set to \code{TRUE} to give \code{NA}s a pass.}
+\item{left}{\emph{Definition of left bound}
 
-\item{preconditions}{An optional expression for mutating the input table
-before proceeding with the validation. This can either be provided as a
-one-sided R formula using a leading \code{~} (e.g.,
-\code{~ . \%>\% dplyr::mutate(col = col + 10)} or as a function (e.g.,
-\code{function(x) dplyr::mutate(x, col = col + 10)}. See the \emph{Preconditions}
-section for more information.}
+\verb{<value expression>} // \strong{required}
 
-\item{segments}{An optional expression or set of expressions (held in a list)
-that serve to segment the target table by column values. Each expression
-can be given in one of two ways: (1) as column names, or (2) as a two-sided
-formula where the LHS holds a column name and the RHS contains the column
-values to segment on. See the \emph{Segments} section for more details on this.}
+The lower bound for the range. The validation includes this bound
+value (if the first element in \code{inclusive} is \code{TRUE}) in addition to values
+greater than \code{left}. This can be a single value or a compatible column
+given in \code{vars()}.}
 
-\item{actions}{A list containing threshold levels so that the validation step
-can react accordingly when exceeding the set levels. This is to be created
-with the \code{\link[=action_levels]{action_levels()}} helper function.}
+\item{right}{\emph{Definition of right bound}
 
-\item{step_id}{One or more optional identifiers for the single or multiple
-validation steps generated from calling a validation function. The use of
-step IDs serves to distinguish validation steps from each other and provide
-an opportunity for supplying a more meaningful label compared to the step
+\verb{<value expression>} // \strong{required}
+
+The upper bound for the range. The validation includes this
+bound value (if the second element in \code{inclusive} is \code{TRUE}) in addition to
+values lower than \code{right}. This can be a single value or a compatible
+column given in \code{vars()}.}
+
+\item{inclusive}{\emph{Inclusiveness of bounds}
+
+\verb{vector<logical>} // \emph{default:} \code{c(TRUE, TRUE)}
+
+A two-element logical value that indicates whether the \code{left} and \code{right}
+bounds should be inclusive. By default, both bounds are inclusive.}
+
+\item{na_pass}{\emph{Allow missing values to pass validation}
+
+\verb{scalar<logical>} // \emph{default:} \code{FALSE}
+
+Should any encountered \code{NA} values be considered as passing test units? By
+default, this is \code{FALSE}. Set to \code{TRUE} to give \code{NA}s a pass.}
+
+\item{preconditions}{\emph{Input table modification prior to validation}
+
+\verb{<table mutation expression>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional expression for mutating the input table before proceeding with
+the validation. This can either be provided as a one-sided R formula using
+a leading \code{~} (e.g., \code{~ . \%>\% dplyr::mutate(col = col + 10)} or as a
+function (e.g., \code{function(x) dplyr::mutate(x, col = col + 10)}. See the
+\emph{Preconditions} section for more information.}
+
+\item{segments}{\emph{Expressions for segmenting the target table}
+
+\verb{<segmentation expressions>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional expression or set of expressions (held in a list) that serve to
+segment the target table by column values. Each expression can be given in
+one of two ways: (1) as column names, or (2) as a two-sided formula where
+the LHS holds a column name and the RHS contains the column values to
+segment on. See the \emph{Segments} section for more details on this.}
+
+\item{actions}{\emph{Thresholds and actions for different states}
+
+\verb{obj:<action_levels>} // \emph{default:} \code{NULL} (\code{optional})
+
+A list containing threshold levels so that the validation step can react
+accordingly when exceeding the set levels for different states. This is to
+be created with the \code{\link[=action_levels]{action_levels()}} helper function.}
+
+\item{step_id}{\emph{Manual setting of the step ID value}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+One or more optional identifiers for the single or multiple validation
+steps generated from calling a validation function. The use of step IDs
+serves to distinguish validation steps from each other and provide an
+opportunity for supplying a more meaningful label compared to the step
 index. By default this is \code{NULL}, and \strong{pointblank} will automatically
 generate the step ID value (based on the step index) in this case. One or
 more values can be provided, and the exact number of ID values should (1)
@@ -95,43 +137,62 @@ produce (influenced by the number of \code{columns} provided), (2) be an ID
 string not used in any previous validation step, and (3) be a vector with
 unique values.}
 
-\item{label}{An optional label for the validation step. This label appears in
-the \emph{agent} report and for the best appearance it should be kept short.}
+\item{label}{\emph{Optional label for the validation step}
 
-\item{brief}{An optional, text-based description for the validation step. If
+\verb{vector<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+Optional label for the validation step. This label appears in the \emph{agent}
+report and, for the best appearance, it should be kept quite short. See
+the \emph{Labels} section for more information.}
+
+\item{brief}{\emph{Brief description for the validation step}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+A \emph{brief} is a short, text-based description for the validation step. If
 nothing is provided here then an \emph{autobrief} is generated by the \emph{agent},
 using the language provided in \code{\link[=create_agent]{create_agent()}}'s \code{lang} argument (which
 defaults to \code{"en"} or English). The \emph{autobrief} incorporates details of the
 validation step so it's often the preferred option in most cases (where a
 \code{label} might be better suited to succinctly describe the validation).}
 
-\item{active}{A logical value indicating whether the validation step should
-be active. If the validation function is working with an \emph{agent}, \code{FALSE}
-will make the validation step inactive (still reporting its presence and
-keeping indexes for the steps unchanged). If the validation function will
-be operating directly on data (no \emph{agent} involvement), then any step with
-\code{active = FALSE} will simply pass the data through with no validation
-whatsoever. Aside from a logical vector, a one-sided R formula using a
-leading \code{~} can be used with \code{.} (serving as the input data table) to
-evaluate to a single logical value. With this approach, the \strong{pointblank}
-function \code{\link[=has_columns]{has_columns()}} can be used to determine whether to make a
-validation step active on the basis of one or more columns existing in the
-table (e.g., \code{~ . \%>\% has_columns(vars(d, e))}). The default for \code{active}
-is \code{TRUE}.}
+\item{active}{\emph{Is the validation step active?}
 
-\item{object}{A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or Spark
-DataFrame (\code{tbl_spark}) that serves as the target table for the expectation
-function or the test function.}
+\verb{scalar<logical>} // \emph{default:} \code{TRUE}
 
-\item{threshold}{A simple failure threshold value for use with the
-expectation (\code{expect_}) and the test (\code{test_}) function variants. By
-default, this is set to \code{1} meaning that any single unit of failure in data
-validation results in an overall test failure. Whole numbers beyond \code{1}
-indicate that any failing units up to that absolute threshold value will
-result in a succeeding \strong{testthat} test or evaluate to \code{TRUE}. Likewise,
-fractional values (between \code{0} and \code{1}) act as a proportional failure
-threshold, where \code{0.15} means that 15 percent of failing test units results
-in an overall test failure.}
+A logical value indicating whether the validation step should be active. If
+the validation function is working with an \emph{agent}, \code{FALSE} will make the
+validation step inactive (still reporting its presence and keeping indexes
+for the steps unchanged). If the validation function will be operating
+directly on data (no \emph{agent} involvement), then any step with \code{active = FALSE} will simply pass the data through with no validation whatsoever.
+Aside from a logical vector, a one-sided R formula using a leading \code{~} can
+be used with \code{.} (serving as the input data table) to evaluate to a single
+logical value. With this approach, the \strong{pointblank} function
+\code{\link[=has_columns]{has_columns()}} can be used to determine whether to make a validation step
+active on the basis of one or more columns existing in the table
+(e.g., \code{~ . \%>\% has_columns(c(d, e))}).}
+
+\item{object}{\emph{A data table for expectations or tests}
+
+\verb{obj:<tbl_*>} // \strong{required}
+
+A data frame, tibble (\code{tbl_df} or \code{tbl_dbi}), or Spark DataFrame
+(\code{tbl_spark}) that serves as the target table for the expectation function
+or the test function.}
+
+\item{threshold}{\emph{The failure threshold}
+
+\code{scalar<integer|numeric>(val>=0)} // \emph{default:} \code{1}
+
+A simple failure threshold value for use with the expectation (\code{expect_})
+and the test (\code{test_}) function variants. By default, this is set to \code{1}
+meaning that any single unit of failure in data validation results in an
+overall test failure. Whole numbers beyond \code{1} indicate that any failing
+units up to that absolute threshold value will result in a succeeding
+\strong{testthat} test or evaluate to \code{TRUE}. Likewise, fractional values
+(between \code{0} and \code{1}) act as a proportional failure threshold, where \code{0.15}
+means that 15 percent of failing test units results in an overall test
+failure.}
 }
 \value{
 For the validation function, the return value is either a
@@ -162,6 +223,7 @@ test units that is equal to the number of rows in the table (after any
 }
 \section{Supported Input Tables}{
 
+
 The types of data tables that are officially supported are:
 \itemize{
 \item data frames (\code{data.frame}) and tibbles (\code{tbl_df})
@@ -184,15 +246,22 @@ formally tested (so be mindful of this when using unsupported backends with
 
 \section{Column Names}{
 
-If providing multiple column names to \code{columns}, the result will be an
-expansion of validation steps to that number of column names (e.g.,
-\code{vars(col_a, col_b)} will result in the entry of two validation steps). Aside
-from column names in quotes and in \code{vars()}, \strong{tidyselect} helper functions
-are available for specifying columns. They are: \code{starts_with()},
-\code{ends_with()}, \code{contains()}, \code{matches()}, and \code{everything()}.
+
+\code{columns} may be a single column (as symbol \code{a} or string \code{"a"}) or a vector
+of columns (\code{c(a, b, c)} or \code{c("a", "b", "c")}). \code{{tidyselect}} helpers
+are also supported, such as \code{contains("date")} and \code{where(is.double)}. If
+passing an \emph{external vector} of columns, it should be wrapped in \code{all_of()}.
+
+When multiple columns are selected by \code{columns}, the result will be an
+expansion of validation steps to that number of columns (e.g.,
+\code{c(col_a, col_b)} will result in the entry of two validation steps).
+
+Previously, columns could be specified in \code{vars()}. This continues to work,
+but \code{c()} offers the same capability and supersedes \code{vars()} in \code{columns}.
 }
 
 \section{Missing Values}{
+
 
 This validation function supports special handling of \code{NA} values. The
 \code{na_pass} argument will determine whether an \code{NA} value appearing in a test
@@ -200,6 +269,7 @@ unit should be counted as a \emph{pass} or a \emph{fail}. The default of \code{n
 }
 
 \section{Preconditions}{
+
 
 Providing expressions as \code{preconditions} means \strong{pointblank} will preprocess
 the target table during interrogation as a preparatory step. It might happen
@@ -219,6 +289,7 @@ be supplied (e.g., \code{function(x) dplyr::mutate(x, col_b = col_a + 10)}).
 }
 
 \section{Segments}{
+
 
 By using the \code{segments} argument, it's possible to define a particular
 validation with segments (or row slices) of the target table. An optional
@@ -252,6 +323,7 @@ generate a separate version of the target table.
 
 \section{Actions}{
 
+
 Often, we will want to specify \code{actions} for the validation. This argument,
 present in every validation function, takes a specially-crafted list
 object that is best produced by the \code{\link[=action_levels]{action_levels()}} function. Read that
@@ -267,7 +339,25 @@ quarter of the total test units fails, the other \code{stop()}s at the same
 threshold level).
 }
 
+\section{Labels}{
+
+
+\code{label} may be a single string or a character vector that matches the number
+of expanded steps. \code{label} also supports \code{{glue}} syntax and exposes the
+following dynamic variables contextualized to the current step:
+\itemize{
+\item \code{"{.step}"}: The validation step name
+\item \code{"{.col}"}: The current column name
+\item \code{"{.seg_col}"}: The current segment's column name
+\item \code{"{.seg_val}"}: The current segment's value/group
+}
+
+The glue context also supports ordinary expressions for further flexibility
+(e.g., \code{"{toupper(.step)}"}) as long as they return a length-1 string.
+}
+
 \section{Briefs}{
+
 
 Want to describe this validation step in some detail? Keep in mind that this
 is only useful if \code{x} is an \emph{agent}. If that's the case, \code{brief} the agent
@@ -277,6 +367,7 @@ then be automatically generated.
 }
 
 \section{YAML}{
+
 
 A \strong{pointblank} agent can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an agent (with \code{\link[=yaml_read_agent]{yaml_read_agent()}})
@@ -291,7 +382,7 @@ R statement:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent \%>\% 
   col_vals_not_between(
-    columns = vars(a),
+    columns = a,
     left = 1,
     right = 2,
     inclusive = c(TRUE, FALSE),
@@ -308,7 +399,7 @@ YAML representation:
 
 \if{html}{\out{<div class="sourceCode yaml">}}\preformatted{steps:
 - col_vals_not_between:
-    columns: vars(a)
+    columns: c(a)
     left: 1.0
     right: 2.0
     inclusive:
@@ -367,7 +458,7 @@ units (there are 13 test units, one for each row).
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent <-
   create_agent(tbl = small_table) \%>\%
   col_vals_not_between(
-    columns = vars(c),
+    columns = c,
     left = 10, right = 20,
     na_pass = TRUE
   ) \%>\%
@@ -380,7 +471,7 @@ that corresponds to the validation step demonstrated here.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_col_vals_not_between_1.png" alt="This image was generated from the first code example in the `col_vals_not_between()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_col_vals_not_between_1.png" alt="This image was generated from the first code example in the `col_vals_not_between()` help file." style="width:100\%;">
 }
 }
 }
@@ -393,7 +484,7 @@ behavior of side effects can be customized with the \code{actions} option.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table \%>\%
   col_vals_not_between(
-    columns = vars(c),
+    columns = c,
     left = 10, right = 20,
     na_pass = TRUE
   ) \%>\%
@@ -408,7 +499,7 @@ With the \verb{expect_*()} form, we would typically perform one validation at a
 time. This is primarily used in \strong{testthat} tests.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{expect_col_vals_not_between(
-  small_table, columns = vars(c),
+  small_table, columns = c,
   left = 10, right = 20,
   na_pass = TRUE
 )
@@ -422,7 +513,7 @@ us.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table \%>\%
   test_col_vals_not_between(
-    columns = vars(c),
+    columns = c,
     left = 10, right = 20,
     na_pass = TRUE
   )
@@ -439,7 +530,7 @@ In changing the lower bound to be \code{9} and making it non-inclusive, we get
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{small_table \%>\%
   test_col_vals_not_between(
-    columns = vars(c),
+    columns = c,
     left = 9, right = 20,
     inclusive = c(FALSE, TRUE),
     na_pass = TRUE
@@ -472,12 +563,12 @@ Other validation functions:
 \code{\link{col_vals_decreasing}()},
 \code{\link{col_vals_equal}()},
 \code{\link{col_vals_expr}()},
-\code{\link{col_vals_gte}()},
 \code{\link{col_vals_gt}()},
+\code{\link{col_vals_gte}()},
 \code{\link{col_vals_in_set}()},
 \code{\link{col_vals_increasing}()},
-\code{\link{col_vals_lte}()},
 \code{\link{col_vals_lt}()},
+\code{\link{col_vals_lte}()},
 \code{\link{col_vals_make_set}()},
 \code{\link{col_vals_make_subset}()},
 \code{\link{col_vals_not_equal}()},

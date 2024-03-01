@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Are column data greater than a fixed value or data in another column?
 #'
 #' @description
+#' 
 #' The `col_vals_gt()` validation function, the `expect_col_vals_gt()`
 #' expectation function, and the `test_col_vals_gt()` test function all check
 #' whether column values in a table are *greater than* a specified `value` (the
@@ -32,7 +35,148 @@
 #' that is equal to the number of rows in the table (after any `preconditions`
 #' have been applied).
 #' 
+#' @param x *A pointblank agent or a data table*
+#' 
+#'   `obj:<ptblank_agent>|obj:<tbl_*>` // **required**
+#'   
+#'   A data frame, tibble (`tbl_df` or `tbl_dbi`), Spark DataFrame
+#'   (`tbl_spark`), or, an *agent* object of class `ptblank_agent` that is
+#'   commonly created with [create_agent()].
+#'   
+#' @param object *A data table for expectations or tests*
+#' 
+#'   `obj:<tbl_*>` // **required**
+#' 
+#'   A data frame, tibble (`tbl_df` or `tbl_dbi`), or Spark DataFrame
+#'   (`tbl_spark`) that serves as the target table for the expectation function
+#'   or the test function.
+#'   
+#' @param columns *The target columns*
+#' 
+#'   `<tidy-select>` // **required**
+#' 
+#'   A column-selecting expression, as one would use inside `dplyr::select()`.
+#'   Specifies the column (or a set of columns) to which this validation should
+#'   be applied. See the *Column Names* section for more information.
+#'   
+#' @param value *Value for comparison*
+#' 
+#'   `<value expression>` // **required**
+#' 
+#'   A value used for this comparison. This can be a single value or a
+#'   compatible column given in `vars()`. Any column values greater than what is
+#'   specified here will pass validation.
+#'   
+#' @param na_pass *Allow missing values to pass validation*
+#' 
+#'   `scalar<logical>` // *default:* `FALSE`
+#' 
+#'   Should any encountered `NA` values be considered as passing test units? By
+#'   default, this is `FALSE`. Set to `TRUE` to give `NA`s a pass.
+#'   
+#' @param preconditions *Input table modification prior to validation*
+#' 
+#'   `<table mutation expression>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional expression for mutating the input table before proceeding with
+#'   the validation. This can either be provided as a one-sided R formula using
+#'   a leading `~` (e.g., `~ . %>% dplyr::mutate(col = col + 10)` or as a
+#'   function (e.g., `function(x) dplyr::mutate(x, col = col + 10)`. See the
+#'   *Preconditions* section for more information.
+#'   
+#' @param segments *Expressions for segmenting the target table*
+#' 
+#'   `<segmentation expressions>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional expression or set of expressions (held in a list) that serve to
+#'   segment the target table by column values. Each expression can be given in
+#'   one of two ways: (1) as column names, or (2) as a two-sided formula where
+#'   the LHS holds a column name and the RHS contains the column values to
+#'   segment on. See the *Segments* section for more details on this.
+#'   
+#' @param actions *Thresholds and actions for different states*
+#' 
+#'   `obj:<action_levels>` // *default:* `NULL` (`optional`)
+#' 
+#'   A list containing threshold levels so that the validation step can react
+#'   accordingly when exceeding the set levels for different states. This is to
+#'   be created with the [action_levels()] helper function.
+#'   
+#' @param step_id *Manual setting of the step ID value*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   One or more optional identifiers for the single or multiple validation
+#'   steps generated from calling a validation function. The use of step IDs
+#'   serves to distinguish validation steps from each other and provide an
+#'   opportunity for supplying a more meaningful label compared to the step
+#'   index. By default this is `NULL`, and **pointblank** will automatically
+#'   generate the step ID value (based on the step index) in this case. One or
+#'   more values can be provided, and the exact number of ID values should (1)
+#'   match the number of validation steps that the validation function call will
+#'   produce (influenced by the number of `columns` provided), (2) be an ID
+#'   string not used in any previous validation step, and (3) be a vector with
+#'   unique values.
+#'   
+#' @param threshold *The failure threshold*
+#' 
+#'   `scalar<integer|numeric>(val>=0)` // *default:* `1`
+#'   
+#'   A simple failure threshold value for use with the expectation (`expect_`)
+#'   and the test (`test_`) function variants. By default, this is set to `1`
+#'   meaning that any single unit of failure in data validation results in an
+#'   overall test failure. Whole numbers beyond `1` indicate that any failing
+#'   units up to that absolute threshold value will result in a succeeding
+#'   **testthat** test or evaluate to `TRUE`. Likewise, fractional values
+#'   (between `0` and `1`) act as a proportional failure threshold, where `0.15`
+#'   means that 15 percent of failing test units results in an overall test
+#'   failure.
+#'   
+#' @param label *Optional label for the validation step*
+#' 
+#'   `vector<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   Optional label for the validation step. This label appears in the *agent*
+#'   report and, for the best appearance, it should be kept quite short. See
+#'   the *Labels* section for more information.
+#'   
+#' @param brief *Brief description for the validation step*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   A *brief* is a short, text-based description for the validation step. If
+#'   nothing is provided here then an *autobrief* is generated by the *agent*,
+#'   using the language provided in [create_agent()]'s `lang` argument (which
+#'   defaults to `"en"` or English). The *autobrief* incorporates details of the
+#'   validation step so it's often the preferred option in most cases (where a
+#'   `label` might be better suited to succinctly describe the validation).
+#'   
+#' @param active *Is the validation step active?*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   A logical value indicating whether the validation step should be active. If
+#'   the validation function is working with an *agent*, `FALSE` will make the
+#'   validation step inactive (still reporting its presence and keeping indexes
+#'   for the steps unchanged). If the validation function will be operating
+#'   directly on data (no *agent* involvement), then any step with `active =
+#'   FALSE` will simply pass the data through with no validation whatsoever.
+#'   Aside from a logical vector, a one-sided R formula using a leading `~` can
+#'   be used with `.` (serving as the input data table) to evaluate to a single
+#'   logical value. With this approach, the **pointblank** function
+#'   [has_columns()] can be used to determine whether to make a validation step
+#'   active on the basis of one or more columns existing in the table 
+#'   (e.g., `~ . %>% has_columns(c(d, e))`).
+#'   
+#' @return For the validation function, the return value is either a
+#'   `ptblank_agent` object or a table object (depending on whether an *agent*
+#'   object or a table was passed to `x`). The expectation function invisibly
+#'   returns its input but, in the context of testing data, the function is
+#'   called primarily for its potential side-effects (e.g., signaling failure).
+#'   The test function returns a logical value.
+#' 
 #' @section Supported Input Tables:
+#' 
 #' The types of data tables that are officially supported are:
 #' 
 #'  - data frames (`data.frame`) and tibbles (`tbl_df`)
@@ -50,20 +194,28 @@
 #' **pointblank**).
 #'
 #' @section Column Names:
-#' If providing multiple column names to `columns`, the result will be an
-#' expansion of validation steps to that number of column names (e.g.,
-#' `vars(col_a, col_b)` will result in the entry of two validation steps). Aside
-#' from column names in quotes and in `vars()`, **tidyselect** helper functions
-#' are available for specifying columns. They are: `starts_with()`,
-#' `ends_with()`, `contains()`, `matches()`, and `everything()`.
+#' 
+#' `columns` may be a single column (as symbol `a` or string `"a"`) or a vector
+#' of columns (`c(a, b, c)` or `c("a", "b", "c")`). `{tidyselect}` helpers
+#' are also supported, such as `contains("date")` and `where(is.double)`. If
+#' passing an *external vector* of columns, it should be wrapped in `all_of()`.
+#' 
+#' When multiple columns are selected by `columns`, the result will be an
+#' expansion of validation steps to that number of columns (e.g.,
+#' `c(col_a, col_b)` will result in the entry of two validation steps).
+#' 
+#' Previously, columns could be specified in `vars()`. This continues to work, 
+#' but `c()` offers the same capability and supersedes `vars()` in `columns`.
 #'
 #' @section Missing Values:
+#' 
 #' This validation function supports special handling of `NA` values. The
 #' `na_pass` argument will determine whether an `NA` value appearing in a test
 #' unit should be counted as a *pass* or a *fail*. The default of `na_pass =
 #' FALSE` means that any `NA`s encountered will accumulate failing test units.
 #' 
 #' @section Preconditions:
+#' 
 #' Providing expressions as `preconditions` means **pointblank** will preprocess
 #' the target table during interrogation as a preparatory step. It might happen
 #' that a particular validation requires a calculated column, some filtering of
@@ -82,6 +234,7 @@
 #' be supplied (e.g., `function(x) dplyr::mutate(x, col_b = col_a + 10)`).
 #' 
 #' @section Segments:
+#' 
 #' By using the `segments` argument, it's possible to define a particular
 #' validation with segments (or row slices) of the target table. An optional
 #' expression or set of expressions that serve to segment the target table by
@@ -112,6 +265,7 @@
 #' generate a separate version of the target table.
 #' 
 #' @section Actions:
+#' 
 #' Often, we will want to specify `actions` for the validation. This argument,
 #' present in every validation function, takes a specially-crafted list
 #' object that is best produced by the [action_levels()] function. Read that
@@ -126,7 +280,22 @@
 #' quarter of the total test units fails, the other `stop()`s at the same
 #' threshold level).
 #' 
+#' @section Labels:
+#' 
+#' `label` may be a single string or a character vector that matches the number
+#' of expanded steps. `label` also supports `{glue}` syntax and exposes the
+#' following dynamic variables contextualized to the current step:
+#'   
+#' - `"{.step}"`: The validation step name
+#' - `"{.col}"`: The current column name
+#' - `"{.seg_col}"`: The current segment's column name
+#' - `"{.seg_val}"`: The current segment's value/group
+#'     
+#' The glue context also supports ordinary expressions for further flexibility
+#' (e.g., `"{toupper(.step)}"`) as long as they return a length-1 string.
+#' 
 #' @section Briefs:
+#' 
 #' Want to describe this validation step in some detail? Keep in mind that this
 #' is only useful if `x` is an *agent*. If that's the case, `brief` the agent
 #' with some text that fits. Don't worry if you don't want to do it. The
@@ -134,6 +303,7 @@
 #' then be automatically generated.
 #' 
 #' @section YAML:
+#' 
 #' A **pointblank** agent can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
 #' or interrogate the target table (via [yaml_agent_interrogate()]). When
@@ -148,7 +318,7 @@
 #' ```r
 #' agent %>% 
 #'   col_vals_gt(
-#'     columns = vars(a),
+#'     columns = a,
 #'     value = 1,
 #'     na_pass = TRUE,
 #'     preconditions = ~ . %>% dplyr::filter(a < 10),
@@ -164,7 +334,7 @@
 #' ```yaml
 #' steps:
 #' - col_vals_gt:
-#'     columns: vars(a)
+#'     columns: c(a)
 #'     value: 1.0
 #'     na_pass: true
 #'     preconditions: ~. %>% dplyr::filter(a < 10)
@@ -182,82 +352,6 @@
 #' them with their default when generating the YAML by other means). It is also
 #' possible to preview the transformation of an agent to YAML without any
 #' writing to disk by using the [yaml_agent_string()] function.
-#'
-#' @param x A data frame, tibble (`tbl_df` or `tbl_dbi`), Spark DataFrame
-#'   (`tbl_spark`), or, an *agent* object of class `ptblank_agent` that is
-#'   created with [create_agent()].
-#' @param object A data frame, tibble (`tbl_df` or `tbl_dbi`), or Spark
-#'   DataFrame (`tbl_spark`) that serves as the target table for the expectation
-#'   function or the test function.
-#' @param columns The column (or a set of columns, provided as a character
-#'   vector) to which this validation should be applied.
-#' @param value A value used for this comparison. This can be a single value or
-#'   a compatible column given in `vars()`. Any column values greater than what
-#'   is specified here will pass validation.
-#' @param na_pass Should any encountered `NA` values be considered as passing
-#'   test units? This is by default `FALSE`. Set to `TRUE` to give `NA`s a pass.
-#' @param preconditions An optional expression for mutating the input table
-#'   before proceeding with the validation. This can either be provided as a
-#'   one-sided R formula using a leading `~` (e.g.,
-#'   `~ . %>% dplyr::mutate(col = col + 10)` or as a function (e.g.,
-#'   `function(x) dplyr::mutate(x, col = col + 10)`. See the *Preconditions*
-#'   section for more information.
-#' @param segments An optional expression or set of expressions (held in a list)
-#'   that serve to segment the target table by column values. Each expression
-#'   can be given in one of two ways: (1) as column names, or (2) as a two-sided
-#'   formula where the LHS holds a column name and the RHS contains the column
-#'   values to segment on. See the *Segments* section for more details on this.
-#' @param actions A list containing threshold levels so that the validation step
-#'   can react accordingly when exceeding the set levels. This is to be created
-#'   with the [action_levels()] helper function.
-#' @param step_id One or more optional identifiers for the single or multiple
-#'   validation steps generated from calling a validation function. The use of
-#'   step IDs serves to distinguish validation steps from each other and provide
-#'   an opportunity for supplying a more meaningful label compared to the step
-#'   index. By default this is `NULL`, and **pointblank** will automatically
-#'   generate the step ID value (based on the step index) in this case. One or
-#'   more values can be provided, and the exact number of ID values should (1)
-#'   match the number of validation steps that the validation function call will
-#'   produce (influenced by the number of `columns` provided), (2) be an ID
-#'   string not used in any previous validation step, and (3) be a vector with
-#'   unique values.
-#' @param threshold A simple failure threshold value for use with the
-#'   expectation (`expect_`) and the test (`test_`) function variants. By
-#'   default, this is set to `1` meaning that any single unit of failure in data
-#'   validation results in an overall test failure. Whole numbers beyond `1`
-#'   indicate that any failing units up to that absolute threshold value will
-#'   result in a succeeding **testthat** test or evaluate to `TRUE`. Likewise,
-#'   fractional values (between `0` and `1`) act as a proportional failure
-#'   threshold, where `0.15` means that 15 percent of failing test units results
-#'   in an overall test failure.
-#' @param label An optional label for the validation step. This label appears in
-#'   the *agent* report and for the best appearance it should be kept short.
-#' @param brief An optional, text-based description for the validation step. If
-#'   nothing is provided here then an *autobrief* is generated by the *agent*,
-#'   using the language provided in [create_agent()]'s `lang` argument (which
-#'   defaults to `"en"` or English). The *autobrief* incorporates details of the
-#'   validation step so it's often the preferred option in most cases (where a
-#'   `label` might be better suited to succinctly describe the validation).
-#' @param active A logical value indicating whether the validation step should
-#'   be active. If the validation function is working with an *agent*, `FALSE`
-#'   will make the validation step inactive (still reporting its presence and
-#'   keeping indexes for the steps unchanged). If the validation function will
-#'   be operating directly on data (no *agent* involvement), then any step with
-#'   `active = FALSE` will simply pass the data through with no validation
-#'   whatsoever. Aside from a logical vector, a one-sided R formula using a
-#'   leading `~` can be used with `.` (serving as the input data table) to
-#'   evaluate to a single logical value. With this approach, the **pointblank**
-#'   function [has_columns()] can be used to determine whether to make a
-#'   validation step active on the basis of one or more columns existing in the
-#'   table (e.g., `~ . %>% has_columns(vars(d, e))`). The default for `active`
-#'   is `TRUE`.
-#'   
-#' @return For the validation function, the return value is either a
-#'   `ptblank_agent` object or a table object (depending on whether an *agent*
-#'   object or a table was passed to `x`). The expectation function invisibly
-#'   returns its input but, in the context of testing data, the function is
-#'   called primarily for its potential side-effects (e.g., signaling failure).
-#'   The test function returns a logical value.
 #'   
 #' @section Examples:
 #' 
@@ -287,7 +381,7 @@
 #' ```r
 #' agent <-
 #'   create_agent(tbl = tbl) %>%
-#'   col_vals_gt(columns = vars(a), value = 4) %>%
+#'   col_vals_gt(columns = a, value = 4) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -308,7 +402,7 @@
 #' behavior of side effects can be customized with the `actions` option.
 #' 
 #' ```{r}
-#' tbl %>% col_vals_gt(columns = vars(a), value = 4)
+#' tbl %>% col_vals_gt(columns = a, value = 4)
 #' ```
 #'   
 #' ## C: Using the expectation function
@@ -317,7 +411,7 @@
 #' time. This is primarily used in **testthat** tests.
 #' 
 #' ```r
-#' expect_col_vals_gt(tbl, columns = vars(a), value = 4)
+#' expect_col_vals_gt(tbl, columns = a, value = 4)
 #' ```
 #' 
 #' ## D: Using the test function
@@ -326,7 +420,7 @@
 #' us.
 #' 
 #' ```{r}
-#' test_col_vals_gt(tbl, columns = vars(a), value = 4)
+#' test_col_vals_gt(tbl, columns = a, value = 4)
 #' ```
 #' 
 #' @family validation functions
@@ -355,13 +449,10 @@ col_vals_gt <- function(
     active = TRUE
 ) {
 
-  # Get `columns` as a label
-  columns_expr <- 
-    rlang::as_label(rlang::quo(!!enquo(columns))) %>%
-    gsub("^\"|\"$", "", .)
-  
   # Capture the `columns` expression
   columns <- rlang::enquo(columns)
+  # Get `columns` as a label
+  columns_expr <- as_columns_expr(columns)
   
   # Resolve the columns based on the expression
   columns <- resolve_columns(x = x, var_expr = columns, preconditions)
@@ -379,7 +470,7 @@ col_vals_gt <- function(
     secret_agent <-
       create_agent(x, label = "::QUIET::") %>%
       col_vals_gt(
-        columns = columns,
+        columns = tidyselect::all_of(columns),
         value = value,
         na_pass = na_pass,
         preconditions = preconditions,
@@ -420,6 +511,7 @@ col_vals_gt <- function(
   
   # Add one or more validation steps based on the
   # length of the `columns` variable
+  label <- resolve_label(label, columns, segments_list)
   for (i in seq_along(columns)) {
     for (j in seq_along(segments_list)) {
       
@@ -441,7 +533,7 @@ col_vals_gt <- function(
           seg_val = seg_val,
           actions = covert_actions(actions, agent),
           step_id = step_id[i],
-          label = label,
+          label = label[[i, j]],
           brief = brief[i],
           active = active
         )

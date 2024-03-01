@@ -1,32 +1,35 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Set action levels: failure thresholds and functions to invoke
 #' 
 #' @description
+#' 
 #' The `action_levels()` function works with the `actions` argument that is
 #' present in the [create_agent()] function and in every validation step
 #' function (which also has an `actions` argument). With it, we can provide
-#' threshold *fail* levels for any combination of `warn`, `stop`, or `notify`
-#' states.
+#' threshold *failure* values for any combination of `warn`, `stop`, or `notify`
+#' failure states.
 #' 
-#' We can react to any entrance of a state by supplying corresponding functions
+#' We can react to any entering of a state by supplying corresponding functions
 #' to the `fns` argument. They will undergo evaluation at the time when the
 #' matching state is entered. If provided to [create_agent()] then the policies
 #' will be applied to every validation step, acting as a default for the
@@ -43,8 +46,9 @@
 #' to `1`), and, they do so with informative warning or error messages. The
 #' `stop_on_fail()` helper is applied by default when using validation functions
 #' directly on data (more information on this is provided in *Details*).
-#'
+#' 
 #' @details
+#' 
 #' The output of the `action_levels()` call in `actions` will be interpreted
 #' slightly differently if using an *agent* or using validation functions
 #' directly on a data table. For convenience, when working directly on data, any
@@ -55,7 +59,7 @@
 #' `fns` for `stop` or `warn` manually then the stock functions would be
 #' overridden. Furthermore, if `actions` is NULL in this workflow (the default),
 #' **pointblank** will use a `stop_at` value of `1` (providing a detailed,
-#' context-specific error message if there are any *fail* units). We can
+#' context-specific error message if there are any *failing* units). We can
 #' absolutely suppress this automatic stopping behavior by at each validation
 #' step by setting `active = FALSE`. In this interactive data case, there is no
 #' stock function given for `notify_at`. The `notify` failure state is less
@@ -68,21 +72,55 @@
 #' on the entire interrogation, allowing for finer control on side effects and
 #' reducing potential for duplicating any side effects.
 #' 
-#' @param warn_at,stop_at,notify_at The threshold number or fraction of
-#'   test units that can provide a *fail* result before entering the
-#'   `warn`, `stop`, or `notify` failure states. If this a decimal value between
-#'   `0` and `1` then it's a proportional failure threshold (e.g., `0.15`
-#'   indicates that if 15% percent of the test units are found to *fail*,
-#'   then the designated failure state is entered). Absolute values starting
-#'   from `1` can be used instead, and this constitutes an absolute failure
-#'   threshold (e.g., `10` means that if 10 of the test units are found to
-#'   *fail*, the failure state is entered).
-#' @param fns A named list of functions that is to be paired with the
-#'   appropriate failure states. The syntax for this list involves using failure
-#'   state names from the set of `warn`, `stop`, and `notify`. The functions
-#'   corresponding to the failure states are provided as formulas (e.g.,
+#' @param warn_at *Threshold value for the 'warn' failure state*
+#' 
+#'   `scalar<integer|numeric>(val>=0)` // *default:* `NULL` (`optional`)
+#' 
+#'   Either the threshold number or the threshold fraction of *failing* test
+#'   units that result in entering the `warn` failure state.
+#' 
+#' @param stop_at *Threshold value for the 'stop' failure state*
+#' 
+#'   `scalar<integer|numeric>(val>=0)` // *default:* `NULL` (`optional`)
+#' 
+#'   Either the threshold number or the threshold fraction of *failing* test
+#'   units that result in entering the `stop` failure state.
+#' 
+#' @param notify_at *Threshold value for the 'notify' failure state*
+#' 
+#'   `scalar<integer|numeric>(val>=0)` // *default:* `NULL` (`optional`)
+#' 
+#'   Either the threshold number or the threshold fraction of *failing* test
+#'   units that result in entering the `notify` failure state.
+#' 
+#' @param fns *Functions to execute when entering failure states*
+#' 
+#'   `list` // *default:* `NULL` (`optional`)
+#' 
+#'   A named list of functions that is to be paired with the appropriate failure
+#'   states. The syntax for this list involves using failure state names from
+#'   the set of `warn`, `stop`, and `notify`. The functions corresponding to the
+#'   failure states are provided as formulas (e.g., 
 #'   `list(warn = ~ warning("Too many failures."))`. A series of expressions for
 #'   each named state can be used by enclosing the set of statements with `{ }`.
+#' 
+#' @return An `action_levels` object.
+#' 
+#' @section Defining threshold values:
+#' 
+#' Any threshold values supplied for the `warn_at`, `stop_at`, or `notify_at`
+#' arguments correspond to the `warn`, `stop`, and `notify` failure states,
+#' respectively. A threshold value can either relates to an absolute number of
+#' test units or a fraction-of-total test units that are *failing*. Exceeding
+#' the threshold means entering one or more of the `warn`, `stop`, or `notify`
+#' failure states.
+#'
+#' If a threshold value is a decimal value between `0` and `1` then it's a
+#' proportional failure threshold (e.g., `0.15` indicates that if 15 percent of
+#' the test units are found to be *failing*, then the designated failure state
+#' is entered). Absolute values starting from `1` can be used instead, and this
+#' constitutes an absolute failure threshold (e.g., `10` means that if 10 of the
+#' test units are found to be *failing*, the failure state is entered).
 #' 
 #' @section Examples:
 #' 
@@ -116,10 +154,10 @@
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
-#'     columns = vars(a), value = 2
+#'     columns = a, value = 2
 #'   ) %>%
 #'   col_vals_lt(
-#'     columns = vars(d), value = 20000
+#'     columns = d, value = 20000
 #'   ) %>%
 #'   interrogate()
 #' ```
@@ -150,11 +188,11 @@
 #'     actions = al
 #'   ) %>%
 #'   col_vals_gt(
-#'     columns = vars(a), value = 2,
+#'     columns = a, value = 2,
 #'     actions = warn_on_fail(warn_at = 0.5)
 #'   ) %>%
 #'   col_vals_lt(
-#'     columns = vars(d), value = 20000
+#'     columns = d, value = 20000
 #'   ) %>%
 #'   interrogate()
 #' ```
@@ -182,7 +220,7 @@
 #' ```r
 #' small_table %>%
 #'   col_vals_gt(
-#'     columns = vars(a), value = 2,
+#'     columns = a, value = 2,
 #'     actions = warn_on_fail(warn_at = 2)
 #'   )
 #' ```
@@ -218,7 +256,7 @@
 #' 
 #' ```r
 #' small_table %>%
-#'   col_vals_gt(columns = vars(a), value = 2)
+#'   col_vals_gt(columns = a, value = 2)
 #' ```
 #' 
 #' ```
@@ -235,7 +273,7 @@
 #' ```r
 #' small_table %>%
 #'   col_vals_gt(
-#'     columns = vars(a), value = 2,
+#'     columns = a, value = 2,
 #'     actions = stop_on_fail(stop_at = 1)
 #'   )
 #' ```

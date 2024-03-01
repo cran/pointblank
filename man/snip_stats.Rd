@@ -7,11 +7,19 @@
 snip_stats(column, type = c("5num", "7num", "bowley"))
 }
 \arguments{
-\item{column}{The name of the column that contains the target values.}
+\item{column}{\emph{The target column}
 
-\item{type}{The type of summary. By default, the \code{"5num"} keyword is used to
-generate a five-number summary. Two other options provide seven-number
-summaries: \code{"7num"} and \code{"bowley"}.}
+\verb{scalar<character>} // \strong{required}
+
+The name of the column that contains the target values.}
+
+\item{type}{\emph{Type of statistical summary}
+
+\verb{singl-kw:[5num|7num|bowley]} // \emph{default:} \code{"5num"}
+
+The type of summary. By default, the \code{"5num"} keyword is used to generate a
+five-number summary. Two other options provide seven-number summaries:
+\code{"7num"} and \code{"bowley"}.}
 }
 \value{
 A formula needed for \code{\link[=info_snippet]{info_snippet()}}'s \code{fn} argument.
@@ -47,7 +55,7 @@ the snippet into the info text. Note here that the order of the
     label = "An example."
   ) \%>\% 
   info_columns(
-    columns = "d",
+    columns = d,
     `Stats` = "Stats (fivenum): \{stats_d\}."
   ) \%>\%
   info_snippet(
@@ -64,7 +72,7 @@ We can print the \code{informant} object to see the information report.
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_snip_stats_1.png" alt="This image was generated from the first code example in the `snip_stats()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_snip_stats_1.png" alt="This image was generated from the first code example in the `snip_stats()` help file." style="width:100\%;">
 }
 }
 }
@@ -76,8 +84,8 @@ We can print the \code{informant} object to see the information report.
 
 \seealso{
 Other Information Functions: 
-\code{\link{info_columns_from_tbl}()},
 \code{\link{info_columns}()},
+\code{\link{info_columns_from_tbl}()},
 \code{\link{info_section}()},
 \code{\link{info_snippet}()},
 \code{\link{info_tabular}()},

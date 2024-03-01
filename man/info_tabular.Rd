@@ -7,12 +7,21 @@
 info_tabular(x, ...)
 }
 \arguments{
-\item{x}{An informant object of class \code{ptblank_informant}.}
+\item{x}{\emph{The pointblank informant object}
 
-\item{...}{Information entries as a series of named arguments. The names
-refer to subsection titles within the \code{TABLE} section and the values are
-the \emph{info text} (informational text that can be written as Markdown and
-further styled with \emph{Text Tricks}).}
+\verb{obj:<ptblank_informant>} // \strong{required}
+
+A \strong{pointblank} \emph{informant} object that is commonly created through the
+use of the \code{\link[=create_informant]{create_informant()}} function.}
+
+\item{...}{\emph{Information entries}
+
+\verb{<info-text expressions>} // \strong{required}
+
+Information entries as a series of named arguments. The names refer to
+subsection titles within the \code{TABLE} section and the values are the \emph{info
+text} (informational text that can be written as Markdown and further
+styled with \emph{Text Tricks}).}
 }
 \value{
 A \code{ptblank_informant} object.
@@ -27,6 +36,7 @@ providing a series of named arguments (in the form \code{entry_name = "The *info
 table as a whole.
 }
 \section{Info Text}{
+
 
 The \emph{info text} that's used for any of the \verb{info_*()} functions readily
 accepts Markdown formatting, and, there are a few \emph{Text Tricks} that can be
@@ -72,6 +82,7 @@ common being in the form of hexadecimal color values or as CSS color names.
 }
 
 \section{YAML}{
+
 
 A \strong{pointblank} informant can be written to YAML with \code{\link[=yaml_write]{yaml_write()}} and the
 resulting YAML can be used to regenerate an informant (with
@@ -139,7 +150,7 @@ the \code{small_table} dataset.
     `Row Definition` = "A row has randomized values.",
     Source = c(
       "- From the **pointblank** package.",
-      "- [https://rich-iannone.github.io/pointblank/]()"
+      "- [https://rstudio.github.io/pointblank/]()"
      )
    )
 }\if{html}{\out{</div>}}
@@ -152,7 +163,7 @@ Upon printing the \code{informant} object, we see the additions made to the
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_info_tabular_1.png" alt="This image was generated from the first code example in the `info_tabular()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_info_tabular_1.png" alt="This image was generated from the first code example in the `info_tabular()` help file." style="width:100\%;">
 }
 }
 }
@@ -164,8 +175,8 @@ Upon printing the \code{informant} object, we see the additions made to the
 
 \seealso{
 Other Information Functions: 
-\code{\link{info_columns_from_tbl}()},
 \code{\link{info_columns}()},
+\code{\link{info_columns_from_tbl}()},
 \code{\link{info_section}()},
 \code{\link{info_snippet}()},
 \code{\link{snip_highest}()},

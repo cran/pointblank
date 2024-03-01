@@ -1,24 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
+
 
 #' Put the current date into a file name
 #' 
 #' @description
+#' 
 #' This function helps to affix the current date to a filename. This is useful
 #' when writing *agent* and/or *informant* objects to disk as part of a
 #' continuous process. The date can be in terms of UTC time or the local system
@@ -35,15 +39,19 @@
 #' timestamps should approximate the time components affixed to the filenames.
 #' 
 #' @param filename The filename to modify.
+#' 
 #' @param position Where to place the formatted date. This could either be at
 #'   the `"end"` of the filename (the default) or at the `"start"`.
+#'   
 #' @param format A [base::strptime()] format string for formatting the date. By
 #'   default, this is `"%Y-%m-%d"` which expresses the date according to the ISO
 #'   8601 standard (as `YYYY-MM-DD`). Refer to the documentation on
 #'   [base::strptime()] for conversion specifications if planning to use a
 #'   different format string.
+#'   
 #' @param delimiter The delimiter characters to use for separating the date
 #'   string from the original file name.
+#'   
 #' @param utc_time An option for whether to use the current UTC time to
 #'   establish the date (the default, with `TRUE`), or, use the system's local
 #'   time (`FALSE`).
@@ -161,6 +169,7 @@ affix_date <- function(
 #' Put the current datetime into a file name
 #' 
 #' @description
+#' 
 #' This function helps to affix the current datetime to a filename. This is
 #' useful when writing *agent* and/or *informant* objects to disk as part of a
 #' continuous process. The datetime string can be based on the current UTC time
@@ -179,19 +188,24 @@ affix_date <- function(
 #' components affixed to the filenames.
 #' 
 #' @inheritParams affix_date
+#' 
 #' @param position Where to place the formatted datetime. This could either be
 #'   at the `"end"` of the filename (the default) or at the `"start"`.
+#'   
 #' @param format A [base::strptime()] format string for formatting the
 #'   datetime. By default, this is `"%Y-%m-%dT%H:%M:%S"` which expresses the
 #'   date according to the ISO 8601 standard. For example, if the current
 #'   datetime is `2020-12-04 13:11:23`, the formatted string would become
 #'   `"2020-12-04T13:11:23"`. Refer to the documentation on [base::strptime()]
 #'   for conversion specifications if planning to use a different format string.
+#'   
 #' @param delimiter The delimiter characters to use for separating the datetime
 #'   string from the original file name.
+#'   
 #' @param utc_time An option for whether to use the current UTC time to
 #'   establish the datetime (the default, with `TRUE`), or, use the system's
 #'   local time (`FALSE`).
+#'   
 #' @param add_tz Should the time zone (as an offset from UTC) be provided? If
 #'   `TRUE` then the UTC offset will be either provided as `<time>Z` (if
 #'   `utc_time = TRUE`) or `<time>(+/-)hhmm`. By default, this is `FALSE`.

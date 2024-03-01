@@ -16,28 +16,52 @@ get_agent_report(
 )
 }
 \arguments{
-\item{agent}{An agent object of class \code{ptblank_agent}.}
+\item{agent}{\emph{The pointblank agent object}
 
-\item{arrange_by}{A choice to arrange the report table rows by the validation
-step number (\code{"i"}, the default), or, to arrange in descending order by
-severity of the failure state (with \code{"severity"}).}
+\verb{obj:<ptblank_agent>} // \strong{required}
 
-\item{keep}{An option to keep \code{"all"} of the report's table rows (the
+A \strong{pointblank} \emph{agent} object that is commonly created through the use of
+the \code{\link[=create_agent]{create_agent()}} function.}
+
+\item{arrange_by}{\emph{Method of arranging the report's table rows}
+
+\verb{singl-kw:[i|severity]} // \emph{default:} \code{"i"}
+
+A choice to arrange the report table rows by the validation step number
+(\code{"i"}, the default), or, to arrange in descending order by severity of the
+failure state (with \code{"severity"}).}
+
+\item{keep}{\emph{Which table rows should be kept?}
+
+\verb{singl-kw:[all|fail_states]} // \emph{default:} \code{"all"}
+
+An option to keep \code{"all"} of the report's table rows (the
 default), or, keep only those rows that reflect one or more
 \code{"fail_states"}.}
 
-\item{display_table}{Should a display table be generated? If \code{TRUE} (the
-default), and if the \strong{gt} package is installed, a display table for the
-report will be shown in the Viewer. If \code{FALSE}, or if \strong{gt} is not
-available, then a tibble will be returned.}
+\item{display_table}{\emph{Return a display-table report via gt}
 
-\item{size}{The size of the display table, which can be either \code{"standard"}
-(the default) or \code{"small"}. This only applies to a display table (where
+\verb{scalar<logical>} // \emph{default:} \code{TRUE}
+
+Should a display table be generated? If \code{TRUE}, and if the \strong{gt} package
+is installed, a display table for the report will be shown in the Viewer.
+If \code{FALSE}, or if \strong{gt} is not available, then a tibble will be returned.}
+
+\item{size}{\emph{Size option for display-table report}
+
+\verb{scalar<character>} // \emph{default:} \code{"standard"}
+
+The size of the display table, which can be either \code{"standard"} (the
+default) or \code{"small"}. This only applies to a display table (where
 \code{display_table = TRUE}).}
 
-\item{title}{Options for customizing the title of the report. The default is
-the keyword \code{":default:"} which produces generic title text that refers to
-the \strong{pointblank} package in the language governed by the \code{lang} option.
+\item{title}{\emph{Title customization options}
+
+\verb{scalar<character>} // \emph{default:} \code{":default:"}
+
+Options for customizing the title of the report. The default is the keyword
+\code{":default:"} which produces generic title text that refers to the
+\strong{pointblank} package in the language governed by the \code{lang} option.
 Another keyword option is \code{":tbl_name:"}, and that presents the name of the
 table as the title for the report. If no title is wanted, then the
 \code{":none:"} keyword option can be used. Aside from keyword options, text can
@@ -47,17 +71,25 @@ and transformed internally to HTML. To circumvent such a transformation,
 use text in \code{\link[=I]{I()}} to explicitly state that the supplied text should not be
 transformed.}
 
-\item{lang}{The language to use for automatic creation of briefs (short
-descriptions for each validation step) and for the \emph{agent report} (a
-summary table that provides the validation plan and the results from the
-interrogation. By default, \code{NULL} will create English (\code{"en"}) text. Other
-options include French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish
-(\code{"es"}), Portuguese (\code{"pt"}), Turkish (\code{"tr"}), Chinese (\code{"zh"}), Russian
-(\code{"ru"}), Polish (\code{"pl"}), Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch
-(\code{"nl"}). This \code{lang} option will override any previously set language
-setting (e.g., by the \code{\link[=create_agent]{create_agent()}} call).}
+\item{lang}{\emph{Reporting language}
 
-\item{locale}{An optional locale ID to use for formatting values in the
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+The language to use for automatic creation of briefs (short descriptions
+for each validation step) and for the \emph{agent report} (a summary table that
+provides the validation plan and the results from the interrogation. By
+default, \code{NULL} will create English (\code{"en"}) text. Other options include
+French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish (\code{"es"}),
+Portuguese (\code{"pt"}), Turkish (\code{"tr"}), Chinese (\code{"zh"}), Russian (\code{"ru"}),
+Polish (\code{"pl"}), Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch (\code{"nl"}).
+This \code{lang} option will override any previously set language setting (e.g.,
+by the \code{\link[=create_agent]{create_agent()}} call).}
+
+\item{locale}{\emph{Locale for value formatting}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional locale ID to use for formatting values in the
 \emph{agent report} summary table according the locale's rules. Examples include
 \code{"en_US"} for English (United States) and \code{"fr_FR"} for French (France);
 more simply, this can be a language identifier without a country
@@ -179,7 +211,7 @@ greater than \code{4}.
     tbl_name = "small_table",
     label = "An example."
   ) \%>\%
-  col_vals_gt(columns = vars(a), value = 4) \%>\%
+  col_vals_gt(columns = a, value = 4) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 
@@ -209,7 +241,7 @@ report
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_1.png" alt="This image was generated from the first code example in the `get_agent_report()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_agent_report_1.png" alt="This image was generated from the first code example in the `get_agent_report()` help file." style="width:100\%;">
 }
 }
 
@@ -235,7 +267,7 @@ small_report
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_2.png" alt="This image was generated from the second code example in the `get_agent_report()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_agent_report_2.png" alt="This image was generated from the second code example in the `get_agent_report()` help file." style="width:100\%;">
 }
 }
 
@@ -250,7 +282,7 @@ report_title
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_agent_report_3.png" alt="This image was generated from the third code example in the `get_agent_report()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_agent_report_3.png" alt="This image was generated from the third code example in the `get_agent_report()` help file." style="width:100\%;">
 }
 }
 

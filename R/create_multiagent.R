@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Create a **pointblank** *multiagent* object
 #'
-#' @description 
+#' @description
+#' 
 #' Multiple *agents* can be part of a single object called the *multiagent*.
 #' This can be useful when gathering multiple agents that have performed
 #' interrogations in the past (perhaps saved to disk with [x_write_disk()]).
@@ -31,19 +34,33 @@
 #' the interrogation time and it automatically recognizes which validation steps
 #' are equivalent across interrogations.
 #'
-#' @param ... One or more **pointblank** agent objects.
-#' @param lang The language to use for any reporting that will be generated from
-#'   the *multiagent*. (e.g., individual *agent reports*, *multiagent reports*,
+#' @param ... *Pointblank agents*
+#' 
+#'   `<series of obj:<ptblank_agent>>` // **required**
+#' 
+#'   One or more **pointblank** agent objects.
+#' 
+#' @param lang *Reporting language*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   The language to use for any reporting that will be generated from the
+#'   *multiagent*. (e.g., individual *agent reports*, *multiagent reports*,
 #'   etc.). By default, `NULL` will create English (`"en"`) text. Other options
 #'   include French (`"fr"`), German (`"de"`), Italian (`"it"`), Spanish
 #'   (`"es"`), Portuguese (`"pt"`), Turkish (`"tr"`), Chinese (`"zh"`), Russian
 #'   (`"ru"`), Polish (`"pl"`), Danish (`"da"`), Swedish (`"sv"`), and Dutch
 #'   (`"nl"`).
-#' @param locale An optional locale ID to use for formatting values in the
-#'   reporting outputs according the locale's rules. Examples include `"en_US"`
-#'   for English (United States) and `"fr_FR"` for French (France); more simply,
-#'   this can be a language identifier without a country designation, like "es"
-#'   for Spanish (Spain, same as `"es_ES"`).
+#'   
+#' @param locale *Locale for value formatting within reports*
+#' 
+#'   `scalar<character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An optional locale ID to use for formatting values in the reporting outputs
+#'   according the locale's rules. Examples include `"en_US"` for English
+#'   (United States) and `"fr_FR"` for French (France); more simply, this can be
+#'   a language identifier without a country designation, like "es" for Spanish
+#'   (Spain, same as `"es_ES"`).
 #'   
 #' @return A `ptblank_multiagent` object.
 #' 
@@ -90,7 +107,7 @@
 #'     tbl_name = "tbl_1",
 #'     label = "Example table 1."
 #'   ) %>%
-#'   col_vals_gt(columns = vars(a), value = 4) %>%
+#'   col_vals_gt(columns = a, value = 4) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -103,7 +120,7 @@
 #'     tbl_name = "tbl_2",
 #'     label = "Example table 2."
 #'   ) %>%
-#'   col_is_character(columns = vars(b)) %>%
+#'   col_is_character(columns = b) %>%
 #'   interrogate()
 #' ```
 #' 
@@ -143,18 +160,16 @@ create_multiagent <- function(
 ) {
   
   agent_list <- list(...)
-    
+  if (!all(sapply(agent_list, is_ptblank_agent))) {
+    rlang::abort("All components of `...` must be an agent")
+  }
+  agent_list <- rehash_agent_list(agent_list)
   agent_list <- 
     lapply(
       agent_list,
       FUN = function(agent) {
-        
-        # TODO: Ensure that each `agent` in `agent_list` is
-        # actually an agent with `is_ptblank_agent()`
-        
         class(agent) <-
           c(setdiff(class(agent), "ptblank_agent"), "ptblank_agent_i")
-        
         agent
       }
     )
@@ -167,4 +182,51 @@ create_multiagent <- function(
   
   class(agent_series) <- "ptblank_multiagent"
   agent_series
+}
+
+rehash_agent_list <- function(agent_list) {
+  
+  hash_versions <- lapply(agent_list, function(x) {
+    gsub("^.*(-|$)", "", x$validation_set$sha1)
+  })
+  hash_versions <- unique(unlist(hash_versions))
+
+  # agents using any of these hash versions are rehashed
+  to_rehash <- c("")
+    
+  if (any(to_rehash %in% hash_versions) || length(hash_versions) > 1) {
+    lapply(agent_list, rehash_agent)
+  } else {
+    agent_list
+  }
+  
+}
+
+rehash_agent <- function(agent) {
+  
+  cur_hash_version <- get_hash_version()
+  vs <- agent$validation_set
+  
+  new_hash <- sapply(seq_len(nrow(vs)), function(i) {
+    step <- vs[i, ]
+    hash <- step$sha1
+    hash_version <- gsub("^.*(-|$)", "", hash)
+    if (hash_version != cur_hash_version) {
+      # Rehash from validation set, extracting from list-column where necessary
+      hash <- hash_validation_step(
+        assertion_type = step$assertion_type,
+        column = step$column[[1]],
+        values = step$values[[1]],
+        na_pass = step$na_pass,
+        preconditions = step$preconditions[[1]],
+        seg_col = step$seg_col,
+        seg_val = step$seg_val
+      )
+    }
+    hash
+  })
+  
+  agent$validation_set$sha1 <- new_hash
+  agent
+  
 }

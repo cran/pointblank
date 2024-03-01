@@ -1,20 +1,22 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 test_options <- new.env(parent = emptyenv())
@@ -23,7 +25,8 @@ test_options <- new.env(parent = emptyenv())
 
 #' Perform **pointblank** validation testing within R Markdown documents
 #' 
-#' @description 
+#' @description
+#' 
 #' The `validate_rmd()` function sets up a framework for validation testing
 #' within specialized validation code chunks inside an R Markdown document. To
 #' enable this functionality, `validate_rmd()` should be called early within an
@@ -37,14 +40,21 @@ test_options <- new.env(parent = emptyenv())
 #' failures. Clicking the button reveals the otherwise hidden validation
 #' statements and their error messages (if any).
 #'
-#' @param summary If `TRUE` (the default), then there will be a leading summary
-#'   of all validations in the rendered R Markdown document. With `FALSE`, this
-#'   element is not shown.
-#' @param log_to_file An option to log errors to a text file. By default, no
-#'   logging is done but `TRUE` will write log entries to
-#'   `"validation_errors.log"` in the working directory. To both enable logging
-#'   and to specify a file name, include a path to a log file of the desired
-#'   name.
+#' @param summary *Include a validation summary*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   If `TRUE` then there will be a leading summary of all validations in the
+#'   rendered R Markdown document. With `FALSE`, this element is not shown.
+#'   
+#' @param log_to_file *Log validation results to a file*
+#' 
+#'   `scalar<logical|character>` // *default:* `NULL` (`optional`)
+#' 
+#'   An option to log errors to a text file. By default, no logging is done but
+#'   `TRUE` will write log entries to `"validation_errors.log"` in the working
+#'   directory. To both enable logging and to specify a file name, include a
+#'   path to a log file of the desired name.
 #'
 #' @family Planning and Prep
 #' @section Function ID:
@@ -55,7 +65,6 @@ validate_rmd <- function(
     summary = TRUE,
     log_to_file = NULL
 ) {
-  
   
   knitr::opts_hooks$set(
     error = function(options) {
@@ -592,14 +601,16 @@ knitr_chunk_hook <- function(x, options) {
 
 #nocov end
 
-#' The next generation of `stopifnot()`-type functions: `stop_if_not()`
-#'
-#' This is `stopifnot()` but with a twist: it works well as a standalone,
-#' replacement for `stopifnot()` but is also customized for use in validation
-#' checks in R Markdown documents where **pointblank** is loaded. Using
-#' `stop_if_not()` in a code chunk where the `validate = TRUE` option is set
-#' will yield the correct reporting of successes and failures whereas
-#' `stopifnot()` *does not*.
+#' A specialized version of `stopifnot()` for **pointblank**: `stop_if_not()`
+#' 
+#' @description
+#' 
+#' This variation of `stopifnot()` works well as a standalone replacement for
+#' `stopifnot()` but is also customized for use in validation checks in R
+#' Markdown documents where **pointblank** is loaded and [validate_rmd()] is
+#' invoked. Using `stop_if_not()` in a code chunk where the `validate = TRUE`
+#' option is set will yield the correct reporting of successes and failures
+#' whereas `stopifnot()` does not.
 #' 
 #' @param ... R expressions that should each evaluate to (a logical vector of
 #' all) `TRUE`.

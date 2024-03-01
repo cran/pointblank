@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Given an *informant* object, update and incorporate table snippets
 #' 
 #' @description 
+#' 
 #' When the *informant* object has a number of snippets available (by using
 #' [info_snippet()]) and the strings to use them (by using the `info_*()`
 #' functions and `{<snippet_name>}` in the text elements), the process of
@@ -29,7 +32,12 @@
 #' info text, etc.) and we can print the *informant* object or use the
 #' [get_informant_report()] function to see the information report.
 #' 
-#' @param informant An informant object of class `ptblank_informant`.
+#' @param informant *The pointblank informant object*
+#' 
+#'   `obj:<ptblank_informant>` // **required**
+#' 
+#'   A **pointblank** *informant* object that is commonly created through the
+#'   use of the [create_informant()] function.
 #' 
 #' @return A `ptblank_informant` object.
 #' 
@@ -67,7 +75,7 @@
 #'     fn = ~ . %>% ncol()
 #'   ) %>%
 #'   info_columns(
-#'     columns = vars(a),
+#'     columns = a,
 #'     info = "In the range of 1 to 10. ((SIMPLE))"
 #'   ) %>%
 #'   info_columns(
@@ -75,7 +83,7 @@
 #'     info = "Time-based values (e.g., `Sys.time()`)."
 #'   ) %>%
 #'   info_columns(
-#'     columns = "date",
+#'     columns = date,
 #'     info = "The date part of `date_time`. ((CALC))"
 #'   ) %>%
 #'   info_section(
@@ -199,7 +207,7 @@ incorporate <- function(informant) {
       # TODO: Improve the `stop()` message here
       stop(
         "The `read_fn` object must be a function or an R formula.\n",
-        "* A function can be made with `function()` {<table reading code>}.\n",
+        "* A function can be made with `function()` {<tbl reading code>}.\n",
         "* An R formula can also be used, with the expression on the RHS.",
         call. = FALSE
       )
@@ -363,7 +371,7 @@ incorporate <- function(informant) {
   extra_sections <- 
     base::setdiff(
       names(informant$metadata),
-      c("info_label", "table", "columns")
+      c("info_label", "table", "columns", "_private")
     )
   
   metadata_extra <- informant$metadata[extra_sections]

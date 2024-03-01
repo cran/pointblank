@@ -1,25 +1,28 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
 
 
 #' Collect data extracts from a validation step
 #'
 #' @description
+#' 
 #' In an agent-based workflow (i.e., initiating with [create_agent()]), after
 #' interrogation with [interrogate()], we can extract the row data that didn't
 #' pass row-based validation steps with the `get_data_extracts()` function.
@@ -42,13 +45,22 @@
 #' Only functions from that combined set of validation functions can yield data
 #' extracts.
 #'
-#' @param agent An agent object of class `ptblank_agent`. It should have had
-#'   [interrogate()] called on it, such that the validation steps were carried
-#'   out and any sample rows from non-passing validations could potentially be
-#'   available in the object.
-#' @param i The validation step number, which is assigned to each validation
-#'   step by **pointblank** in the order of definition. If `NULL` (the default),
-#'   all data extract tables will be provided in a list object.
+#' @param agent *The pointblank agent object*
+#' 
+#'   `obj:<ptblank_agent>` // **required**
+#' 
+#'   A **pointblank** *agent* object that is commonly created through the use of
+#'   the [create_agent()] function. It should have had [interrogate()] called on
+#'   it, such that the validation steps were carried out and any sample rows
+#'   from non-passing validations could potentially be available in the object.
+#'   
+#' @param i *A validation step number*
+#'   
+#'   `scalar<integer>` // *default:* `NULL` (`optional`)
+#' 
+#'   The validation step number, which is assigned to each validation step by
+#'   **pointblank** in the order of definition. If `NULL` (the default), all
+#'   data extract tables will be provided in a list object.
 #' 
 #' @return A list of tables if `i` is not provided, or, a standalone table if
 #'   `i` is given.
@@ -65,9 +77,9 @@
 #'       dplyr::select(a:f),
 #'     label = "`get_data_extracts()`"
 #'   ) %>%
-#'   col_vals_gt(vars(d), value = 1000) %>%
+#'   col_vals_gt(d, value = 1000) %>%
 #'   col_vals_between(
-#'     columns = vars(c),
+#'     columns = c,
 #'     left = vars(a), right = vars(d),
 #'     na_pass = TRUE
 #'   ) %>%

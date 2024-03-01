@@ -1,26 +1,30 @@
-#
-#                _         _    _      _                _    
-#               (_)       | |  | |    | |              | |   
-#  _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
-# | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
-# | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
-# | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
-# | |                                                        
-# |_|                                                        
+#------------------------------------------------------------------------------#
 # 
-# This file is part of the 'rich-iannone/pointblank' package.
+#                 _         _    _      _                _    
+#                (_)       | |  | |    | |              | |   
+#   _ __    ___   _  _ __  | |_ | |__  | |  __ _  _ __  | | __
+#  | '_ \  / _ \ | || '_ \ | __|| '_ \ | | / _` || '_ \ | |/ /
+#  | |_) || (_) || || | | || |_ | |_) || || (_| || | | ||   < 
+#  | .__/  \___/ |_||_| |_| \__||_.__/ |_| \__,_||_| |_||_|\_\
+#  | |                                                        
+#  |_|                                                        
+#  
+#  This file is part of the 'rstudio/pointblank' project.
+#  
+#  Copyright (c) 2017-2024 pointblank authors
+#  
+#  For full copyright and license information, please look at
+#  https://rstudio.github.io/pointblank/LICENSE.html
 # 
-# (c) Richard Iannone <riannone@me.com>
-# 
-# For full copyright and license information, please look at
-# https://rich-iannone.github.io/pointblank/LICENSE.html
-#
+#------------------------------------------------------------------------------#
+
 
 # nocov start
 
 #' Enable logging of failure conditions at the validation step level
 #' 
-#' @description 
+#' @description
+#' 
 #' The `log4r_step()` function can be used as an action in the [action_levels()]
 #' function (as a list component for the `fns` list). Place a call to this
 #' function in every failure condition that should produce a log (i.e., `warn`,
@@ -28,7 +32,28 @@
 #' given validation step will produce a log entry (skipping failure conditions
 #' with lower severity) so long as the call to `log4r_step()` is present.
 #' 
-#' @section YAML: 
+#' @param x A reference to the x-list object prepared by the `agent`. This
+#'   version of the x-list is the same as that generated via
+#'   `get_agent_x_list(<agent>, i = <step>)` except this version is internally
+#'   generated and hence only available in an internal evaluation context.
+#'   
+#' @param message The message to use for the log entry. When not provided, a
+#'   default glue string is used for the messaging. This is dynamic since the
+#'   internal `glue::glue()` call occurs in the same environment as `x`, the
+#'   x-list that's constrained to the validation step. The default message, used
+#'   when `message = NULL` is the glue string `"Step {x$i} exceeded the {level}
+#'   failure threshold (f_failed = {x$f_failed}) ['{x$type}']"`. As can be seen,
+#'   a custom message can be crafted that uses other elements of the x-list with
+#'   the `{x$<component>}` construction.
+#'   
+#' @param append_to The file to which log entries at the warn level are
+#'   appended. This can alternatively be one or more **log4r** appenders.
+#' 
+#' @return Nothing is returned however log files may be written in very specific
+#'   conditions.
+#' 
+#' @section YAML:
+#' 
 #' A **pointblank** agent can be written to YAML with [yaml_write()] and the
 #' resulting YAML can be used to regenerate an agent (with [yaml_read_agent()])
 #' or interrogate the target table (via [yaml_agent_interrogate()]). Here is an
@@ -76,24 +101,6 @@
 #' of the R expressions that are used to regenerate that agent with
 #' [yaml_agent_show_exprs()].
 #' 
-#' @param x A reference to the x-list object prepared by the `agent`. This
-#'   version of the x-list is the same as that generated via
-#'   `get_agent_x_list(<agent>, i = <step>)` except this version is internally
-#'   generated and hence only available in an internal evaluation context.
-#' @param message The message to use for the log entry. When not provided, a
-#'   default glue string is used for the messaging. This is dynamic since the
-#'   internal `glue::glue()` call occurs in the same environment as `x`, the
-#'   x-list that's constrained to the validation step. The default message, used
-#'   when `message = NULL` is the glue string `"Step {x$i} exceeded the {level}
-#'   failure threshold (f_failed = {x$f_failed}) ['{x$type}']"`. As can be seen,
-#'   a custom message can be crafted that uses other elements of the x-list with
-#'   the `{x$<component>}` construction.
-#' @param append_to The file to which log entries at the warn level are
-#'   appended. This can alternatively be one or more **log4r** appenders.
-#' 
-#' @return Nothing is returned however log files may be written in very specific
-#'   conditions.
-#' 
 #' @section Examples:
 #' 
 #' For the example provided here, we'll use the included `small_table` dataset.
@@ -137,8 +144,8 @@
 #'     label = "An example.",
 #'     actions = al
 #'   ) %>%
-#'   col_vals_gt(columns = vars(d), 300) %>%
-#'   col_vals_in_set(columns = vars(f), c("low", "high")) %>%
+#'   col_vals_gt(columns = d, 300) %>%
+#'   col_vals_in_set(columns = f, c("low", "high")) %>%
 #'   interrogate()
 #' 
 #' agent

@@ -37,20 +37,28 @@ Markdown text and transformed internally to HTML. To circumvent such a
 transformation, use text in \code{\link[=I]{I()}} to explicitly state that the supplied
 text should not be transformed.}
 
-\item{lang}{The language to use for the long or wide report forms. By
-default, \code{NULL} will preserve any language set in the component reports.
-The following options will force the same language across all component
-reports: English (\code{"en"}), French (\code{"fr"}), German (\code{"de"}), Italian
-(\code{"it"}), Spanish (\code{"es"}), Portuguese (\code{"pt"}), Turkish (\code{"tr"}), Chinese
-(\code{"zh"}), Russian (\code{"ru"}), Polish (\code{"pl"}), Danish (\code{"da"}), Swedish
-(\code{"sv"}), and Dutch (\code{"nl"}).}
+\item{lang}{\emph{Reporting language}
 
-\item{locale}{An optional locale ID to use for formatting values in the long
-or wide report forms (according the locale's rules). Examples include
-\code{"en_US"} for English (United States) and \code{"fr_FR"} for French (France);
-more simply, this can be a language identifier without a country
-designation, like \code{"es"} for Spanish (Spain, same as \code{"es_ES"}). This
-\code{locale} option will override any previously set locale values.}
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+The language to use for the long or wide report forms. By default, \code{NULL}
+will preserve any language set in the component reports. The following
+options will force the same language across all component reports: English
+(\code{"en"}), French (\code{"fr"}), German (\code{"de"}), Italian (\code{"it"}), Spanish
+(\code{"es"}), Portuguese (\code{"pt"}), Turkish (\code{"tr"}), Chinese (\code{"zh"}), Russian
+(\code{"ru"}), Polish (\code{"pl"}), Danish (\code{"da"}), Swedish (\code{"sv"}), and Dutch
+(\code{"nl"}).}
+
+\item{locale}{\emph{Locale for value formatting}
+
+\verb{scalar<character>} // \emph{default:} \code{NULL} (\code{optional})
+
+An optional locale ID to use for formatting values in the long or wide
+report forms (according the locale's rules). Examples include \code{"en_US"} for
+English (United States) and \code{"fr_FR"} for French (France); more simply,
+this can be a language identifier without a country designation, like
+\code{"es"} for Spanish (Spain, same as \code{"es_ES"}). This \code{locale} option will
+override any previously set locale values.}
 }
 \value{
 A \strong{gt} table object if \code{display_table = TRUE} or a tibble if
@@ -65,6 +73,7 @@ columns.
 }
 \section{The Long Display}{
 
+
 When displayed as \code{"long"} the multiagent report will stack individual agent
 reports in a single document in the order of the agents in the multiagent
 object.
@@ -75,6 +84,7 @@ of the agents within the multiagent object.
 }
 
 \section{The Wide Display}{
+
 
 When displayed as \code{"wide"} the multiagent report will show data from
 individual agents as columns, with rows standing as validation steps common
@@ -148,32 +158,32 @@ steps are created and the agent will interrogate the \code{small_table}.
     actions = al
   ) \%>\%
   col_vals_gt(
-    columns = vars(date_time),
+    columns = date_time,
     value = vars(date),
     na_pass = TRUE
   ) \%>\%
   col_vals_gt(
-    columns = vars(b), 
+    columns = b, 
     value = vars(g),
     na_pass = TRUE
   ) \%>\%
   rows_distinct() \%>\%
   col_vals_equal(
-    columns = vars(d), 
+    columns = d, 
     value = vars(d),
     na_pass = TRUE
   ) \%>\%
   col_vals_between(
-    columns = vars(c), 
+    columns = c, 
     left = vars(a), right = vars(d)
   ) \%>\%
   col_vals_not_between(
-    columns = vars(c),
+    columns = c,
     left = 10, right = 20,
     na_pass = TRUE
   ) \%>\%
-  rows_distinct(columns = vars(d, e, f)) \%>\%
-  col_is_integer(columns = vars(a)) \%>\%
+  rows_distinct(columns = d, e, f) \%>\%
+  col_is_integer(columns = a) \%>\%
   interrogate()
 }\if{html}{\out{</div>}}
 
@@ -182,9 +192,9 @@ two more (the last of which is inactive).
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent_2 <- 
   agent_1 \%>\%
-  col_exists(columns = vars(date, date_time)) \%>\%
+  col_exists(columns = date, date_time) \%>\%
   col_vals_regex(
-    columns = vars(b), 
+    columns = b, 
     regex = "[0-9]-[a-z]\{3\}-[0-9]\{3\}",
     active = FALSE
   ) \%>\%
@@ -197,7 +207,7 @@ one, and deactivates the first.
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{agent_3 <- 
   agent_2 \%>\%
   col_vals_in_set(
-    columns = vars(f),
+    columns = f,
     set = c("low", "mid", "high")
   ) \%>\%
   remove_steps(i = 5) \%>\%
@@ -248,7 +258,7 @@ report_wide
 
 \if{html}{
 \out{
-<img src="https://raw.githubusercontent.com/rich-iannone/pointblank/main/images/man_get_multiagent_report_1.png" alt="This image was generated from the first code example in the `get_multiagent_report()` help file." style="width:100\%;">
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_multiagent_report_1.png" alt="This image was generated from the first code example in the `get_multiagent_report()` help file." style="width:100\%;">
 }
 }
 }
