@@ -1,6 +1,6 @@
 Type: Package
 Package: pointblank
-Version: 0.12.0
+Version: 0.12.1
 Title: Data Validation and Organization of Metadata for Local and
         Remote Tables
 Description: Validate data in data frames, 'tibble' objects, 'Spark'
@@ -39,10 +39,10 @@ Suggests: arrow, bigrquery, covr, crayon, data.table, duckdb, ggforce,
         ggplot2, jsonlite, log4r, lubridate, RSQLite, RMySQL,
         RPostgres, readr, rmarkdown, sparklyr, dittodb, odbc
 NeedsCompilation: no
-Packaged: 2024-03-01 06:59:43 UTC; riannone
+Packaged: 2024-03-25 16:25:20 UTC; riannone
 Author: Richard Iannone [aut, cre] (<https://orcid.org/0000-0003-3925-190X>),
   Mauricio Vargas [aut] (<https://orcid.org/0000-0003-1017-7574>),
   June Choe [aut] (<https://orcid.org/0000-0002-0701-921X>)
 Maintainer: Richard Iannone <rich@posit.co>
 Repository: CRAN
-Date/Publication: 2024-03-01 08:30:02 UTC
+Date/Publication: 2024-03-25 16:50:02 UTC

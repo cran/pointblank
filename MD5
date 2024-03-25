@@ -1,7 +1,7 @@
-82e515441dac89ae033315d1a7c983f2 *DESCRIPTION
+1033947fa00545d2ae40bf50f28087e8 *DESCRIPTION
 329cd1e3347a89675716a2798b3b9971 *LICENSE
 9f464baf5e015e85478119ca7cfcf82d *NAMESPACE
-16cd06bec3449c726e1e5fc5fa36ba05 *NEWS.md
+505caa4b1275abf703daf88c4839773a *NEWS.md
 c8acaed986b90f99499672c665d6bdbd *R/action_levels.R
 cb2c4d7be613f8a492cb13b27d6a6e24 *R/all_passed.R
 b588bf86b31de98363af5e29b7176d48 *R/col_count_match.R
@@ -51,7 +51,7 @@ d273b1e4e0aa7810c8116ff9d36e581b *R/get_multiagent_report.R
 a2288c7d047a7a87fdfe488b04dbfc4d *R/has_columns.R
 767de04fffa19db1a11d2d28ddbfc5ae *R/incorporate.R
 d88b09d2a7f21475a7cba40a13bc0399 *R/info_add.R
-44d1ee27034acf8921140dfc02f11fa1 *R/interrogate.R
+a16c12ecc49dbcfcac0d728a569b279d *R/interrogate.R
 63706ce74b34b52dae7950529dffd8da *R/logging.R
 27446b69c4e41edb0066516532918739 *R/object_ops.R
 6a975320107c951ea60438b0a2975fdb *R/pipe.R
@@ -76,8 +76,9 @@ d608ae350d24f2b7441276a6edc875bd *R/tbl_from_db.R
 0ec6cfeac41a435495a2fdd364acb8a3 *R/utils-output.R
 a2fc26c9f699420f80ad4f2c67d81eed *R/utils-profiling.R
 249754fdab404351ec6dfa30c637dbf9 *R/utils-specifications.R
+ae36ff13fa9d2875c8d86e81b1e4ade6 *R/utils-tidyselect.R
 f455ff750d23ffd5f8694bba16803f89 *R/utils-translations.R
-7d1376a671912bb372dbd38e5624b8b0 *R/utils.R
+6b31f0d0c12297d55c2ddf4c323b34b4 *R/utils.R
 7af6da48042e68ba1b4c967e0095a1fe *R/validate_rmd.R
 c77ae79b1e0bd63ed423d3b3ab8c15f6 *R/write_testthat_file.R
 efa947c11ea204eecafd142d0e7f5410 *R/yaml_exec.R
@@ -356,8 +357,8 @@ e426c410a03d6488bae42c8e6c1bb8a6 *tests/testthat/test-schema.R
 4b15892eace312473646a6723e481a49 *tests/testthat/test-snip_fns.R
 88b549303c8ac161025e0f3154be1789 *tests/testthat/test-stop_if_not.R
 14bb529ef62a5cfb3fc26f0fba1258dc *tests/testthat/test-tidyselect-yaml_columns.R
-45afe7ca2b02e2159d01ec982c579cf4 *tests/testthat/test-tidyselect_fails_safely.R
-e5f43e6e2d905af88e095c10ecf25f14 *tests/testthat/test-tidyselect_fails_safely_batch.R
+335be4bfcd4a9b89c812cf85f6ab8eb7 *tests/testthat/test-tidyselect_fails_safely.R
+d7edd598af154908002b7d73f380dbaa *tests/testthat/test-tidyselect_fails_safely_batch.R
 ed888b5f8850da7c9a47b093b76712aa *tests/testthat/test-tidyselect_integration.R
 c2dc783bf4c7495d728662f75ba182ec *tests/testthat/test-x_list.R
 efac2ef469c2f6184372b0b2c60fbaa0 *tests/testthat/test_table.csv
