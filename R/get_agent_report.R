@@ -333,11 +333,11 @@ get_agent_report <- function(
       FUN.VALUE = character(1),
       USE.NAMES = FALSE,
       FUN = function(x) {
-        ifelse(
-          is.null(x),
-          NA_character_,
-          unlist(x)
-        )
+        if (is.null(x)) {
+          NA_character_
+        } else {
+          toString(unique(x))
+        }
       }
     )
 
@@ -448,7 +448,10 @@ get_agent_report <- function(
   
   # nocov start
   
-  validation_set <- validation_set[report_tbl$i, ]
+  # resolve `arrange_by` + post-`interrogate()` filtering of `$validation_set`
+  rows_keep <- match(report_tbl$i, validation_set$i)
+  validation_set <- validation_set %>% 
+    dplyr::slice(.env$rows_keep)
   eval <- eval[report_tbl$i]
   extracts <- 
     agent$extracts[
@@ -1187,15 +1190,18 @@ get_agent_report <- function(
           NA_character_
           
         } else {
-          
+
           text <-
-            values_i %>%
-            tidy_gsub(
-              "~",
-              "<span style=\"color: purple;\">&marker;</span>"
-            ) %>%
-            unname()
-          
+            unname(
+              tidy_gsub(
+                values_i,
+                "~",
+                "<span style=\"color: purple;\">&marker;</span>"
+              )
+            )
+            
+          text <- gsub("$", "&dollar;", values_i, fixed = TRUE)
+
           text <- paste(text, collapse = ", ")
           
           if (size == "small") {
@@ -1329,6 +1335,16 @@ get_agent_report <- function(
       FUN.VALUE = character(1),
       USE.NAMES = FALSE,
       FUN = function(x) {
+
+        # Reformat error/warning to string
+        msg_error <- pointblank_cnd_to_string(
+          cnd = agent$validation_set$capture_stack[[x]]$error,
+          pb_call = agent$validation_set$capture_stack[[x]]$pb_call
+        )
+        msg_warning <- pointblank_cnd_to_string(
+          cnd = agent$validation_set$capture_stack[[x]]$warning,
+          pb_call = agent$validation_set$capture_stack[[x]]$pb_call
+        )
         
         if (is.na(eval[x])) {
           
@@ -1352,7 +1368,7 @@ get_agent_report <- function(
           
           text <- 
             htmltools::htmlEscape(
-              agent$validation_set$capture_stack[[x]]$error %>%
+              msg_error %>%
                 tidy_gsub("\"", "'")
             )
           
@@ -1378,7 +1394,7 @@ get_agent_report <- function(
           
           text <- 
             htmltools::htmlEscape(
-              agent$validation_set$capture_stack[[x]]$warning %>%
+              msg_warning %>%
                 tidy_gsub("\"", "'")
             )
           
@@ -1404,7 +1420,7 @@ get_agent_report <- function(
           
           text <-
             htmltools::htmlEscape(
-              agent$validation_set$capture_stack[[x]]$error %>%
+              msg_error %>%
                 tidy_gsub("\"", "'")
             )
           
@@ -2450,4 +2466,18 @@ store_footnote <- function(
       note = note
     )
   )
+}
+
+# Function for formatting error in `$capture_stack`
+pointblank_cnd_to_string <- function(cnd, pb_call) {
+  if (is.null(cnd)) return(character(0))
+  # Reformatting not yet implemented for warnings 
+  if (rlang::is_warning(cnd)) return(cnd)
+  # Reconstruct trimmed down error and rethrow without cli
+  new <- rlang::error_cnd(
+    call = rlang::call2(":::", quote(pointblank), rlang::sym(pb_call)),
+    message = cnd$parent$message %||% cnd$message,
+    use_cli_format = FALSE
+  )
+  as.character(try(rlang::cnd_signal(new), silent = TRUE))
 }

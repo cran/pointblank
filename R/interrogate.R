@@ -44,6 +44,15 @@
 #'   The default is `TRUE` and further options allow for fine control of how
 #'   these rows are collected.
 #'   
+#' @param extract_tbl_checked *Collect validation results from each step*
+#' 
+#'   `scalar<logical>` // *default:* `TRUE`
+#' 
+#'   An option to collect processed data frames produced by executing the
+#'   validation steps. This information is necessary for some functions
+#'   (e.g., `get_sundered_data()`), but may grow to a large size. To opt out
+#'   of attaching this data to the agent, set this argument to `FALSE`.
+#'   
 #' @param get_first_n *Get the first n values*
 #' 
 #'   `scalar<integer>` // *default:* `NULL` (`optional`)
@@ -143,6 +152,7 @@
 interrogate <- function(
     agent,
     extract_failed = TRUE,
+    extract_tbl_checked = TRUE,
     get_first_n = NULL,
     sample_n = NULL,
     sample_frac = NULL,
@@ -300,6 +310,13 @@ interrogate <- function(
           table = table,
           assertion_type = assertion_type
         )
+      
+      if (assertion_type == "col_vals_expr") {
+        # Extract columns from expr and update validation set with used columns
+        expr <- get_values_at_idx(agent = agent, idx = i)[[1]]
+        columns <- all_data_vars(expr, data_cols = colnames(table))
+        agent$validation_set[[i, "column"]] <- list(columns)
+      }
       
     } else if (assertion_type == "conjointly") {
       
@@ -729,6 +746,11 @@ interrogate <- function(
   # all validation steps have been carried out
   class(agent) <- c("has_intel", "ptblank_agent")
   
+  # Drop $tbl_checked if `extract_tbl_checked = FALSE`
+  if (!extract_tbl_checked) {
+    agent$validation_set$tbl_checked <- NULL
+  }
+  
   # Add the ending time to the `agent` object
   agent$time_end <- Sys.time()
   
@@ -1084,8 +1106,9 @@ interrogate_comparison <- function(
   value <- get_values_at_idx(agent = agent, idx = idx)
 
   # Normalize a column in `vars()` to a `name` object
-  if (inherits(value, "list")) {
-    value <- value[1][[1]] %>% rlang::get_expr()
+  if (inherits(value, "list") && rlang::is_quosure(value[1][[1]])) {
+    # Both `vars(col)` and `vars("col")` become `col` for `dplyr::mutate()`
+    value <- rlang::sym(rlang::quo_get_expr(value[1][[1]]))
   }
   
   # Obtain the target column as a label
@@ -1435,10 +1458,10 @@ interrogate_set <- function(
       }
       
       extra_variables <- 
-        base::setdiff(table_col_distinct_values, set)
+        table_col_distinct_values[!table_col_distinct_values %in% set]
       
       table_col_distinct_set <-
-        base::intersect(table_col_distinct_values, set)
+        table_col_distinct_values[table_col_distinct_values %in% set]
 
       dplyr::bind_rows(
         dplyr::tibble(set_element = as.character(set)) %>%
@@ -1510,7 +1533,7 @@ interrogate_set <- function(
       }
       
       table_col_distinct_set <-
-        base::intersect(table_col_distinct_values, set)
+        table_col_distinct_values[table_col_distinct_values %in% set]
       
       dplyr::tibble(set_element = as.character(set)) %>%
         dplyr::left_join(
@@ -2923,6 +2946,13 @@ column_validity_checks_ib_nb <- function(
 
 pointblank_try_catch <- function(expr) {
   
+  call <- rlang::enexpr(expr)
+  call_fn <- if (rlang::is_call_simple(call)) {
+    deparse(call[[1]]) # ex: "tbl_val_comparison"
+  } else {
+    "<internal>"
+  }
+  
   warn <- err <- NULL
   
   value <- 
@@ -2935,7 +2965,8 @@ pointblank_try_catch <- function(expr) {
         invokeRestart("muffleWarning")
       })
   
-  eval_list <- list(value = value, warning = warn, error = err)
+  eval_list <- list(value = value, warning = warn, error = err,
+                    pb_call = call_fn)
 
   class(eval_list) <- "table_eval"
   eval_list
@@ -2955,7 +2986,7 @@ add_reporting_data <- function(
   has_warnings <- !is.null(tbl_checked$warning)
   has_error <- !is.null(tbl_checked$error)
 
-  capture_stack <- tbl_checked[c("warning", "error")]
+  capture_stack <- tbl_checked[c("warning", "error", "pb_call")]
   
   agent$validation_set$eval_warning[idx] <- has_warnings
   agent$validation_set$eval_error[idx] <- has_error
@@ -3143,7 +3174,7 @@ perform_action <- function(
     }
   }
   
-  return(NULL)
+  NULL
 }
 
 perform_end_action <- function(agent) {
@@ -3240,7 +3271,7 @@ perform_end_action <- function(agent) {
     y %>% rlang::f_rhs() %>% rlang::eval_tidy()
   })
   
-  return(NULL)
+  NULL
 }
 
 add_table_extract <- function(

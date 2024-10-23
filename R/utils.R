@@ -165,7 +165,21 @@ get_column_as_sym_at_idx <- function(agent, idx) {
 }
 
 get_values_at_idx <- function(agent, idx) {
-  agent$validation_set[[idx, "values"]] %>% unlist(recursive = FALSE)
+  
+  # Get list-column element (`values` is always a length-1 list)
+  values <- agent$validation_set[[idx, "values"]]
+  
+  # Expressions (via `col_vals_expr()`) and functions (via `specially()`)
+  # can get the old `unlist()` treatment
+  if (rlang::is_expression(values[[1]]) || rlang::is_function(values[[1]])) {
+    values <- unlist(values, recursive = FALSE)
+  } else {
+    # In other cases (e.g., `values`, `left`, `right`), flatten with subsetting
+    # to preserve class
+    values <- values[[1]]
+  }
+  
+  values
 }
 
 get_column_na_pass_at_idx <- function(agent, idx) {
@@ -540,6 +554,64 @@ get_threshold_type <- function(threshold) {
     threshold_type <- "proportional"
   }
 }
+
+# nocov start
+
+all_data_vars <- function(x, data_cols) {
+  deparsed <- paste(deparse(x, width.cutoff = 500L), collapse = " ")
+  reparsed <- parse(text = deparsed, keep.source = TRUE)
+  x <- utils::getParseData(reparsed)
+  if (is.null(x)) return(NA_character_)
+  
+  .data_vars <- pronoun_vars(x, ".data")
+  .env_vars <- pronoun_vars(x, ".env")
+  
+  bare_syms <- x[
+    x$token == "SYMBOL" &
+      !x$text %in% c(".data", ".env") &
+      !x$id %in% c(names(.data_vars), names(.env_vars)),
+    c("id", "text")
+  ]
+  if (nrow(bare_syms) == 0) {
+    all_cols <- unique(.data_vars)
+  } else {
+    unscoped_vars <- bare_syms$text
+    names(unscoped_vars) <- bare_syms$id
+    all_cols <- c(unscoped_vars, .data_vars)
+    all_cols <- all_cols[order(as.integer(names(all_cols)))]
+    all_cols <- unique(all_cols)
+  }
+  
+  all_cols <- all_cols[all_cols %in% data_cols]
+  
+  if (length(all_cols) == 0) {
+    NA_character_
+  } else {
+    sort(all_cols)
+  }
+  
+}
+
+pronoun_vars <- function(x, pronoun = c(".data", ".env")) {
+  pronoun <- match.arg(pronoun)
+  if (!any(x$text == pronoun)) return(character(0))
+  conseq_pronoun <- rle(x$text == pronoun)
+  x$dotdata <- rep(seq_along(conseq_pronoun$values), conseq_pronoun$lengths)
+  x$dotdata <- ifelse(x$text == pronoun, x$dotdata + 1, x$dotdata)
+  dotdata <- lapply(split(x, x$dotdata), function(g) {
+    if (g$text[1] == pronoun && g$token[3] %in% c("'$'", "LBB")) {
+      var <- g$text[4]
+      names(var) <- g$id[4]
+      if (g$token[4] == "STR_CONST") gsub('"', "", var) else var
+    } else {
+      character(0)
+    }
+  })
+  allvars <- unlist(unname(dotdata))
+  allvars
+}
+
+# nocov end
 
 all_validations_fns_vec <- function() {
   
@@ -1149,10 +1221,15 @@ pb_str_catalog <- function(
     oxford = TRUE,
     as_code = TRUE,
     quot_str = NULL,
+    na_rm = FALSE,
     lang = NULL
 ) {
   
   if (is.null(lang)) lang <- "en"
+  
+  if (na_rm) {
+    item_vector <- item_vector[!is.na(item_vector)]
+  }
   
   item_count <- length(item_vector)
 
@@ -1534,8 +1611,8 @@ cli_bullet_msg <- function(
   msg <- glue::glue_collapse(msg, "\n")
   msg <- glue::glue(msg, .envir = .envir)
   
-  if (!is.null(color) && requireNamespace("crayon", quietly = TRUE)) {
-    color_style <- crayon::make_style(color)
+  if (!is.null(color)) {
+    color_style <- cli::make_ansi_style(color)
     bullet <- color_style(bullet)
   }
 
@@ -1556,16 +1633,14 @@ print_time <- function(time_diff_s) {
   
   if (time_diff_s < 1) {
     return("")
-  } else {
-    return(
-      paste0(
-        " {.time_taken (",
-        round(time_diff_s, 1) %>%
-          formatC(format = "f", drop0trailing = FALSE, digits = 1),
-        " s)}"
-      )
-    )
   }
+  
+  paste0(
+    " {.time_taken (",
+    round(time_diff_s, 1) %>%
+      formatC(format = "f", drop0trailing = FALSE, digits = 1),
+    " s)}"
+  )
 }
 
 gt_missing <- 
